@@ -1,0 +1,55 @@
+name: build
+
+# Runs only when started manually from the Actions tab.
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "同时发布 Release"
+        type: boolean
+        default: false
+      version:
+        description: "Release 版本号（如 v1.0.0），仅在发布 Release 时使用"
+        type: string
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build
+        run: dotnet build src/PCLPlus/PCLPlus.csproj -c Release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PCL++
+          path: src/PCLPlus/bin/Release/PCL++.exe
+
+      - name: Check version
+        if: inputs.release
+        shell: pwsh
+        run: |
+          if ('${{ inputs.version }}' -notmatch '^v\d+\.\d+\.\d+$') {
+            Write-Error "发布 Release 需要填写版本号，格式如 v1.0.0"
+            exit 1
+          }
+
+      - name: Publish release
+        if: inputs.release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: PCL++ ${{ inputs.version }}
+          target_commitish: ${{ github.sha }}
+          files: src/PCLPlus/bin/Release/PCL++.exe
+          generate_release_notes: true

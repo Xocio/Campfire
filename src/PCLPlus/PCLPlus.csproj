@@ -1,0 +1,79 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <RootNamespace>PCLPlus</RootNamespace>
+    <AssemblyName>PCL++</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\PCLPlus.ico</ApplicationIcon>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <SatelliteResourceLanguages>none</SatelliteResourceLanguages>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+
+    <Product>PCL++</Product>
+    <AssemblyTitle>PCL++</AssemblyTitle>
+    <Company>Xocio</Company>
+    <Authors>Xocio</Authors>
+    <Description>Enhancement and repair toolkit for Plain Craft Launcher 2.</Description>
+    <Version>1.0.0</Version>
+    <Copyright>Copyright © 2026 Xocio</Copyright>
+    <RepositoryUrl>https://github.com/Xocio/PCLPlus</RepositoryUrl>
+  </PropertyGroup>
+
+  <!-- Release: optimized, no debug data, reproducible, single file. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <Optimize>true</Optimize>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <PathMap>$(MSBuildProjectDirectory)=/_/</PathMap>
+    <!-- The PE header already targets CLR 4; no PCL++.exe.config is needed next to the executable. -->
+    <GenerateSupportedRuntime>false</GenerateSupportedRuntime>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>false</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- dnlib ships inside PCL++.exe (see EmbedDependencies), never next to it. -->
+    <PackageReference Include="dnlib" Version="4.4.0" GeneratePathProperty="true" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net48" Version="1.0.3" PrivateAssets="all" />
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\Logo.png" />
+    <Resource Include="Assets\Avatar.jpg" />
+  </ItemGroup>
+
+  <!--
+    Packs embedded dependencies into one deflate-compressed archive before compilation.
+    EmbeddedAssemblyLoader reads "<name>.dll" entries from it on demand.
+  -->
+  <PropertyGroup>
+    <EmbedStagingDir>$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)$(Configuration)\embedded\</EmbedStagingDir>
+    <EmbedArchive>$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)$(Configuration)\dependencies.zip</EmbedArchive>
+  </PropertyGroup>
+
+  <Target Name="EmbedDependencies" BeforeTargets="BeforeBuild"
+          Inputs="$(Pkgdnlib)\lib\net45\dnlib.dll" Outputs="$(EmbedArchive)">
+    <RemoveDir Directories="$(EmbedStagingDir)" />
+    <Copy SourceFiles="$(Pkgdnlib)\lib\net45\dnlib.dll" DestinationFolder="$(EmbedStagingDir)" />
+    <ZipDirectory SourceDirectory="$(EmbedStagingDir)" DestinationFile="$(EmbedArchive)" Overwrite="true" />
+  </Target>
+
+  <ItemGroup>
+    <EmbeddedResource Include="$(EmbedArchive)" LogicalName="PCLPlus.Dependencies.zip" Visible="false" />
+  </ItemGroup>
+
+</Project>

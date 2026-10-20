@@ -1,0 +1,226 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ======================== Buttons ======================== -->
+
+    <Style x:Key="PclButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource Brush1}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Brush1}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Height" Value="35" />
+        <Setter Property="MinWidth" Value="100" />
+        <Setter Property="Padding" Value="18,0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <ScaleTransform />
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="PanBack"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="3">
+                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          RecognizesAccessKey="True"
+                                          TextElement.Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource Brush3}" />
+                <Setter Property="BorderBrush" Value="{StaticResource Brush3}" />
+                <Setter Property="Background" Value="{StaticResource Brush8}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Trigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="0.95" Duration="0:0:0.08" />
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="0.95" Duration="0:0:0.08" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </Trigger.EnterActions>
+                <Trigger.ExitActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.15" />
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.15" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </Trigger.ExitActions>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{StaticResource BrushGray5}" />
+                <Setter Property="BorderBrush" Value="{StaticResource BrushGray5}" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Cursor" Value="Arrow" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Accent button for the primary action. -->
+    <Style x:Key="PclButtonHighlight" TargetType="Button" BasedOn="{StaticResource PclButton}">
+        <Setter Property="Foreground" Value="{StaticResource Brush3}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Brush3}" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource Brush2}" />
+                <Setter Property="BorderBrush" Value="{StaticResource Brush2}" />
+                <Setter Property="Background" Value="{StaticResource Brush7}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{StaticResource BrushGray5}" />
+                <Setter Property="BorderBrush" Value="{StaticResource BrushGray5}" />
+                <Setter Property="Background" Value="Transparent" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Text-only button, used for secondary links inside cards. -->
+    <Style x:Key="PclTextButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource Brush3}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="Transparent" Padding="2,1">
+                        <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource Brush4}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{StaticResource BrushGray5}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Round icon button on the title bar. -->
+    <Style x:Key="PclTitleBarButton" TargetType="Button">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Foreground" Value="{StaticResource BrushWhite}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}" CornerRadius="16">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#33FFFFFF" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="#55FFFFFF" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ======================== Card ======================== -->
+
+    <Style x:Key="PclCard" TargetType="HeaderedContentControl">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="HeaderedContentControl">
+                    <Border x:Name="PanBack" Background="{StaticResource BrushCard}" CornerRadius="6">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="12" ShadowDepth="1" Opacity="0.12" Color="{StaticResource Color2}" />
+                        </Border.Effect>
+                        <StackPanel>
+                            <TextBlock Margin="15,12,15,0"
+                                       FontSize="13"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource Brush1}"
+                                       Text="{TemplateBinding Header}" />
+                            <ContentPresenter Margin="15,10,15,15" />
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="PanBack" Property="Background" Value="{StaticResource BrushCardHover}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ======================== Hint bar ======================== -->
+
+    <!-- Background is the tint, BorderBrush is the accent stripe and text colour. -->
+    <Style x:Key="PclHint" TargetType="ContentControl">
+        <Setter Property="Background" Value="{StaticResource Brush8}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Brush3}" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Border Background="{TemplateBinding Background}" CornerRadius="3" ClipToBounds="True">
+                        <Grid>
+                            <Rectangle Width="3" HorizontalAlignment="Left" Fill="{TemplateBinding BorderBrush}" />
+                            <ContentPresenter Margin="13,8,12,8" TextElement.Foreground="{TemplateBinding BorderBrush}" />
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PclHintGreen" TargetType="ContentControl" BasedOn="{StaticResource PclHint}">
+        <Setter Property="Background" Value="{StaticResource BrushGreenLight}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BrushGreen}" />
+    </Style>
+
+    <Style x:Key="PclHintRed" TargetType="ContentControl" BasedOn="{StaticResource PclHint}">
+        <Setter Property="Background" Value="{StaticResource BrushRedLight}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BrushRed}" />
+    </Style>
+
+    <!-- ======================== Tooltip ======================== -->
+
+    <Style TargetType="ToolTip">
+        <Setter Property="Foreground" Value="{StaticResource Brush1}" />
+        <Setter Property="FontFamily" Value="{StaticResource FontMain}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToolTip">
+                    <Border Margin="6" Padding="9,5" Background="{StaticResource BrushWhite}"
+                            BorderBrush="{StaticResource Brush5}" BorderThickness="1" CornerRadius="3">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="6" ShadowDepth="1" Opacity="0.15" />
+                        </Border.Effect>
+                        <ContentPresenter />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>
