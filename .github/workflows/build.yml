@@ -12,6 +12,10 @@ on:
         description: "Release 版本号（如 v1.0.0），仅在发布 Release 时使用"
         type: string
         required: false
+      notes:
+        description: "更新日志：多条用 ； 或 | 分隔；也可用 \\n 换行写 Markdown。留空则使用 CHANGELOG.md 中的对应章节"
+        type: string
+        required: false
 
 permissions:
   contents: write
@@ -19,6 +23,10 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      RELEASE: ${{ inputs.release }}
+      VERSION: ${{ inputs.version }}
+      NOTES: ${{ inputs.notes }}
     steps:
       - uses: actions/checkout@v4
 
@@ -26,8 +34,48 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Prepare release notes
+        if: inputs.release
+        shell: pwsh
+        run: |
+          if ($env:VERSION -notmatch '^v\d+\.\d+\.\d+$') {
+            Write-Error "发布 Release 需要填写版本号，格式如 v1.0.0"
+            exit 1
+          }
+
+          $notes = "$env:NOTES".Trim()
+          if ($notes) {
+            if ($notes.Contains('\n')) {
+              # Free-form Markdown, "\n" marks a line break.
+              $body = $notes -split '\\n' | ForEach-Object { $_.TrimEnd() }
+            }
+            else {
+              # One bullet per item, separated by "；", ";" or "|".
+              $items = $notes -split '[；;|]' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+              $body = @('### 更新内容', '') + ($items | ForEach-Object { "- $_" })
+            }
+          }
+          else {
+            # Take the "## <version>" section of CHANGELOG.md, up to the next "## " heading.
+            $lines = Get-Content CHANGELOG.md -Encoding utf8
+            $start = [Array]::IndexOf($lines, "## $env:VERSION")
+            if ($start -lt 0) {
+              Write-Error "没有填写更新日志，CHANGELOG.md 中也没有 “## $env:VERSION” 章节"
+              exit 1
+            }
+            $end = $start + 1
+            while ($end -lt $lines.Count -and -not $lines[$end].StartsWith('## ')) { $end++ }
+            $body = $lines[($start + 1)..($end - 1)]
+          }
+          $body | Set-Content release-notes.md -Encoding utf8
+
       - name: Build
-        run: dotnet build src/PCLPlus/PCLPlus.csproj -c Release
+        shell: pwsh
+        run: |
+          $properties = @()
+          if ($env:RELEASE -eq 'true') { $properties += "-p:Version=$($env:VERSION.TrimStart('v'))" }
+          dotnet build src/PCLPlus/PCLPlus.csproj -c Release @properties
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -35,14 +83,12 @@ jobs:
           name: PCL++
           path: src/PCLPlus/bin/Release/PCL++.exe
 
-      - name: Check version
+      - name: Append checksum
         if: inputs.release
         shell: pwsh
         run: |
-          if ('${{ inputs.version }}' -notmatch '^v\d+\.\d+\.\d+$') {
-            Write-Error "发布 Release 需要填写版本号，格式如 v1.0.0"
-            exit 1
-          }
+          $hash = (Get-FileHash src/PCLPlus/bin/Release/PCL++.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          Add-Content release-notes.md -Encoding utf8 -Value @("", "### 文件校验", "", "``PCL++.exe`` SHA256：``$hash``")
 
       - name: Publish release
         if: inputs.release
@@ -51,5 +97,5 @@ jobs:
           tag_name: ${{ inputs.version }}
           name: PCL++ ${{ inputs.version }}
           target_commitish: ${{ github.sha }}
+          body_path: release-notes.md
           files: src/PCLPlus/bin/Release/PCL++.exe
-          generate_release_notes: true

@@ -88,16 +88,6 @@ dotnet build src/PCLPlus/PCLPlus.csproj -c Release
 
 也可以用 Visual Studio 打开 `PCLPlus.slnx`。
 
-### 云端构建与发布
-
-在仓库的 **Actions → build → Run workflow** 中手动运行：
-
-- 默认只编译，`PCL++.exe` 作为构建产物（Artifacts）提供下载；
-- 勾选“同时发布 Release”并填写版本号（如 `v1.0.0`），会创建对应标签并把 `PCL++.exe` 附加到 Release。
-
-输出文件：`src/PCLPlus/bin/Release/PCL++.exe`。
-
-Release 构建已开启代码优化、确定性构建，并去除调试信息；依赖库 dnlib 以压缩包形式嵌入 exe，运行时按需加载，因此只需分发这一个文件。
 
 ## 项目结构
 
@@ -130,7 +120,3 @@ PCLPlus/
 - PCL++ 是社区项目，与 PCL 及其作者无关。
 - 修复只在本机进行，不上传、不下载任何文件。
 - 问题反馈请提交 [Issue](https://github.com/Xocio/PCLPlus/issues)。
-
----
-
-<p align="center">作者 <a href="https://github.com/Xocio">Xocio</a></p>
