@@ -19,7 +19,7 @@ PCL++ 的第一个版本，提供 PCL 正式版 2.99.0.0 的 Minecraft 下载功
 1. 下载下方的 `PCL++.exe`，放到 `Plain Craft Launcher 2.exe` 所在的文件夹。
 2. 关闭 PCL，打开 PCL++，点击“一键修复”。
 
-运行环境：Windows 10 / 11，.NET Framework 4.8（系统自带）。
+运行环境：Windows 7 SP1 / 8 / 8.1 / 10 / 11，.NET Framework 4.8（与 PCL 2.99 相同）。
 
 ### 注意事项
 
