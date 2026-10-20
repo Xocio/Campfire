@@ -9,6 +9,10 @@
 </p>
 
 <p align="center">
+  <b>简体中文</b> | <a href="README.en.md">English</a>
+</p>
+
+<p align="center">
   <a href="https://github.com/Xocio/PCLPlus/releases/latest"><img src="https://img.shields.io/github/v/release/Xocio/PCLPlus?label=%E4%B8%8B%E8%BD%BD&color=1370F3" alt="Release" /></a>
   <a href="https://github.com/Xocio/PCLPlus/releases"><img src="https://img.shields.io/github/downloads/Xocio/PCLPlus/total?label=%E4%B8%8B%E8%BD%BD%E9%87%8F&color=1370F3" alt="Downloads" /></a>
   <a href="https://github.com/Xocio/PCLPlus/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/Xocio/PCLPlus/build.yml?label=%E6%9E%84%E5%BB%BA" alt="Build" /></a>
@@ -28,6 +32,7 @@
 - ✅ 停用自动更新，避免修复结果被覆盖
 - ✅ 自动备份原启动器，随时一键还原
 - ✅ 单文件、约 0.7 MB，无需安装任何运行库
+- ✅ 中文 / English 界面，跟随系统语言，也可在标题栏切换
 
 ## 使用方法
 
@@ -102,6 +107,7 @@ PCLPlus/
 │  │  ├─ IlEditor.cs             安全的 IL 编辑
 │  │  └─ Patches/                每个修复项一个类
 │  ├─ Launcher/                  启动器检测、修复、还原、进程检查
+│  ├─ Localization/              中英文字符串表
 │  ├─ Themes/                    界面主题
 │  ├─ Assets/                    图标
 │  ├─ MainWindow.xaml            主界面与关于页
@@ -109,7 +115,7 @@ PCLPlus/
 └─ PCLPlus.slnx
 ```
 
-新增修复项：继承 `Patch`，实现 `FindTarget` / `GetState` / `Apply`，再加入 `PatchCatalog.All`。
+新增修复项：继承 `Patch`，实现 `TextKey` / `FindTarget` / `GetState` / `Apply`，加入 `PatchCatalog.All`，并在 `Localization/Text.Chinese.cs` 与 `Text.English.cs` 中添加 `Patch.<TextKey>.Title` / `Description`。
 
 ## 依赖
 

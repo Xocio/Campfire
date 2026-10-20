@@ -1,6 +1,7 @@
 using System.Linq;
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
+using PCLPlus.Localization;
 
 namespace PCLPlus.Patching.Patches
 {
@@ -21,13 +22,12 @@ namespace PCLPlus.Patching.Patches
         private const string MethodName = "UpdateStart";
         private const int HintTypeBlue = 0;
 
+        /// <summary>Shown inside PCL, whose interface is Chinese, so it is not localized.</summary>
         internal const string Message = "PCL++ 已停用启动器自动更新。如需更新，请手动下载新版本后重新运行 PCL++。";
 
-        public override string Title => "停用自动更新";
+        protected override string TextKey => "UpdateBlock";
 
-        public override string Description => "防止启动器自动更新后再次关闭下载功能";
-
-        public override string AppliedText => "已停用";
+        public override string AppliedText => Text.Get("PatchState.Disabled");
 
         public override bool IsRequired => false;
 

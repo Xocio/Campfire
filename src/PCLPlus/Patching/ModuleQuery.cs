@@ -23,7 +23,7 @@ namespace PCLPlus.Patching
         public static TypeDef RequireType(ModuleDef module, string fullName)
         {
             return FindType(module, fullName)
-                ?? throw new PatchException($"找不到类型 {fullName}");
+                ?? throw new PatchException($"type {fullName} not found");
         }
 
         public static MethodDef FindMethod(TypeDef type, string name, int parameterCount)
@@ -40,7 +40,7 @@ namespace PCLPlus.Patching
         public static MethodDef RequireMethod(ModuleDef module, string typeFullName, string name, int parameterCount)
         {
             return FindMethod(module, typeFullName, name, parameterCount)
-                ?? throw new PatchException($"找不到方法 {typeFullName}.{name}（{parameterCount} 个参数）");
+                ?? throw new PatchException($"method {typeFullName}.{name} ({parameterCount} parameters) not found");
         }
 
         /// <summary>Enumerates every method in the module that has an IL body.</summary>
@@ -63,7 +63,7 @@ namespace PCLPlus.Patching
                         return operand;
                 }
             }
-            throw new PatchException($"找不到对 {description} 的引用");
+            throw new PatchException($"no reference to {description} found");
         }
 
         public static IMethod RequireMethodRef(ModuleDef module, string declaringTypeFullName, string name, int parameterCount)
@@ -126,7 +126,7 @@ namespace PCLPlus.Patching
         {
             int index = IndexOf(instructions, match, startIndex);
             if (index < 0)
-                throw new PatchException($"找不到 {description}");
+                throw new PatchException($"{description} not found");
             return index;
         }
     }

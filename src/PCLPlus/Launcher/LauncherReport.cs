@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using PCLPlus.Localization;
 using PCLPlus.Patching;
 
 namespace PCLPlus.Launcher
@@ -8,14 +9,15 @@ namespace PCLPlus.Launcher
     /// </summary>
     internal sealed class LauncherReport
     {
-        public LauncherReport(string path, string version, LauncherStatus status, string message,
-            IReadOnlyList<PatchReport> patches)
+        public LauncherReport(string path, string version, LauncherStatus status,
+            IReadOnlyList<PatchReport> patches, string messageKey, params object[] messageArgs)
         {
             Path = path;
             Version = version;
             Status = status;
-            Message = message;
             Patches = patches;
+            MessageKey = messageKey;
+            MessageArgs = messageArgs;
         }
 
         public string Path { get; }
@@ -25,35 +27,38 @@ namespace PCLPlus.Launcher
 
         public LauncherStatus Status { get; }
 
-        /// <summary>User-facing explanation of <see cref="Status"/>.</summary>
-        public string Message { get; }
-
         public IReadOnlyList<PatchReport> Patches { get; }
 
         public bool CanFix => Status == LauncherStatus.Blocked;
+
+        /// <summary>User-facing explanation of <see cref="Status"/>, in the current display language.</summary>
+        public string Message => Text.Format(MessageKey, MessageArgs);
+
+        internal string MessageKey { get; }
+
+        internal object[] MessageArgs { get; }
     }
 
     /// <summary>
-    /// State of one patch inside a <see cref="LauncherReport"/>.
+    /// State of one patch inside a <see cref="LauncherReport"/>. Texts follow the current display language.
     /// </summary>
     internal sealed class PatchReport
     {
+        private readonly Patch _patch;
+
         public PatchReport(Patch patch, PatchState state)
         {
-            Title = patch.Title;
-            Description = patch.Description;
-            AppliedText = patch.AppliedText;
-            IsRequired = patch.IsRequired;
+            _patch = patch;
             State = state;
         }
 
-        public string Title { get; }
+        public string Title => _patch.Title;
 
-        public string Description { get; }
+        public string Description => _patch.Description;
 
-        public string AppliedText { get; }
+        public string AppliedText => _patch.AppliedText;
 
-        public bool IsRequired { get; }
+        public bool IsRequired => _patch.IsRequired;
 
         public PatchState State { get; }
     }

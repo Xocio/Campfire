@@ -18,9 +18,7 @@ namespace PCLPlus.Patching.Patches
         private const string VersionListLoaderField = "DlClientListLoader";
         private const string LoaderTaskType = "PCL.ModLoader/LoaderTask`2";
 
-        public override string Title => "Minecraft 版本列表";
-
-        public override string Description => "恢复“下载”页的游戏版本列表与安装功能";
+        protected override string TextKey => "VersionList";
 
         protected override MethodDef FindTarget(ModuleDef module)
         {
@@ -44,12 +42,12 @@ namespace PCLPlus.Patching.Patches
             // ldstr "关闭下载" ... newobj LoaderTask`2::.ctor  →  ldsfld ModDownload::DlClientListLoader
             int start = ModuleQuery.RequireIndex(instructions,
                 i => ModuleQuery.IsLdstr(i, LauncherSignature.DisabledLoaderName),
-                "占位加载器的名称");
+                "placeholder loader name");
             int end = ModuleQuery.RequireIndex(instructions, IsLoaderTaskConstruction,
-                "占位加载器的构造", start);
+                "placeholder loader construction", start);
 
             var loaderField = ModuleQuery.RequireType(module, DownloadModuleType).FindField(VersionListLoaderField)
-                ?? throw new PatchException($"找不到字段 {DownloadModuleType}.{VersionListLoaderField}");
+                ?? throw new PatchException($"field {DownloadModuleType}.{VersionListLoaderField} not found");
 
             IlEditor.ReplaceRange(target.Body, start, end, new[]
             {
