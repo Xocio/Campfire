@@ -12,7 +12,7 @@
   <a href="https://github.com/Xocio/PCLPlus/releases/latest"><img src="https://img.shields.io/github/v/release/Xocio/PCLPlus?label=%E4%B8%8B%E8%BD%BD&color=1370F3" alt="Release" /></a>
   <a href="https://github.com/Xocio/PCLPlus/releases"><img src="https://img.shields.io/github/downloads/Xocio/PCLPlus/total?label=%E4%B8%8B%E8%BD%BD%E9%87%8F&color=1370F3" alt="Downloads" /></a>
   <a href="https://github.com/Xocio/PCLPlus/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/Xocio/PCLPlus/build.yml?label=%E6%9E%84%E5%BB%BA" alt="Build" /></a>
-  <img src="https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%2010%20%7C%2011-0B5BCB" alt="Platform" />
+  <img src="https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%207%20%7C%208%20%7C%2010%20%7C%2011-0B5BCB" alt="Platform" />
 </p>
 
 <p align="center">
@@ -41,7 +41,7 @@
 
 修复完成后直接启动 PCL 即可。修复前的启动器保存在同一文件夹下的 `Plain Craft Launcher 2.exe.bak`，需要时点击 **还原**。
 
-**运行环境**：Windows 10 / 11，.NET Framework 4.8（系统自带；能运行 PCL 的电脑就能运行 PCL++）。
+**运行环境**：Windows 7 SP1 / 8 / 8.1 / 10 / 11，.NET Framework 4.8。PCL 2.99 本身同样需要 .NET Framework 4.8，能运行 PCL 的电脑就能运行 PCL++。Windows 10 / 11 已自带，Windows 7 / 8 如未安装请从[微软官网](https://dotnet.microsoft.com/download/dotnet-framework/net48)下载。
 
 ## 支持的版本
 
