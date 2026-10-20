@@ -1,0 +1,17 @@
+# Build output
+bin/
+obj/
+artifacts/
+*.user
+*.suo
+
+# IDE
+.vs/
+.idea/
+.vscode/
+
+# Binaries: launchers, their backups and third-party libraries must never be committed
+*.dll
+*.exe
+*.exe.bak
+*.pclpp.tmp
