@@ -13,6 +13,10 @@
 </p>
 
 <p align="center">
+  Friends: <a href="https://linux.do">LINUX DO</a>
+</p>
+
+<p align="center">
   <a href="https://github.com/Xocio/PCLPlus/releases/latest"><img src="https://img.shields.io/github/v/release/Xocio/PCLPlus?label=download&color=1370F3" alt="Release" /></a>
   <a href="https://github.com/Xocio/PCLPlus/releases"><img src="https://img.shields.io/github/downloads/Xocio/PCLPlus/total?label=downloads&color=1370F3" alt="Downloads" /></a>
   <a href="https://github.com/Xocio/PCLPlus/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/Xocio/PCLPlus/build.yml?label=build" alt="Build" /></a>

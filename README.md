@@ -13,6 +13,10 @@
 </p>
 
 <p align="center">
+  友情链接：<a href="https://linux.do">LINUX DO</a>
+</p>
+
+<p align="center">
   <a href="https://github.com/Xocio/PCLPlus/releases/latest"><img src="https://img.shields.io/github/v/release/Xocio/PCLPlus?label=%E4%B8%8B%E8%BD%BD&color=1370F3" alt="Release" /></a>
   <a href="https://github.com/Xocio/PCLPlus/releases"><img src="https://img.shields.io/github/downloads/Xocio/PCLPlus/total?label=%E4%B8%8B%E8%BD%BD%E9%87%8F&color=1370F3" alt="Downloads" /></a>
   <a href="https://github.com/Xocio/PCLPlus/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/Xocio/PCLPlus/build.yml?label=%E6%9E%84%E5%BB%BA" alt="Build" /></a>
