@@ -30,9 +30,7 @@ namespace PCLPlus.Patching.Patches
         private const string ThreadName = "Modpack Install";
         private const int ThreadPriorityNormal = 2;
 
-        public override string Title => "手动安装整合包";
-
-        public override string Description => "恢复“安装整合包”按钮的文件选择功能";
+        protected override string TextKey => "ModpackPicker";
 
         protected override MethodDef FindTarget(ModuleDef module)
         {
@@ -52,11 +50,11 @@ namespace PCLPlus.Patching.Patches
         {
             var modpackType = ModuleQuery.RequireType(module, ModpackType);
             var installFromFile = ModuleQuery.FindMethod(modpackType, MethodName, 3)
-                ?? throw new PatchException("找不到整合包安装方法");
+                ?? throw new PatchException("modpack installer method not found");
 
             var closure = FindClosure(modpackType, installFromFile);
             var closureCtor = closure.FindDefaultConstructor()
-                ?? throw new PatchException("整合包闭包缺少构造函数");
+                ?? throw new PatchException("modpack closure has no default constructor");
             var fileField = closure.FindField(ClosureFileField);
             var lambda = closure.Methods.First(m => CallsMethod(m, installFromFile));
 
@@ -116,7 +114,7 @@ namespace PCLPlus.Patching.Patches
             return modpackType.NestedTypes.FirstOrDefault(t =>
                        t.FindField(ClosureFileField)?.FieldType.ElementType == ElementType.String
                        && t.Methods.Any(m => CallsMethod(m, installFromFile)))
-                ?? throw new PatchException("找不到整合包安装的闭包");
+                ?? throw new PatchException("modpack install closure not found");
         }
 
         private static bool CallsMethod(MethodDef method, MethodDef callee)
@@ -155,7 +153,7 @@ namespace PCLPlus.Patching.Patches
                     }
                 }
             }
-            throw new PatchException("找不到文件选择对话框的调用方式");
+            throw new PatchException("no SelectFile call site found");
         }
 
         private sealed class SelectFileCall

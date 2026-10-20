@@ -1,5 +1,6 @@
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
+using PCLPlus.Localization;
 
 namespace PCLPlus.Patching
 {
@@ -8,14 +9,17 @@ namespace PCLPlus.Patching
     /// </summary>
     internal abstract class Patch
     {
+        /// <summary>Identifier used for the localized title and description ("Patch.{TextKey}.Title").</summary>
+        protected abstract string TextKey { get; }
+
         /// <summary>Short title shown in the UI.</summary>
-        public abstract string Title { get; }
+        public string Title => Text.Get($"Patch.{TextKey}.Title");
 
         /// <summary>One-sentence explanation shown in the UI.</summary>
-        public abstract string Description { get; }
+        public string Description => Text.Get($"Patch.{TextKey}.Description");
 
         /// <summary>State text shown once the patch has been applied by PCL++.</summary>
-        public virtual string AppliedText => "已恢复";
+        public virtual string AppliedText => Text.Get("PatchState.Restored");
 
         /// <summary>
         /// Whether this patch is required to restore the download feature.
@@ -41,9 +45,9 @@ namespace PCLPlus.Patching
         public void Apply(ModuleDef module)
         {
             var target = FindTarget(module)
-                ?? throw new PatchException($"“{Title}”的修改位置不存在");
+                ?? throw new PatchException($"patch point of {TextKey} not found");
             if (GetState(module, target) != PatchState.Pending)
-                throw new PatchException($"“{Title}”不需要修改");
+                throw new PatchException($"{TextKey} is not pending");
 
             var body = target.Body;
             body.SimplifyBranches();

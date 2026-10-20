@@ -47,9 +47,7 @@ namespace PCLPlus.Patching.Patches
         private static readonly InstallerCase FallbackInstaller =
             new InstallerCase(-1, "InstallPackCompress", "未能识别，假定为压缩包");
 
-        public override string Title => "整合包安装";
-
-        public override string Description => "恢复 CurseForge、Modrinth、MCBBS 等整合包的安装";
+        protected override string TextKey => "ModpackDispatch";
 
         protected override MethodDef FindTarget(ModuleDef module)
         {
@@ -73,13 +71,13 @@ namespace PCLPlus.Patching.Patches
 
             // Locate "throw new Exception(<block message>)".
             int start = ModuleQuery.RequireIndex(instructions,
-                i => ModuleQuery.IsLdstr(i, LauncherSignature.IsBlockMessage), "禁用提示");
+                i => ModuleQuery.IsLdstr(i, LauncherSignature.IsBlockMessage), "disabled-feature message");
             int end = start + 2;
             if (end >= instructions.Count
                 || instructions[start + 1].OpCode.Code != Code.Newobj
                 || instructions[end].OpCode.Code != Code.Throw)
             {
-                throw new PatchException("整合包安装的禁用代码结构与预期不符");
+                throw new PatchException("unexpected layout around the disabled modpack dispatch");
             }
 
             var locals = FindLocals(target);
@@ -87,16 +85,16 @@ namespace PCLPlus.Patching.Patches
                 .Where(i => ModuleQuery.IsCallTo(i, LoggerType, "Info"))
                 .Select(i => (IMethod)i.Operand)
                 .FirstOrDefault(m => m.MethodSig.Params.Count == 3)
-                ?? throw new PatchException("找不到日志方法");
+                ?? throw new PatchException("logger method not found");
 
             // The throw sits inside a try/finally that disposes the archive; the result is returned after it.
             var finallyHandler = body.ExceptionHandlers.FirstOrDefault(h =>
                     h.HandlerType == ExceptionHandlerType.Finally
                     && instructions.IndexOf(h.TryStart) <= start
                     && instructions.IndexOf(h.TryEnd) > end)
-                ?? throw new PatchException("找不到释放压缩包的 finally 块");
+                ?? throw new PatchException("finally block that disposes the archive not found");
             if (finallyHandler.HandlerEnd != null)
-                throw new PatchException("finally 块之后存在其他代码，结构与预期不符");
+                throw new PatchException("unexpected code after the finally block");
 
             var returnResult = Instruction.Create(OpCodes.Ldloc, locals.Result);
             var fallbackLabel = Instruction.Create(OpCodes.Nop);
@@ -136,7 +134,7 @@ namespace PCLPlus.Patching.Patches
             MethodLocals locals, IMethod logInfo, Instruction exit)
         {
             var method = modpackType.Methods.FirstOrDefault(m => m.Name == installer.MethodName)
-                ?? throw new PatchException($"找不到整合包安装方法 {installer.MethodName}");
+                ?? throw new PatchException($"installer {installer.MethodName} not found");
 
             // Installers share a common leading parameter list: (file, archive, baseFolder, instanceName, logo).
             var arguments = new Instruction[]
@@ -149,7 +147,7 @@ namespace PCLPlus.Patching.Patches
             };
             int parameterCount = method.MethodSig.Params.Count;
             if (parameterCount < 2 || parameterCount > arguments.Length)
-                throw new PatchException($"整合包安装方法 {installer.MethodName} 的参数与预期不符");
+                throw new PatchException($"unexpected parameters of installer {installer.MethodName}");
 
             yield return Instruction.Create(OpCodes.Ldstr, "[ModPack] 整合包种类：" + installer.DisplayName);
             yield return Instruction.Create(OpCodes.Ldc_I4_0);
@@ -190,7 +188,7 @@ namespace PCLPlus.Patching.Patches
             }
 
             if (result == null || archive == null || kind == null || baseFolder == null)
-                throw new PatchException("整合包安装方法的局部变量与预期不符");
+                throw new PatchException("unexpected local variables in the modpack installer");
 
             var parameters = method.Parameters;
             return new MethodLocals(result, archive, kind, baseFolder,

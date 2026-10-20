@@ -21,7 +21,7 @@
     <Company>Xocio</Company>
     <Authors>Xocio</Authors>
     <Description>Enhancement and repair toolkit for Plain Craft Launcher 2.</Description>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Copyright>Copyright © 2026 Xocio</Copyright>
     <RepositoryUrl>https://github.com/Xocio/PCLPlus</RepositoryUrl>
   </PropertyGroup>

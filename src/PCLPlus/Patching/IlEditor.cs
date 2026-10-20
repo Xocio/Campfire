@@ -20,7 +20,7 @@ namespace PCLPlus.Patching
         {
             var instructions = body.Instructions;
             if (start < 0 || end < start || end >= instructions.Count || replacement.Count == 0)
-                throw new PatchException("替换范围无效");
+                throw new PatchException("invalid replacement range");
 
             var removed = new HashSet<Instruction>();
             for (int i = start + 1; i <= end; i++)
@@ -77,9 +77,9 @@ namespace PCLPlus.Patching
 
                 var operand = instructions[i].Operand;
                 if (operand is Instruction target && removed.Contains(target))
-                    throw new PatchException("目标代码被外部跳转引用，结构与预期不符");
+                    throw new PatchException("target code is referenced by a branch from outside the range");
                 if (operand is Instruction[] targets && targets.Any(removed.Contains))
-                    throw new PatchException("目标代码被外部跳转引用，结构与预期不符");
+                    throw new PatchException("target code is referenced by a branch from outside the range");
             }
 
             foreach (var handler in body.ExceptionHandlers)
@@ -88,7 +88,7 @@ namespace PCLPlus.Patching
                     || removed.Contains(handler.HandlerStart) || removed.Contains(handler.HandlerEnd)
                     || removed.Contains(handler.FilterStart))
                 {
-                    throw new PatchException("目标代码位于异常处理边界上，结构与预期不符");
+                    throw new PatchException("target code lies on an exception handler boundary");
                 }
             }
         }

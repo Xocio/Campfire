@@ -1,12 +1,13 @@
 using System.Windows;
 using System.Windows.Media;
 using PCLPlus.Launcher;
+using PCLPlus.Localization;
 using PCLPlus.Patching;
 
 namespace PCLPlus
 {
     /// <summary>
-    /// Display model of one patch in the "修复内容" card.
+    /// Display model of one patch in the "Repairs" card. Rebuilt whenever the display language changes.
     /// </summary>
     internal sealed class PatchRow
     {
@@ -39,13 +40,14 @@ namespace PCLPlus
             {
                 case PatchState.Applied:
                     return new PatchRow(report.Title, report.Description,
-                        launcherStatus == LauncherStatus.Patched ? report.AppliedText : "正常",
+                        launcherStatus == LauncherStatus.Patched ? report.AppliedText : Text.Get("PatchState.Normal"),
                         Resource("BrushGreen"), CheckIcon);
                 case PatchState.Pending:
-                    return new PatchRow(report.Title, report.Description, "待修复", Resource("Brush3"), PendingIcon);
+                    return new PatchRow(report.Title, report.Description,
+                        Text.Get("PatchState.Pending"), Resource("Brush3"), PendingIcon);
                 default:
                     return new PatchRow(report.Title, report.Description,
-                        launcherStatus == LauncherStatus.NotBlocked ? "无需修复" : "未找到",
+                        Text.Get(launcherStatus == LauncherStatus.NotBlocked ? "PatchState.NotNeeded" : "PatchState.NotFound"),
                         Resource("BrushGray4"), UnknownIcon);
             }
         }

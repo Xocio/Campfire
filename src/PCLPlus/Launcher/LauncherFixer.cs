@@ -40,7 +40,7 @@ namespace PCLPlus.Launcher
             {
                 var report = LauncherInspector.Inspect(launcherPath, module);
                 if (!report.CanFix)
-                    throw new LauncherException(report.Message);
+                    throw new LauncherException(report.MessageKey, report.MessageArgs);
 
                 foreach (var patch in PatchCatalog.All.Where(p => p.GetState(module) == PatchState.Pending))
                 {
@@ -50,7 +50,7 @@ namespace PCLPlus.Launcher
                     }
                     catch (PatchException ex)
                     {
-                        throw new LauncherException($"修复“{patch.Title}”失败：{ex.Message}", ex);
+                        throw new LauncherException(ex, "Fix.PatchFailed", patch.Title, ex.Message);
                     }
                 }
 
@@ -70,8 +70,7 @@ namespace PCLPlus.Launcher
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
-                throw new LauncherException("写入文件失败：" + ex.Message
-                    + "\n如果启动器位于 Program Files 等受保护的文件夹，请以管理员身份运行 PCL++。", ex);
+                throw new LauncherException(ex, "Fix.WriteFailed", ex.Message);
             }
             finally
             {
@@ -88,11 +87,11 @@ namespace PCLPlus.Launcher
         {
             string backupPath = GetBackupPath(launcherPath);
             if (!File.Exists(backupPath))
-                throw new LauncherException("没有找到备份文件，无法还原。");
+                throw new LauncherException("Fix.NoBackup");
 
             var backup = LauncherInspector.Inspect(backupPath);
             if (backup.Status == LauncherStatus.NotLauncher)
-                throw new LauncherException("备份文件不是 PCL 启动器，已取消还原。");
+                throw new LauncherException("Fix.BadBackup");
 
             EnsureNotRunning(launcherPath);
             try
@@ -102,7 +101,7 @@ namespace PCLPlus.Launcher
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
-                throw new LauncherException("还原失败：" + ex.Message, ex);
+                throw new LauncherException(ex, "Fix.RestoreFailed", ex.Message);
             }
 
             return LauncherInspector.Inspect(launcherPath);
@@ -116,14 +115,14 @@ namespace PCLPlus.Launcher
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is BadImageFormatException)
             {
-                throw new LauncherException("无法读取启动器：" + ex.Message, ex);
+                throw new LauncherException(ex, "Fix.ReadFailed", ex.Message);
             }
         }
 
         private static void EnsureNotRunning(string launcherPath)
         {
             if (LauncherProcess.IsRunning(launcherPath))
-                throw new LauncherException("PCL 正在运行，请先关闭 PCL 再试。");
+                throw new LauncherException("Fix.Running");
         }
 
         private static void AddPatchMarker(ModuleDef module, string launcherVersion)
@@ -156,7 +155,7 @@ namespace PCLPlus.Launcher
             }
             catch (ModuleWriterException ex)
             {
-                throw new LauncherException("生成修复后的启动器失败：" + ex.Message, ex);
+                throw new LauncherException(ex, "Fix.BuildFailed", ex.Message);
             }
         }
 
@@ -169,7 +168,7 @@ namespace PCLPlus.Launcher
                 bool complete = report.Status == LauncherStatus.Patched
                     && report.Patches.All(p => p.State == PatchState.Applied);
                 if (!complete)
-                    throw new LauncherException("修复结果校验失败，原文件未做任何改动。");
+                    throw new LauncherException("Fix.VerifyFailed");
                 return report;
             }
         }

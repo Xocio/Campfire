@@ -9,6 +9,7 @@ using System.Windows.Input;
 using System.Windows.Media.Animation;
 using Microsoft.Win32;
 using PCLPlus.Launcher;
+using PCLPlus.Localization;
 using PCLPlus.Patching;
 
 namespace PCLPlus
@@ -24,14 +25,23 @@ namespace PCLPlus
 
         private LauncherReport _report;
         private bool _busy;
+        private bool _fixing;
+
+        // The hint text is produced on demand so it follows language changes.
+        private HintKind _hintKind;
+        private Func<string> _hintText;
 
         public MainWindow()
         {
             InitializeComponent();
 
             LabAboutVersion.Text = "v" + Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
-            ListPatches.ItemsSource = PatchCatalog.All.Select(PatchRow.Placeholder).ToList();
+            RenderPatches();
+            ShowHint(HintKind.Info, () => Text.Get("Status.Searching"));
+            UpdateButtons();
 
+            Text.LanguageChanged += OnLanguageChanged;
+            Closed += (sender, e) => Text.LanguageChanged -= OnLanguageChanged;
             Loaded += async (sender, e) => await LoadInitialLauncherAsync();
         }
 
@@ -42,28 +52,22 @@ namespace PCLPlus
             string fromArguments = Environment.GetCommandLineArgs().Skip(1).FirstOrDefault(File.Exists);
             string path = fromArguments ?? LauncherLocator.FindIn(AppDomain.CurrentDomain.BaseDirectory);
             if (path != null)
-            {
                 await SelectLauncherAsync(path);
-            }
             else
-            {
-                ShowHint(HintKind.Info, "没有在 PCL++ 所在的文件夹中找到启动器，请点击“选择文件”手动选择。");
-                UpdateButtons();
-            }
+                ShowHint(HintKind.Info, () => Text.Get("Status.NotFoundNearby"));
         }
 
         private async Task SelectLauncherAsync(string path)
         {
             SetBusy(true);
-            ShowHint(HintKind.Info, "正在检测启动器……");
+            ShowHint(HintKind.Info, () => Text.Get("Status.Inspecting"));
             try
             {
-                var report = await Task.Run(() => LauncherInspector.Inspect(path));
-                Render(report);
+                Render(await Task.Run(() => LauncherInspector.Inspect(path)));
             }
             catch (Exception ex)
             {
-                ShowHint(HintKind.Error, "检测失败：" + ex.Message);
+                ShowHint(HintKind.Error, () => Text.Format("Status.InspectFailed", ex.Message));
             }
             finally
             {
@@ -85,21 +89,25 @@ namespace PCLPlus
             {
                 case LauncherStatus.Patched:
                 case LauncherStatus.NotBlocked:
-                    ShowHint(HintKind.Success, report.Message);
+                    ShowHint(HintKind.Success, () => report.Message);
                     break;
                 case LauncherStatus.Blocked:
-                    ShowHint(HintKind.Info, report.Message);
+                    ShowHint(HintKind.Info, () => report.Message);
                     break;
                 default:
-                    ShowHint(HintKind.Error, report.Message);
+                    ShowHint(HintKind.Error, () => report.Message);
                     break;
             }
 
-            ListPatches.ItemsSource = report.Patches.Count > 0
-                ? report.Patches.Select(p => PatchRow.From(p, report.Status)).ToList()
-                : PatchCatalog.All.Select(PatchRow.Placeholder).ToList();
-
+            RenderPatches();
             UpdateButtons();
+        }
+
+        private void RenderPatches()
+        {
+            ListPatches.ItemsSource = _report != null && _report.Patches.Count > 0
+                ? _report.Patches.Select(p => PatchRow.From(p, _report.Status)).ToList()
+                : PatchCatalog.All.Select(PatchRow.Placeholder).ToList();
         }
 
         // ======================== Fix / restore ========================
@@ -111,21 +119,20 @@ namespace PCLPlus
 
             string path = _report.Path;
             SetBusy(true, fixing: true);
-            ShowHint(HintKind.Info, "正在修复，请稍候……");
+            ShowHint(HintKind.Info, () => Text.Get("Status.Fixing"));
             try
             {
-                var report = await Task.Run(() => LauncherFixer.Fix(path));
-                Render(report);
-                ShowHint(HintKind.Success,
-                    $"修复完成！现在可以启动 PCL 下载游戏了。原文件已备份为 {Path.GetFileName(LauncherFixer.GetBackupPath(path))}。");
+                Render(await Task.Run(() => LauncherFixer.Fix(path)));
+                string backupName = Path.GetFileName(LauncherFixer.GetBackupPath(path));
+                ShowHint(HintKind.Success, () => Text.Format("Status.FixDone", backupName));
             }
             catch (LauncherException ex)
             {
-                ShowHint(HintKind.Error, ex.Message);
+                ShowHint(HintKind.Error, () => ex.Message);
             }
             catch (Exception ex)
             {
-                ShowHint(HintKind.Error, "出现意外错误，启动器未被修改：" + ex.Message);
+                ShowHint(HintKind.Error, () => Text.Format("Status.FixUnexpected", ex.Message));
             }
             finally
             {
@@ -140,20 +147,19 @@ namespace PCLPlus
 
             string path = _report.Path;
             SetBusy(true);
-            ShowHint(HintKind.Info, "正在还原……");
+            ShowHint(HintKind.Info, () => Text.Get("Status.Restoring"));
             try
             {
-                var report = await Task.Run(() => LauncherFixer.Restore(path));
-                Render(report);
-                ShowHint(HintKind.Info, "已还原为修复前的启动器。");
+                Render(await Task.Run(() => LauncherFixer.Restore(path)));
+                ShowHint(HintKind.Info, () => Text.Get("Status.Restored"));
             }
             catch (LauncherException ex)
             {
-                ShowHint(HintKind.Error, ex.Message);
+                ShowHint(HintKind.Error, () => ex.Message);
             }
             catch (Exception ex)
             {
-                ShowHint(HintKind.Error, "出现意外错误：" + ex.Message);
+                ShowHint(HintKind.Error, () => Text.Format("Status.Unexpected", ex.Message));
             }
             finally
             {
@@ -167,8 +173,8 @@ namespace PCLPlus
         {
             var dialog = new OpenFileDialog
             {
-                Title = "选择 PCL 启动器",
-                Filter = "PCL 启动器 (*.exe)|*.exe",
+                Title = Text.Get("Dialog.SelectTitle"),
+                Filter = Text.Get("Dialog.SelectFilter"),
                 CheckFileExists = true,
             };
             if (_report != null && File.Exists(_report.Path))
@@ -199,7 +205,7 @@ namespace PCLPlus
             }
             catch (Exception ex)
             {
-                ShowHint(HintKind.Error, "启动失败：" + ex.Message);
+                ShowHint(HintKind.Error, () => Text.Format("Status.LaunchFailed", ex.Message));
             }
         }
 
@@ -242,7 +248,7 @@ namespace PCLPlus
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, $"无法打开浏览器，请手动访问：\n{url}\n\n{ex.Message}", "PCL++");
+                MessageBox.Show(this, Text.Format("Dialog.BrowserFailed", url, ex.Message), "PCL++");
             }
         }
 
@@ -265,6 +271,12 @@ namespace PCLPlus
                 DragMove();
         }
 
+        private void BtnLanguage_Click(object sender, RoutedEventArgs e)
+        {
+            Text.Language = Text.Language == AppLanguage.Chinese ? AppLanguage.English : AppLanguage.Chinese;
+            AppSettings.SaveLanguage(Text.Language);
+        }
+
         private void BtnMinimize_Click(object sender, RoutedEventArgs e)
         {
             WindowState = WindowState.Minimized;
@@ -277,11 +289,19 @@ namespace PCLPlus
 
         // ======================== Helpers ========================
 
+        /// <summary>XAML texts update through bindings; texts set from code are refreshed here.</summary>
+        private void OnLanguageChanged(object sender, EventArgs e)
+        {
+            RenderPatches();
+            UpdateButtons();
+            ShowHint(_hintKind, _hintText);
+        }
+
         private void SetBusy(bool busy, bool fixing = false)
         {
             _busy = busy;
+            _fixing = busy && fixing;
             Cursor = busy ? Cursors.AppStarting : null;
-            BtnFix.Content = fixing ? "正在修复……" : "一键修复";
             UpdateButtons();
         }
 
@@ -296,13 +316,21 @@ namespace PCLPlus
             BtnOpenFolder.IsEnabled = hasFile;
             BtnLaunch.Visibility = hasFile && works ? Visibility.Visible : Visibility.Collapsed;
             BtnLaunch.IsEnabled = !_busy;
+            BtnLanguage.IsEnabled = !_busy;
 
-            if (!_busy && _report?.Status == LauncherStatus.Patched)
-                BtnFix.Content = "已修复";
+            if (_fixing)
+                BtnFix.Content = Text.Get("Main.Fixing");
+            else if (_report?.Status == LauncherStatus.Patched)
+                BtnFix.Content = Text.Get("Main.Fixed");
+            else
+                BtnFix.Content = Text.Get("Main.Fix");
         }
 
-        private void ShowHint(HintKind kind, string text)
+        private void ShowHint(HintKind kind, Func<string> text)
         {
+            _hintKind = kind;
+            _hintText = text;
+
             string styleKey;
             switch (kind)
             {
@@ -317,7 +345,7 @@ namespace PCLPlus
                     break;
             }
             HintStatus.Style = (Style)FindResource(styleKey);
-            LabStatus.Text = text;
+            LabStatus.Text = text();
         }
     }
 }

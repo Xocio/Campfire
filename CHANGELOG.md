@@ -1,5 +1,31 @@
 # 更新日志
 
+## v1.0.1
+
+### 新功能
+
+- 新增英文界面：跟随系统语言自动选择，也可点击标题栏的语言按钮切换，选择会被记住
+- 支持 Windows 7 SP1、Windows 8 与 Windows 8.1
+
+### 优化
+
+- 在没有“微软雅黑 UI”字体的系统上自动改用“微软雅黑”显示界面
+
+### 使用说明
+
+1. 下载下方的 `PCL++.exe`，放到 `Plain Craft Launcher 2.exe` 所在的文件夹。
+2. 关闭 PCL，打开 PCL++，点击“一键修复”。
+
+运行环境：Windows 7 SP1 / 8 / 8.1 / 10 / 11，.NET Framework 4.8（与 PCL 2.99 相同）。Windows 7 / 8 如未安装 .NET Framework 4.8，请先从微软官网下载安装。
+
+### English
+
+- New English interface. It follows the system language and can be switched from the title bar; the choice is remembered.
+- Supports Windows 7 SP1, Windows 8 and Windows 8.1.
+- Falls back to "Microsoft YaHei" on systems without "Microsoft YaHei UI".
+
+Usage: put `PCL++.exe` next to `Plain Craft Launcher 2.exe`, close PCL, open PCL++ and click **Repair**. Requires .NET Framework 4.8 (the same as PCL 2.99).
+
 ## v1.0.0
 
 PCL++ 的第一个版本，提供 PCL 正式版 2.99.0.0 的 Minecraft 下载功能修复。
@@ -19,7 +45,7 @@ PCL++ 的第一个版本，提供 PCL 正式版 2.99.0.0 的 Minecraft 下载功
 1. 下载下方的 `PCL++.exe`，放到 `Plain Craft Launcher 2.exe` 所在的文件夹。
 2. 关闭 PCL，打开 PCL++，点击“一键修复”。
 
-运行环境：Windows 7 SP1 / 8 / 8.1 / 10 / 11，.NET Framework 4.8（与 PCL 2.99 相同）。
+运行环境：Windows 10 / 11，.NET Framework 4.8（系统自带）。
 
 ### 注意事项
 
