@@ -1,0 +1,195 @@
+<Window x:Class="Campfire.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:Campfire.Localization"
+        xmlns:pages="clr-namespace:Campfire.Pages"
+        xmlns:controls="clr-namespace:Campfire.Controls"
+        Title="Campfire"
+        Width="640"
+        SizeToContent="Height"
+        ResizeMode="CanMinimize"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        AllowDrop="True"
+        FontFamily="{StaticResource FontMain}"
+        FontSize="13"
+        Foreground="{DynamicResource Brush1}"
+        UseLayoutRounding="True"
+        DragOver="Window_DragOver"
+        Drop="Window_Drop"
+        Closing="Window_Closing"
+        StateChanged="Window_StateChanged"
+        Activated="Window_Activated">
+
+    <!-- Outer margin leaves room for the window shadow; the shadow has its own layer so text stays sharp. -->
+    <Grid x:Name="PanRoot" Margin="12" RenderTransformOrigin="0.5,0.5">
+        <Grid.RenderTransform>
+            <ScaleTransform />
+        </Grid.RenderTransform>
+        <!-- The window shadow: faint outlines, cheap to draw while the window and its pages move. -->
+        <Grid IsHitTestVisible="False">
+            <Border Margin="-10" CornerRadius="16" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.04" />
+            <Border Margin="-9" CornerRadius="15" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.07" />
+            <Border Margin="-8" CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.11" />
+            <Border Margin="-7" CornerRadius="13" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.17" />
+            <Border Margin="-6" CornerRadius="12" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.24" />
+            <Border Margin="-5" CornerRadius="11" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.32" />
+            <Border Margin="-4" CornerRadius="10" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.42" />
+            <Border Margin="-3" CornerRadius="9" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.55" />
+            <Border Margin="-2" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.7" />
+            <Border Margin="-1" CornerRadius="7" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.9" />
+        </Grid>
+        <Border CornerRadius="6" Background="{DynamicResource BrushBackground}" />
+
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="48" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- ======================== Title bar ======================== -->
+            <Border x:Name="PanTitle" Background="{DynamicResource BrushTitleBar}" CornerRadius="6,6,0,0"
+                    MouseLeftButtonDown="PanTitle_MouseLeftButtonDown">
+                <Grid Margin="18,0,8,0">
+                    <StackPanel x:Name="PanTitleMain" Orientation="Horizontal" VerticalAlignment="Center">
+                        <controls:CampfireLogo x:Name="LogoTitle" Width="32" Height="32" Margin="-2,-2,-2,0" />
+                        <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="Campfire" FontSize="19"
+                                   FontWeight="Bold" Foreground="{DynamicResource BrushWhite}" />
+                    </StackPanel>
+
+                    <!-- On a feature page the logo and tabs give way to a back button and the page name. -->
+                    <StackPanel x:Name="PanTitleSub" Margin="-10,0,0,0" Orientation="Horizontal" VerticalAlignment="Center"
+                                Visibility="Hidden">
+                        <Button x:Name="BtnBack" Style="{StaticResource PclTitleBarButton}" ToolTip="{loc:Text App.Back}"
+                                Click="BtnBack_Click">
+                            <Path Data="M10.5,3 L5.5,8 L10.5,13" Stroke="{DynamicResource BrushWhite}" StrokeThickness="1.8"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  Stretch="None" Width="16" Height="16" />
+                        </Button>
+                        <TextBlock x:Name="LabTitleSub" Margin="6,0,0,1" VerticalAlignment="Center" FontSize="16"
+                                   FontWeight="Bold" Foreground="{DynamicResource BrushWhite}" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="PanTabs" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                        <RadioButton x:Name="TabHome" GroupName="Tabs" IsChecked="True" Style="{StaticResource PclTabButton}"
+                                     Checked="Tab_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="M2.5,8 L8,3 L13.5,8 M4,7 L4,13.5 L12,13.5 L12,7 M6.6,13.5 L6.6,10 L9.4,10 L9.4,13.5"
+                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"
+                                      StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round" Stretch="None" Width="16" Height="16" VerticalAlignment="Center" />
+                                <TextBlock Margin="6,0,0,0" VerticalAlignment="Center" Text="{loc:Text Tab.Home}" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton x:Name="TabTools" Margin="6,0,0,0" GroupName="Tabs" Style="{StaticResource PclTabButton}"
+                                     Checked="Tab_Checked">
+                            <Grid>
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="M2.5,6 L13.5,6 L13.5,12.5 L2.5,12.5 Z M6,6 L6,3.5 L10,3.5 L10,6 M2.5,9 L13.5,9"
+                                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"
+                                          StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                          StrokeLineJoin="Round" Stretch="None" Width="16" Height="16" VerticalAlignment="Center" />
+                                    <TextBlock Margin="6,0,0,0" VerticalAlignment="Center" Text="{loc:Text Tab.Tools}" />
+                                </StackPanel>
+                                <!-- Marks a launcher that can be repaired. -->
+                                <Ellipse x:Name="DotTools" Width="7" Height="7" Margin="0,-3,-9,0" HorizontalAlignment="Right"
+                                         VerticalAlignment="Top" Fill="#FF5A5A" Stroke="{DynamicResource BrushWhite}"
+                                         StrokeThickness="1" Visibility="Collapsed" />
+                            </Grid>
+                        </RadioButton>
+                        <RadioButton x:Name="TabSettings" Margin="6,0,0,0" GroupName="Tabs" Style="{StaticResource PclTabButton}"
+                                     Checked="Tab_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="M10,8 A2,2 0 1 1 6,8 A2,2 0 1 1 10,8 Z M6.9,2 L9.1,2 L9.5,3.7 L10.6,4.3 L12.3,3.7 L13.4,5.6 L12.1,6.8 L12.1,9.2 L13.4,10.4 L12.3,12.3 L10.6,11.7 L9.5,12.3 L9.1,14 L6.9,14 L6.5,12.3 L5.4,11.7 L3.7,12.3 L2.6,10.4 L3.9,9.2 L3.9,6.8 L2.6,5.6 L3.7,3.7 L5.4,4.3 L6.5,3.7 Z"
+                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"
+                                      StrokeThickness="1.4" StrokeLineJoin="Round" Stretch="None" Width="16" Height="16"
+                                      VerticalAlignment="Center" />
+                                <TextBlock Margin="6,0,0,0" VerticalAlignment="Center" Text="{loc:Text Tab.Settings}" />
+                            </StackPanel>
+                        </RadioButton>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button x:Name="BtnLanguage" Margin="0,0,8,0" Style="{StaticResource PclTitleBarTextButton}"
+                                Content="{loc:Text App.LanguageButton}" ToolTip="{loc:Text App.LanguageTooltip}"
+                                Click="BtnLanguage_Click" />
+                        <Button x:Name="BtnMinimize" Style="{StaticResource PclTitleBarButton}" ToolTip="{loc:Text App.Minimize}"
+                                Click="BtnMinimize_Click">
+                            <Path Data="M0,0 L10,0" Stroke="{DynamicResource BrushWhite}" StrokeThickness="1.6"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                        </Button>
+                        <Button x:Name="BtnClose" Margin="4,0,0,0" Style="{StaticResource PclTitleBarButton}"
+                                ToolTip="{loc:Text App.Close}" Click="BtnClose_Click">
+                            <Path Data="M0,0 L10,10 M10,0 L0,10" Stroke="{DynamicResource BrushWhite}"
+                                  StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Pages share one cell; inactive ones are Hidden, so the window keeps a stable height. -->
+            <Grid Grid.Row="1" ClipToBounds="True">
+                <pages:HomePage x:Name="PageHome" LinkRequested="PageHome_LinkRequested" CreateRequested="PageHome_CreateRequested"
+                                JoinRequested="PageHome_JoinRequested" SettingsRequested="Page_SettingsRequested" />
+                <pages:ToolsPage x:Name="PageTools" Visibility="Hidden" RepairRequested="PageTools_RepairRequested"
+                                JreRequested="PageTools_JreRequested" />
+                <pages:PreferencesPage x:Name="PagePreferences" Visibility="Hidden"
+                                       TraySettingsChanged="PagePreferences_TraySettingsChanged" />
+                <pages:LinkPage x:Name="PageLink" Visibility="Hidden" StatusChanged="PageLink_StatusChanged"
+                                SettingsRequested="Page_SettingsRequested" />
+                <pages:SettingsPage x:Name="PageSettings" Visibility="Hidden" SettingsChanged="PageSettings_SettingsChanged" />
+                <pages:RepairPage x:Name="PageRepair" Visibility="Hidden" StatusChanged="PageRepair_StatusChanged" />
+                <pages:JrePage x:Name="PageJre" Visibility="Hidden" />
+            </Grid>
+
+            <!-- First-run tour; dialogs stay above it. -->
+            <controls:TourOverlay x:Name="Tour" Grid.RowSpan="2" />
+
+            <!-- ======================== Dialog ======================== -->
+            <Border x:Name="PanDialog" Grid.RowSpan="2" CornerRadius="6" Background="{DynamicResource BrushDialogMask}"
+                    Visibility="Collapsed">
+                <Grid x:Name="CardDialog" Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
+                      RenderTransformOrigin="0.5,0.5">
+                    <Grid.RenderTransform>
+                        <TransformGroup>
+                            <RotateTransform />
+                            <TranslateTransform />
+                        </TransformGroup>
+                    </Grid.RenderTransform>
+                    <Grid IsHitTestVisible="False">
+                        <Border Margin="-5" CornerRadius="11" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.1" />
+                        <Border Margin="-4" CornerRadius="10" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.2" />
+                        <Border Margin="-3" CornerRadius="9" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.35" />
+                        <Border Margin="-2" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.55" />
+                        <Border Margin="-1" CornerRadius="7" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.8" />
+                    </Grid>
+                    <Border CornerRadius="6" Background="{DynamicResource BrushSurface}" />
+
+                    <StackPanel Margin="22,18,22,18">
+                        <TextBlock x:Name="LabDialogTitle" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Brush3}" />
+                        <!-- Long text, such as release notes, scrolls instead of growing past the window. -->
+                        <ScrollViewer x:Name="ScrollDialogMessage" Margin="0,10,0,0" MaxHeight="280" VerticalScrollBarVisibility="Auto" Focusable="False">
+                            <TextBlock x:Name="LabDialogMessage" TextWrapping="Wrap" Foreground="{DynamicResource BrushGray1}" />
+                        </ScrollViewer>
+                        <TextBlock x:Name="LabDialogDetail" Margin="0,8,0,0" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource BrushGray3}" Visibility="Collapsed" />
+                        <Grid Margin="0,20,0,0">
+                            <Button x:Name="BtnDialogLink" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    Style="{StaticResource PclTextButton}" Visibility="Collapsed" Click="BtnDialogLink_Click" />
+                            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                                <Button x:Name="BtnDialogCancel" Height="32" MinWidth="88" Style="{StaticResource PclButton}"
+                                        Click="BtnDialogCancel_Click" />
+                                <Button x:Name="BtnDialogConfirm" Height="32" MinWidth="88" Margin="10,0,0,0" FontWeight="Bold"
+                                        Style="{StaticResource PclButtonHighlight}" Click="BtnDialogConfirm_Click" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+    </Grid>
+</Window>

@@ -1,0 +1,82 @@
+<UserControl x:Class="Campfire.Pages.JrePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Campfire.Localization">
+
+    <UserControl.Resources>
+        <DataTemplate x:Key="JreRowTemplate">
+            <Grid Margin="0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Border Width="22" Height="22" Margin="0,0,12,0" CornerRadius="11"
+                        VerticalAlignment="Center" BorderThickness="1.5" BorderBrush="{Binding Accent}">
+                    <Path Width="16" Height="16" Stretch="None" Data="{Binding Icon}"
+                          Stroke="{Binding Accent}" StrokeThickness="1.8"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" />
+                    <TextBlock Margin="0,1,0,0" FontSize="12" Foreground="{DynamicResource BrushGray4}"
+                               Text="{Binding Description}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <TextBlock Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="12"
+                           Foreground="{Binding Accent}" Text="{Binding StateText}" />
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <StackPanel Margin="22,20,22,18">
+
+        <HeaderedContentControl Header="{loc:Text Jre.Launcher}" Style="{StaticResource PclCard}">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="LabFileName" FontSize="14" Text="{loc:Text Main.NoLauncher}" />
+                            <Border x:Name="PanVersion" Margin="8,0,0,0" Padding="6,0" CornerRadius="3"
+                                    VerticalAlignment="Center" Background="{DynamicResource Brush7}"
+                                    Visibility="Collapsed">
+                                <TextBlock x:Name="LabVersion" FontSize="12" Foreground="{DynamicResource Brush3}" />
+                            </Border>
+                        </StackPanel>
+                        <TextBlock x:Name="LabFilePath" Margin="0,3,0,0" FontSize="12"
+                                   Foreground="{DynamicResource BrushGray4}" TextTrimming="CharacterEllipsis"
+                                   Text="{loc:Text Jre.PickHint}" />
+                    </StackPanel>
+                    <Button x:Name="BtnBrowse" Grid.Column="1" Margin="16,0,0,0" Content="{loc:Text Main.Browse}"
+                            Style="{StaticResource PclButton}" Click="BtnBrowse_Click" />
+                </Grid>
+
+                <ContentControl x:Name="HintStatus" Margin="0,14,0,0" Style="{StaticResource PclHint}">
+                    <TextBlock x:Name="LabStatus" TextWrapping="Wrap" Text="{loc:Text Status.Searching}" />
+                </ContentControl>
+
+                <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
+                    <Button x:Name="BtnOpenFolder" Content="{loc:Text Main.OpenFolder}" Style="{StaticResource PclTextButton}"
+                            IsEnabled="False" Click="BtnOpenFolder_Click" />
+                </StackPanel>
+            </StackPanel>
+        </HeaderedContentControl>
+
+        <HeaderedContentControl Margin="0,15,0,0" Header="{loc:Text Jre.Details}" Style="{StaticResource PclCard}">
+            <ItemsControl x:Name="ListRows" Focusable="False" ItemTemplate="{StaticResource JreRowTemplate}" />
+        </HeaderedContentControl>
+
+        <Grid Margin="0,18,0,0">
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                <Button x:Name="BtnRestore" Content="{loc:Text Main.Restore}" Style="{StaticResource PclButton}"
+                        IsEnabled="False" ToolTip="{loc:Text Jre.RestoreTooltip}" Click="BtnRestore_Click" />
+                <Button x:Name="BtnUnlock" Margin="12,0,0,0" MinWidth="140" Content="{loc:Text Jre.Unlock}" FontWeight="Bold"
+                        Style="{StaticResource PclButtonHighlight}" IsEnabled="False" Click="BtnUnlock_Click" />
+            </StackPanel>
+        </Grid>
+
+    </StackPanel>
+</UserControl>

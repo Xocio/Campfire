@@ -16,9 +16,15 @@ on:
         description: "更新日志：多条用 ； 或 | 分隔；也可用 \\n 换行写 Markdown。留空则使用 CHANGELOG.md 中的对应章节"
         type: string
         required: false
+      mirror:
+        description: "上传到 R2 国内直链并同步下载页，仅在发布 Release 时生效"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
+  # Starts deploy-docs.yml after the download page is synced.
+  actions: write
 
 jobs:
   build:
@@ -71,31 +77,117 @@ jobs:
 
       - name: Build
         shell: pwsh
+        env:
+          # Repository variable with the update service address. Only release builds get it, so test builds
+          # never check for updates or send statistics.
+          SERVICE_URL: ${{ vars.SERVICE_URL }}
         run: |
           $properties = @()
-          if ($env:RELEASE -eq 'true') { $properties += "-p:Version=$($env:VERSION.TrimStart('v'))" }
-          dotnet build src/PCLPlus/PCLPlus.csproj -c Release @properties
+          if ($env:RELEASE -eq 'true') {
+            if (-not $env:SERVICE_URL) {
+              Write-Error "发布 Release 所需的服务地址尚未配置"
+              exit 1
+            }
+            $properties += "-p:Version=$($env:VERSION.TrimStart('v'))"
+            $properties += "-p:ServiceUrl=$env:SERVICE_URL"
+          }
+          dotnet build src/Campfire/Campfire.csproj -c Release @properties
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PCL++
-          path: src/PCLPlus/bin/Release/PCL++.exe
+          name: Campfire
+          path: src/Campfire/bin/Release/Campfire.exe
+
+      - name: Sign
+        if: inputs.release
+        shell: pwsh
+        env:
+          # Created with tools/new-signing-key.ps1. Campfire only installs updates signed with this key.
+          CAMPFIRE_SIGNING_KEY: ${{ secrets.CAMPFIRE_SIGNING_KEY }}
+        run: ./tools/sign.ps1 -File src/Campfire/bin/Release/Campfire.exe
 
       - name: Append checksum
         if: inputs.release
         shell: pwsh
         run: |
-          $hash = (Get-FileHash src/PCLPlus/bin/Release/PCL++.exe -Algorithm SHA256).Hash.ToLowerInvariant()
-          Add-Content release-notes.md -Encoding utf8 -Value @("", "### 文件校验", "", "``PCL++.exe`` SHA256：``$hash``")
+          $hash = (Get-FileHash src/Campfire/bin/Release/Campfire.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          Add-Content release-notes.md -Encoding utf8 -Value @("", "### 文件校验", "", "``Campfire.exe`` SHA256：``$hash``")
+
+      # Runs before the release is published, so a failed upload leaves nothing public behind.
+      - name: Upload to R2
+        if: inputs.release && inputs.mirror
+        shell: pwsh
+        env:
+          # API token with R2 "Object Read & Write" on the bucket.
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Bucket name and the public address it is served from, e.g. https://dl.example.com/
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          DOWNLOAD_URL: ${{ vars.DOWNLOAD_URL }}
+        run: |
+          if (-not $env:CLOUDFLARE_API_TOKEN -or -not $env:CLOUDFLARE_ACCOUNT_ID -or -not $env:R2_BUCKET -or -not $env:DOWNLOAD_URL) {
+            Write-Error "上传 R2 所需的配置不完整"
+            exit 1
+          }
+
+          # Every version gets its own folder, so the files keep their names and can be cached forever.
+          foreach ($name in 'Campfire.exe', 'Campfire.exe.sig') {
+            # --remote is required: without it wrangler writes to a local emulator and still reports success.
+            npx --yes wrangler@4 r2 object put "$env:R2_BUCKET/$env:VERSION/$name" `
+              --file "src/Campfire/bin/Release/$name" --remote `
+              --content-type application/octet-stream `
+              --cache-control "public, max-age=31536000, immutable"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
 
       - name: Publish release
         if: inputs.release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.version }}
-          name: PCL++ ${{ inputs.version }}
+          name: Campfire ${{ inputs.version }}
           target_commitish: ${{ github.sha }}
           body_path: release-notes.md
-          files: src/PCLPlus/bin/Release/PCL++.exe
+          files: |
+            src/Campfire/bin/Release/Campfire.exe
+            src/Campfire/bin/Release/Campfire.exe.sig
+
+      # The docs site reads docs/.vitepress/release.json to show the version and mirror link on its download page.
+      - name: Sync download page
+        if: inputs.release && inputs.mirror
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DOWNLOAD_URL: ${{ vars.DOWNLOAD_URL }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          $exe = 'src/Campfire/bin/Release/Campfire.exe'
+          $release = [ordered]@{
+            version = $env:VERSION
+            date    = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
+            mirror  = $env:DOWNLOAD_URL
+            app     = [ordered]@{
+              file   = "$env:VERSION/Campfire.exe"
+              size   = (Get-Item $exe).Length
+              sha256 = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+            }
+          }
+          $json = ($release | ConvertTo-Json -Depth 3) -replace "`r`n", "`n"
+          $content = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json + "`n"))
+
+          # Updating an existing file needs its blob sha; the file may also not exist yet.
+          $api = "repos/$env:GITHUB_REPOSITORY/contents/docs/.vitepress/release.json"
+          $sha = gh api "${api}?ref=$env:BRANCH" --jq .sha 2>$null
+          $request = @('--method', 'PUT', $api,
+                       '-f', "message=docs: 下载页同步至 $env:VERSION",
+                       '-f', "content=$content",
+                       '-f', "branch=$env:BRANCH")
+          if ($LASTEXITCODE -eq 0 -and $sha) { $request += @('-f', "sha=$sha") }
+          gh api @request --jq .commit.html_url
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          # A commit made with GITHUB_TOKEN does not trigger the docs push workflow, so start it explicitly.
+          gh workflow run deploy-docs.yml --ref $env:BRANCH
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

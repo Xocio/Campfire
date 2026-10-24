@@ -1,0 +1,178 @@
+<UserControl x:Class="Campfire.Pages.SettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Campfire.Localization">
+
+    <UserControl.Resources>
+        <Style x:Key="SettingLabel" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,14,0" />
+        </Style>
+    </UserControl.Resources>
+
+    <!-- The scroll area reaches past the page margin so card shadows are not cut off. -->
+    <ScrollViewer x:Name="ScrollSettings" Margin="12,12,12,10" Height="481" VerticalScrollBarVisibility="Auto" Focusable="False">
+        <StackPanel Margin="10,8,10,8" Grid.IsSharedSizeScope="True">
+
+            <ContentControl Style="{StaticResource PclHint}">
+                <TextBlock TextWrapping="Wrap" Text="{loc:Text Settings.ApplyNote}" />
+            </ContentControl>
+
+            <!-- ======================== Room ======================== -->
+            <HeaderedContentControl Margin="0,15,0,0" Header="{loc:Text Settings.Room}" Style="{StaticResource PclCard}">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="Label" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Style="{StaticResource SettingLabel}" Text="{loc:Text Settings.PlayerName}" />
+                        <TextBox x:Name="TxtPlayerName" Grid.Column="1" MaxLength="16" Style="{StaticResource PclTextBox}"
+                                 LostKeyboardFocus="TxtPlayerName_LostFocus" />
+
+                        <TextBlock Grid.Row="1" Margin="0,10,14,0" Style="{StaticResource SettingLabel}"
+                                   Text="{loc:Text Settings.LanName}" />
+                        <TextBox x:Name="TxtLanName" Grid.Row="1" Grid.Column="1" Margin="0,10,0,0" MaxLength="48"
+                                 Style="{StaticResource PclTextBox}" ToolTip="{loc:Text Settings.LanNameTooltip}"
+                                 LostKeyboardFocus="TxtLanName_LostFocus" />
+
+                        <TextBlock Grid.Row="2" Margin="0,10,14,0" Style="{StaticResource SettingLabel}"
+                                   Text="{loc:Text Settings.LocalPort}" />
+                        <TextBox x:Name="TxtLocalPort" Grid.Row="2" Grid.Column="1" Margin="0,10,0,0" MaxLength="5"
+                                 Style="{StaticResource PclTextBox}" Tag="{loc:Text Settings.LocalPortPlaceholder}"
+                                 ToolTip="{loc:Text Settings.LocalPortTooltip}" LostKeyboardFocus="TxtLocalPort_LostFocus" />
+
+                        <TextBlock Grid.Row="3" Margin="0,12,14,0" Style="{StaticResource SettingLabel}"
+                                   Text="{loc:Text Settings.SearchTimeout}" />
+                        <StackPanel x:Name="PanTimeout" Grid.Row="3" Grid.Column="1" Margin="0,12,0,0" Orientation="Horizontal" />
+                    </Grid>
+
+                    <CheckBox x:Name="ChkAutoCopy" Margin="0,14,0,0" Style="{StaticResource PclCheckBox}"
+                              Content="{loc:Text Settings.AutoCopy}" Click="Flag_Click" />
+                    <CheckBox x:Name="ChkClipboard" Margin="0,10,0,0" Style="{StaticResource PclCheckBox}"
+                              Content="{loc:Text Settings.Clipboard}" Click="Flag_Click" />
+                </StackPanel>
+            </HeaderedContentControl>
+
+            <!-- ======================== Network ======================== -->
+            <HeaderedContentControl Margin="0,15,0,0" Header="{loc:Text Settings.Network}" Style="{StaticResource PclCard}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <CheckBox x:Name="ChkRelay" Style="{StaticResource PclCheckBox}" Content="{loc:Text Settings.Relay}"
+                                  Click="Flag_Click" />
+                        <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Settings.RelayNote}" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+                        <CheckBox x:Name="ChkLanShare" Style="{StaticResource PclCheckBox}"
+                                  Content="{loc:Text Settings.LanShare}" Click="Flag_Click" />
+                        <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Settings.LanShareNote}" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+                        <CheckBox x:Name="ChkPublicNodes" Style="{StaticResource PclCheckBox}"
+                                  Content="{loc:Text Settings.PublicNodes}" Click="ChkPublicNodes_Click" />
+                        <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Settings.PublicNodesNote}" />
+                    </StackPanel>
+
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="Label" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource SettingLabel}" Text="{loc:Text Settings.Nodes}" />
+                        <TextBox x:Name="TxtNodes" Grid.Column="1" Style="{StaticResource PclTextBox}"
+                                 Tag="{loc:Text Settings.NodesPlaceholder}" ToolTip="{loc:Text Settings.NodesTooltip}"
+                                 LostKeyboardFocus="TxtNodes_LostFocus" />
+                    </Grid>
+                </StackPanel>
+            </HeaderedContentControl>
+
+            <!-- ======================== Privacy ======================== -->
+            <HeaderedContentControl Margin="0,15,0,0" Header="{loc:Text Settings.Privacy}" Style="{StaticResource PclCard}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <CheckBox x:Name="ChkHideAddress" Style="{StaticResource PclCheckBox}"
+                                  Content="{loc:Text Settings.HideAddress}" Click="ChkHideAddress_Click" />
+                        <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Settings.HideAddressNote}" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+                        <CheckBox x:Name="ChkGameAccount" Style="{StaticResource PclCheckBox}"
+                                  Content="{loc:Text Settings.GameAccount}" Click="Flag_Click" />
+                        <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Settings.GameAccountNote}" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+                        <CheckBox x:Name="ChkSkins" Style="{StaticResource PclCheckBox}"
+                                  Content="{loc:Text Settings.Skins}" Click="Flag_Click" />
+                        <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Settings.SkinsNote}" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+                        <CheckBox x:Name="ChkVersion" Style="{StaticResource PclCheckBox}"
+                                  Content="{loc:Text Settings.ShareVersion}" Click="Flag_Click" />
+                        <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Settings.ShareVersionNote}" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,14,0,0" Orientation="Horizontal">
+                        <Button Height="32" Content="{loc:Text Settings.ResetIdentity}" Style="{StaticResource PclButton}"
+                                Click="BtnResetIdentity_Click" />
+                        <Button Height="32" Margin="10,0,0,0" Content="{loc:Text Settings.ClearHeads}"
+                                Style="{StaticResource PclButton}" Click="BtnClearHeads_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </HeaderedContentControl>
+
+            <!-- ======================== Blocklist ======================== -->
+            <HeaderedContentControl Margin="0,15,0,0" Header="{loc:Text Settings.Blocklist}" Style="{StaticResource PclCard}">
+                <StackPanel>
+                    <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource BrushGray4}"
+                               Text="{loc:Text Settings.BlocklistNote}" />
+                    <ItemsControl x:Name="ListBlocked" Margin="0,4,0,0" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Margin="0,1,0,0" FontSize="12" Foreground="{DynamicResource BrushGray4}"
+                                                   Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
+                                            Style="{StaticResource PclTextButton}" Content="{loc:Text Settings.Unblock}"
+                                            Tag="{Binding MachineId}" Click="BtnUnblock_Click" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock x:Name="LabNoBlocked" Margin="0,8,0,0" Foreground="{DynamicResource BrushGray5}"
+                               Text="{loc:Text Settings.BlocklistEmpty}" />
+                </StackPanel>
+            </HeaderedContentControl>
+
+            <!-- ======================== Data ======================== -->
+            <HeaderedContentControl Margin="0,15,0,0" Header="{loc:Text Settings.Data}" Style="{StaticResource PclCard}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Height="32" Content="{loc:Text Settings.OpenData}" Style="{StaticResource PclButton}"
+                                Click="BtnOpenData_Click" />
+                        <Button Height="32" Margin="10,0,0,0" Content="{loc:Text Settings.RemoveComponent}"
+                                Style="{StaticResource PclButton}" Click="BtnRemoveComponent_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </HeaderedContentControl>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

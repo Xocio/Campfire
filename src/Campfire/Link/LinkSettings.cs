@@ -1,0 +1,269 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+
+namespace Campfire.Link
+{
+    /// <summary>
+    /// Multiplayer preferences and the identity of this computer. Changes apply to the next room.
+    /// </summary>
+    internal static class LinkSettings
+    {
+        /// <summary>
+        /// Public nodes that introduce players to each other. Players only find each other when they share at
+        /// least one node, so this list should change rarely and only by adding.
+        /// </summary>
+        private static readonly string[] DefaultNodes =
+        {
+            "tcp://public.easytier.top:11010",
+            "tcp://public2.easytier.cn:54321",
+            "https://etnode.zkitefly.eu.org/node1",
+            "https://etnode.zkitefly.eu.org/node2",
+        };
+
+        /// <summary>Choices offered for <see cref="SearchTimeoutSeconds"/>.</summary>
+        public static readonly int[] SearchTimeoutChoices = { 30, 60, 120 };
+
+        private static string _machineId;
+
+        public static string DataDirectory { get; } = Path.Combine(AppSettings.DataDirectory, "Link");
+
+        // ======================== Room ========================
+
+        /// <summary>The name shown to other players, as typed by the user (may be empty).</summary>
+        public static string PlayerName
+        {
+            get => GetText("link.player");
+            set => AppSettings.Set("link.player", (value ?? "").Trim());
+        }
+
+        /// <summary>The name actually sent to other players: the typed name, else the name in the running game.</summary>
+        public static string EffectivePlayerName
+        {
+            get
+            {
+                string name = PlayerName;
+                if (name.Length > 0)
+                    return name;
+                string game = Minecraft.GameAccount.Current?.Name;
+                return !string.IsNullOrEmpty(game) ? game : FallbackPlayerName;
+            }
+        }
+
+        /// <summary>Used when no name is typed and no game is running.</summary>
+        public static string FallbackPlayerName => "Campfire #" + MachineId.Substring(0, 4).ToUpperInvariant();
+
+        /// <summary>Name of the room entry in the multiplayer list; empty means the default text.</summary>
+        public static string LanEntryName
+        {
+            get => GetText("link.lanname");
+            set => AppSettings.Set("link.lanname", (value ?? "").Trim());
+        }
+
+        /// <summary>How long a joining player looks for the host before giving up.</summary>
+        public static int SearchTimeoutSeconds
+        {
+            get => int.TryParse(AppSettings.Get("link.timeout"), NumberStyles.None, CultureInfo.InvariantCulture, out int value)
+                   && SearchTimeoutChoices.Contains(value)
+                ? value
+                : 60;
+            set => AppSettings.Set("link.timeout", value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>Local port for the host's game when joining, or 0 to choose one automatically.</summary>
+        public static int LocalPort
+        {
+            get => int.TryParse(AppSettings.Get("link.localport"), NumberStyles.None, CultureInfo.InvariantCulture, out int value)
+                   && value > 0 && value < 65536
+                ? value
+                : 0;
+            set => AppSettings.Set("link.localport", value > 0 ? value.ToString(CultureInfo.InvariantCulture) : null);
+        }
+
+        /// <summary>Whether the invite code is copied as soon as a room is open.</summary>
+        public static bool AutoCopyCode
+        {
+            get => GetFlag("link.autocopy", true);
+            set => SetFlag("link.autocopy", value);
+        }
+
+        /// <summary>Whether an invite code on the clipboard is offered for joining.</summary>
+        public static bool DetectClipboard
+        {
+            get => GetFlag("link.clipboard", true);
+            set => SetFlag("link.clipboard", value);
+        }
+
+        // ======================== Network ========================
+
+        /// <summary>Whether traffic may go through a relay node when a direct connection cannot be made.</summary>
+        public static bool AllowRelay
+        {
+            get => GetFlag("link.relay", true);
+            set => SetFlag("link.relay", value);
+        }
+
+        /// <summary>Whether the built-in public nodes are used in addition to custom nodes.</summary>
+        public static bool UsePublicNodes
+        {
+            get => GetFlag("link.publicnodes", true);
+            set => SetFlag("link.publicnodes", value);
+        }
+
+        /// <summary>Extra nodes as typed by the user.</summary>
+        public static string CustomNodes
+        {
+            get => GetText("link.nodes");
+            set => AppSettings.Set("link.nodes", (value ?? "").Trim());
+        }
+
+        /// <summary>
+        /// Whether other devices in this computer's local network may join the host's world through it. When
+        /// off, the room is only reachable from this computer and is not announced in the LAN list.
+        /// </summary>
+        public static bool ShareWithLan
+        {
+            get => GetFlag("link.lanshare", true);
+            set => SetFlag("link.lanshare", value);
+        }
+
+        // ======================== Privacy ========================
+
+        /// <summary>
+        /// Never connect directly to other players, so they cannot learn this computer's IP address. All
+        /// traffic then goes through a relay node.
+        /// </summary>
+        public static bool HideAddress
+        {
+            get => GetFlag("link.hideip", false);
+            set => SetFlag("link.hideip", value);
+        }
+
+        /// <summary>Whether the player name and account type are read from a running game.</summary>
+        public static bool ReadGameAccount
+        {
+            get => GetFlag("link.gameaccount", true);
+            set => SetFlag("link.gameaccount", value);
+        }
+
+        /// <summary>Whether skin faces are shown, and whether this player's account id is shared for that.</summary>
+        public static bool ShowSkins
+        {
+            get => GetFlag("link.heads", true);
+            set => SetFlag("link.heads", value);
+        }
+
+        /// <summary>Whether other players see the program name and version.</summary>
+        public static bool ShareVersion
+        {
+            get => GetFlag("link.vendor", true);
+            set => SetFlag("link.vendor", value);
+        }
+
+        // ======================== Nodes ========================
+
+        /// <summary>Custom nodes first, then the defaults if enabled, without duplicates.</summary>
+        public static IReadOnlyList<string> GetNodes()
+        {
+            var nodes = ParseNodes(CustomNodes, out _);
+            return (UsePublicNodes ? nodes.Concat(DefaultNodes) : nodes)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Splits user input into node addresses. Accepts spaces, commas, semicolons or line breaks as separators;
+        /// a bare "host:port" is read as TCP. Entries that are not addresses are returned in <paramref name="invalid"/>.
+        /// </summary>
+        public static IReadOnlyList<string> ParseNodes(string text, out IReadOnlyList<string> invalid)
+        {
+            var nodes = new List<string>();
+            var rejected = new List<string>();
+            invalid = rejected;
+            if (string.IsNullOrWhiteSpace(text))
+                return nodes;
+
+            var separators = new[] { ' ', '\t', '\r', '\n', ',', ';', '，', '；', '、' };
+            foreach (string part in text.Split(separators, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string node = part.Contains("://") ? part : "tcp://" + part;
+                if (Uri.TryCreate(node, UriKind.Absolute, out var uri) && !string.IsNullOrEmpty(uri.Host)
+                    && (uri.Scheme == "tcp" || uri.Scheme == "udp" || uri.Scheme == "ws" || uri.Scheme == "wss"
+                        || uri.Scheme == "quic" || uri.Scheme == "http" || uri.Scheme == "https"))
+                    nodes.Add(node);
+                else
+                    rejected.Add(part);
+            }
+            return nodes;
+        }
+
+        // ======================== Identity ========================
+
+        /// <summary>A random identifier of this computer, created once and kept in the data folder.</summary>
+        public static string MachineId
+        {
+            get
+            {
+                if (_machineId == null)
+                    _machineId = LoadOrCreateMachineId(false);
+                return _machineId;
+            }
+        }
+
+        /// <summary>Replaces the identifier, so other players see this computer as a new one.</summary>
+        public static void ResetMachineId()
+        {
+            _machineId = LoadOrCreateMachineId(true);
+        }
+
+        private static string LoadOrCreateMachineId(bool replace)
+        {
+            string path = Path.Combine(DataDirectory, "machine-id");
+            try
+            {
+                if (!replace && File.Exists(path))
+                {
+                    string stored = File.ReadAllText(path).Trim();
+                    if (stored.Length == 32 && stored.All(Uri.IsHexDigit))
+                        return stored.ToLowerInvariant();
+                }
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+            }
+
+            string id = Hex.Random(16);
+
+            try
+            {
+                Directory.CreateDirectory(DataDirectory);
+                File.WriteAllText(path, id);
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                // An unsaved id only means this computer gets a new identity next time.
+            }
+            return id;
+        }
+
+        // ======================== Helpers ========================
+
+        private static string GetText(string key)
+        {
+            return AppSettings.Get(key) ?? "";
+        }
+
+        private static bool GetFlag(string key, bool fallback)
+        {
+            string value = AppSettings.Get(key);
+            return value == null ? fallback : value != "0";
+        }
+
+        private static void SetFlag(string key, bool value)
+        {
+            AppSettings.Set(key, value ? "1" : "0");
+        }
+    }
+}
