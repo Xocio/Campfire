@@ -14,4 +14,4 @@ artifacts/
 *.dll
 *.exe
 *.exe.bak
-*.pclpp.tmp
+*.campfire.tmp

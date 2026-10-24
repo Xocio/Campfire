@@ -1,0 +1,219 @@
+/* ── 品牌色：与应用默认的篝火橙一致 ─────────────────────── */
+
+:root {
+  --cf-orange: #e2680c;
+
+  --vp-c-brand-1: #b9530a;
+  --vp-c-brand-2: #cf5d0b;
+  --vp-c-brand-3: #e2680c;
+  --vp-c-brand-soft: rgba(226, 104, 12, .12);
+
+  --vp-button-brand-bg: var(--vp-c-brand-3);
+  --vp-button-brand-hover-bg: var(--vp-c-brand-2);
+  --vp-button-brand-active-bg: var(--vp-c-brand-1);
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #f5a03c 10%, #e2680c 55%, #b9400a 95%);
+
+  /* 首页篝火背后的昏黄光晕 */
+  --vp-home-hero-image-background-image: radial-gradient(
+    circle at 50% 58%,
+    rgba(255, 166, 64, .55) 0%,
+    rgba(240, 120, 30, .32) 38%,
+    rgba(226, 104, 12, 0) 70%
+  );
+  --vp-home-hero-image-filter: blur(56px);
+}
+
+.dark {
+  --vp-c-brand-1: #f6a35a;
+  --vp-c-brand-2: #ef8a36;
+  --vp-c-brand-3: #e2680c;
+  --vp-c-brand-soft: rgba(239, 138, 54, .16);
+
+  --vp-home-hero-image-background-image: radial-gradient(
+    circle at 50% 58%,
+    rgba(255, 150, 50, .5) 0%,
+    rgba(226, 104, 12, .3) 40%,
+    rgba(226, 104, 12, 0) 72%
+  );
+}
+
+/* ── 首页 hero ─────────────────────────────────────────── */
+
+/* 标语稍小一号，避免“工具箱”在桌面宽度下折出孤字 */
+@media (min-width: 960px) {
+  .VPHero .main .name,
+  .VPHero .main .text {
+    font-size: 52px;
+    line-height: 62px;
+  }
+
+  .VPHero .main .text {
+    max-width: 680px;
+  }
+}
+
+.VPHero .VPImage.image-src {
+  max-width: 192px;
+  max-height: 192px;
+}
+
+@media (min-width: 640px) {
+  .VPHero .VPImage.image-src {
+    max-width: 240px;
+    max-height: 240px;
+  }
+}
+
+@media (min-width: 960px) {
+  .VPHero .VPImage.image-src {
+    max-width: 288px;
+    max-height: 288px;
+  }
+}
+
+/* 光晕像火光一样缓慢明暗起伏 */
+.VPHero .image-bg {
+  animation: cf-glow 4.8s ease-in-out infinite;
+}
+
+@keyframes cf-glow {
+  0%, 100% { opacity: .82; transform: translate(-50%, -50%) scale(.96); }
+  35%      { opacity: 1;   transform: translate(-50%, -50%) scale(1.03); }
+  60%      { opacity: .9;  transform: translate(-50%, -50%) scale(.99); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .VPHero .image-bg {
+    animation: none;
+  }
+}
+
+/* ── 下载落地页 /download-home ─────────────────────────── */
+/* 下载按钮本身在 theme/components/DownloadCard.vue，这里只管页面框架 */
+
+.dl-home {
+  position: fixed;
+  top: 16px;
+  left: 24px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+  text-decoration: none;
+  transition: opacity .25s;
+}
+
+.dl-home:hover { opacity: .8; }
+.dl-home img { height: 24px; margin-right: 8px; }
+
+.dl-wrap {
+  position: relative;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 104px 24px 96px;
+}
+
+.dl-head {
+  position: relative;
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+/* 落地页 logo 同样带一圈火光 */
+.dl-logo-wrap {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  margin: 0 auto 22px;
+}
+
+.dl-logo-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -36px;
+  border-radius: 50%;
+  background: var(--vp-home-hero-image-background-image);
+  filter: blur(28px);
+  animation: cf-glow-small 4.8s ease-in-out infinite;
+}
+
+@keyframes cf-glow-small {
+  0%, 100% { opacity: .8; transform: scale(.95); }
+  35%      { opacity: 1;  transform: scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dl-logo-wrap::before { animation: none; }
+}
+
+.dl-logo {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dl-title {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.3px;
+}
+
+.dl-sub {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: var(--vp-c-text-3);
+}
+
+.dl-foot {
+  margin: 64px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--vp-c-text-3);
+}
+
+.dl-foot a {
+  color: var(--vp-c-text-2);
+  text-decoration: none;
+  transition: color .2s;
+}
+
+.dl-foot a:hover {
+  color: var(--vp-c-brand-1);
+}
+
+.dl-dot {
+  margin: 0 8px;
+  opacity: .5;
+}
+
+@media (max-width: 640px) {
+  .dl-wrap { padding: 64px 16px 72px; }
+  .dl-head { margin-bottom: 30px; }
+  .dl-logo-wrap { width: 88px; height: 88px; }
+  .dl-title { font-size: 27px; }
+  .dl-home { left: 16px; }
+}
+
+/* ── /download 详情页 ─────────────────────────────────── */
+
+.vp-doc .dl-table code {
+  word-break: break-all;
+}
+
+.dl-sum code {
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.dl-na {
+  color: var(--vp-c-text-3);
+}
