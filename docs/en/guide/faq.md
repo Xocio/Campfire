@@ -31,9 +31,13 @@ This usually happens when both networks are restrictive, for example both behind
 
 With **Hide my IP address** turned on, all traffic must pass through relay nodes, and the host must allow relayed connections. The host may also have closed the room, or the network may be unstable; try again later.
 
-### No welcome message or Tab information in the game
+### The welcome message or Tab information is missing, or the world is not opened to LAN
 
-This information depends on a component attached to the host's game. If the host's Java runtime cannot attach components, or a mod loader remaps the game, Campfire falls back to showing the information in the LAN list only; the connection is unaffected. The reason is written to `%LocalAppData%\Campfire\agent.log` on the host's computer.
+These features rely on a component attached to the host's game, which supports vanilla 1.7.2 and later as well as loaders that keep the official names. When the host's Java runtime cannot attach components, or a loader such as Fabric or Quilt remaps the game, open to LAN manually; room information then falls back to the LAN list, and the connection is unaffected. The reason is written to `%LocalAppData%\Campfire\agent.log` on the host's computer.
+
+### A listed room does not appear in the lobby
+
+Confirm that **List in the lobby** was chosen on the multiplayer page and that the bottom left reads **Listed in the lobby**. A room cannot be listed when its name contains inappropriate content, when several players have reported it, or when too many rooms are listed from your network; the page states the specific cause. See [Lobby](./lobby#messages-when-listing).
 
 ### The networking component fails to download
 
@@ -46,6 +50,20 @@ Multiplayer on Windows 7 needs KB3063858 and KB4474419, installed through Window
 ### Where can I see why it failed?
 
 The failure page has a **View multiplayer log** button. The log is saved in `%LocalAppData%\Campfire\Link\link.log`; please attach it when reporting a problem.
+
+## Maps
+
+### An imported map does not appear in the game
+
+Confirm that the version you start is the one chosen during import. Launchers with version isolation keep saves within the version folder; once the game starts, Campfire confirms the saves folder from the running game and relocates the map if it differs. If the map still does not appear, **Open Saves Folder** on the import page shows where it resides.
+
+### A game version is missing from the import list
+
+Campfire searches the default `.minecraft` folder, `.minecraft` folders beside launchers, and the game folders recorded in launcher settings. For any other location, choose **Add Game Folder**.
+
+### Command blocks or redstone break after opening the map
+
+When a map from before 1.13 is imported into 1.13 or later, the game converts its format, which frequently breaks commands and redstone. A version labeled **Same version as the map** is the preferred choice.
 
 ## Launcher repair
 
@@ -70,6 +88,10 @@ The repair disables the launcher's auto-update so that an update cannot switch t
 Click **Restore** in the Launcher Repair Tool, or delete the repaired launcher and rename the `.bak` file back.
 
 ## Other
+
+### Could Campfire be controlled remotely?
+
+No. Campfire receives only text and list data from a server, which cannot change settings, run commands or start programs; only updates that pass signature verification and the multiplayer component with matching hashes are ever run. Every connection and its limits of exposure are described in [Network Security](./security).
 
 ### My antivirus flags it
 

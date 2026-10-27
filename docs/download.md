@@ -53,7 +53,7 @@ certutil -hashfile Campfire.exe SHA256
 | 操作系统 | Windows 7 SP1、8、8.1、10、11 |
 | 运行库 | .NET Framework 4.8；Windows 10 与 11 已内置 |
 | 多人联机 | Windows 7 需另行安装 KB3063858 与 KB4474419 更新 |
-| 磁盘空间 | 程序约 1.3 MB；首次联机时另需约 14 MB 存放联机组件 |
+| 磁盘空间 | 程序约 1.7 MB；首次联机时另需约 14 MB 存放联机组件 |
 
 Windows 7 与 8 如尚未安装 .NET Framework 4.8，请从[微软官方网站](https://dotnet.microsoft.com/download/dotnet-framework/net48)下载。
 

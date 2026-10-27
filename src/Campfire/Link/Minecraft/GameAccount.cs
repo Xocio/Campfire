@@ -85,7 +85,7 @@ namespace Campfire.Link.Minecraft
         }
 
         /// <summary>Splits a Windows command line into arguments, honoring double quotes.</summary>
-        private static List<string> Split(string commandLine)
+        internal static List<string> Split(string commandLine)
         {
             var result = new List<string>();
             var current = new StringBuilder();
@@ -116,7 +116,7 @@ namespace Campfire.Link.Minecraft
             return result;
         }
 
-        private static string ReadCommandLine(int processId)
+        internal static string ReadCommandLine(int processId)
         {
             // Windows 7 has no direct way to ask for another process's command line; it goes through WMI there.
             if (!_commandLineQuerySupported)

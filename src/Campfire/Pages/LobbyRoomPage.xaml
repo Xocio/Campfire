@@ -1,0 +1,93 @@
+<UserControl x:Class="Campfire.Pages.LobbyRoomPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Campfire.Localization">
+
+    <UserControl.Resources>
+        <!-- Small caption above a value. -->
+        <Style x:Key="StatLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushGray4}" />
+        </Style>
+        <Style x:Key="StatValue" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,2,12,0" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush1}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+    </UserControl.Resources>
+
+    <!-- The same height as the other pages, so the window does not change size. -->
+    <Grid Height="503">
+        <DockPanel Margin="22,20,22,18">
+            <Grid DockPanel.Dock="Bottom" Margin="0,18,0,0">
+                <Button x:Name="BtnReport" HorizontalAlignment="Left" VerticalAlignment="Center" Style="{StaticResource PclTextButton}"
+                        Content="{loc:Text Lobby.Report}" Click="BtnReport_Click" />
+                <Button x:Name="BtnJoin" HorizontalAlignment="Right" MinWidth="140" FontWeight="Bold"
+                        Style="{StaticResource PclButtonHighlight}" Content="{loc:Text Lobby.JoinButton}" Click="BtnJoin_Click" />
+            </Grid>
+
+            <StackPanel>
+                <HeaderedContentControl Header="{loc:Text LobbyRoom.Header}" Style="{StaticResource PclCard}">
+                    <StackPanel>
+                        <!-- Picture, title, host and the version and tags. -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ContentControl x:Name="BoxPicture" Focusable="False" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                                <DockPanel x:Name="PanTitle" />
+                                <WrapPanel x:Name="PanPills" Margin="0,8,0,0" />
+                            </StackPanel>
+                        </Grid>
+
+                        <UniformGrid Margin="0,18,0,0" Columns="3">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource StatLabel}" Text="{loc:Text Lobby.HostLabel}" />
+                                <TextBlock x:Name="LabHost" Style="{StaticResource StatValue}" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource StatLabel}" Text="{loc:Text LobbyRoom.Version}" />
+                                <TextBlock x:Name="LabVersion" Style="{StaticResource StatValue}" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource StatLabel}" Text="{loc:Text Lobby.PlayersLabel}" />
+                                <TextBlock x:Name="LabPlayers" Style="{StaticResource StatValue}" />
+                            </StackPanel>
+                        </UniformGrid>
+                        <UniformGrid Margin="0,14,0,0" Columns="3">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource StatLabel}" Text="{loc:Text Lobby.MapLabel}" />
+                                <TextBlock x:Name="LabMap" Style="{StaticResource StatValue}" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource StatLabel}" Text="{loc:Text LobbyRoom.Place}" />
+                                <TextBlock x:Name="LabPlace" Style="{StaticResource StatValue}" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource StatLabel}" Text="{loc:Text LobbyRoom.Opened}" />
+                                <TextBlock x:Name="LabOpened" Style="{StaticResource StatValue}" />
+                            </StackPanel>
+                        </UniformGrid>
+                    </StackPanel>
+                </HeaderedContentControl>
+
+                <!-- Only for rooms that ask for a password. -->
+                <HeaderedContentControl x:Name="CardPassword" Margin="0,15,0,0" Header="{loc:Text Lobby.Password}" Style="{StaticResource PclCard}">
+                    <StackPanel>
+                        <TextBox x:Name="TxtPassword" MaxLength="32" Style="{StaticResource PclTextBox}" Tag="{loc:Text Lobby.PasswordHint}"
+                                 KeyDown="TxtPassword_KeyDown" />
+                        <TextBlock Margin="0,8,0,0" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource BrushGray4}"
+                                   Text="{loc:Text Lobby.LockedDetail}" />
+                    </StackPanel>
+                </HeaderedContentControl>
+
+                <ContentControl Margin="0,15,0,0" Style="{StaticResource PclHint}">
+                    <TextBlock x:Name="LabTip" TextWrapping="Wrap" />
+                </ContentControl>
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</UserControl>

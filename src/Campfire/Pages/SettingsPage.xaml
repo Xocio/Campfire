@@ -58,6 +58,11 @@
                               Content="{loc:Text Settings.AutoCopy}" Click="Flag_Click" />
                     <CheckBox x:Name="ChkClipboard" Margin="0,10,0,0" Style="{StaticResource PclCheckBox}"
                               Content="{loc:Text Settings.Clipboard}" Click="Flag_Click" />
+                    <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
+                        <CheckBox x:Name="ChkAutoLan" Style="{StaticResource PclCheckBox}"
+                                  Content="{loc:Text Settings.AutoLan}" Click="Flag_Click" />
+                        <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Settings.AutoLanNote}" />
+                    </StackPanel>
                 </StackPanel>
             </HeaderedContentControl>
 

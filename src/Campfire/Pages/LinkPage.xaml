@@ -224,6 +224,8 @@
         <!-- ======================== Enter a code ======================== -->
         <DockPanel x:Name="PanJoin" Visibility="Hidden">
             <Grid DockPanel.Dock="Bottom" Margin="0,18,0,0">
+                <Button x:Name="BtnGoLobby" HorizontalAlignment="Left" VerticalAlignment="Center" Style="{StaticResource PclTextButton}"
+                        Content="{loc:Text Lobby.GoToLobby}" Click="BtnGoLobby_Click" />
                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                     <Button Content="{loc:Text Link.Back}" Style="{StaticResource PclButton}" Click="BtnBack_Click" />
                     <Button x:Name="BtnJoinConfirm" Margin="12,0,0,0" MinWidth="140" FontWeight="Bold"
@@ -274,6 +276,8 @@
 
                 <ContentControl x:Name="HintWorld" Margin="0,15,0,0" Style="{StaticResource PclHint}" Visibility="Collapsed">
                     <StackPanel>
+                        <!-- What Campfire does by itself; the manual steps below always work as well. -->
+                        <TextBlock x:Name="LabAutoLan" Margin="0,0,0,6" TextWrapping="Wrap" FontWeight="Bold" Visibility="Collapsed" />
                         <TextBlock TextWrapping="Wrap" Text="{loc:Text Link.WorldGuide}" />
                         <Button x:Name="BtnManualPort" Margin="0,8,0,0" HorizontalAlignment="Left"
                                 Style="{StaticResource PclTextButton}" Content="{loc:Text Link.ManualPort}"
@@ -296,8 +300,25 @@
         <!-- ======================== Room open (host) ======================== -->
         <DockPanel x:Name="PanHost" Visibility="Hidden">
             <Grid DockPanel.Dock="Bottom" Margin="0,18,0,0">
-                <Button x:Name="BtnCloseRoom" HorizontalAlignment="Right" Content="{loc:Text Link.CloseRoom}" Style="{StaticResource PclButton}"
-                        Click="BtnStop_Click" />
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <!-- Whether the room is listed in the public lobby. -->
+                <Grid x:Name="PanLobbyState" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Ellipse x:Name="DotLobby" Width="7" Height="7" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <TextBlock x:Name="LabLobby" Grid.Column="1" VerticalAlignment="Center" FontSize="12"
+                               TextTrimming="CharacterEllipsis" Foreground="{DynamicResource BrushGray4}" />
+                </Grid>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="BtnLobby" Margin="12,0,0,0" MinWidth="140" Click="BtnLobby_Click" />
+                    <Button x:Name="BtnCloseRoom" Margin="12,0,0,0" Content="{loc:Text Link.CloseRoom}"
+                            Style="{StaticResource PclButton}" Click="BtnStop_Click" />
+                </StackPanel>
             </Grid>
             <StackPanel>
                 <HeaderedContentControl Header="{loc:Text Link.HostReady}" Style="{StaticResource PclCard}">
@@ -345,6 +366,88 @@
                         <ItemsControl x:Name="ListHostPlayers" Focusable="False" ItemTemplate="{StaticResource PlayerTemplate}" />
                     </ScrollViewer>
                 </HeaderedContentControl>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- ======================== List in the lobby (host) ======================== -->
+        <DockPanel x:Name="PanPublish" Visibility="Hidden">
+            <Grid DockPanel.Dock="Bottom" Margin="0,18,0,0">
+                <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                    <Button Content="{loc:Text Link.Back}" Style="{StaticResource PclButton}" Click="BtnPublishBack_Click" />
+                    <Button x:Name="BtnPublishConfirm" Margin="12,0,0,0" MinWidth="140" FontWeight="Bold"
+                            Content="{loc:Text Lobby.PublishConfirm}" Style="{StaticResource PclButtonHighlight}"
+                            Click="BtnPublishConfirm_Click" />
+                </StackPanel>
+            </Grid>
+            <StackPanel>
+                <HeaderedContentControl Header="{loc:Text Lobby.PublishHeader}" Style="{StaticResource PclCard}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock VerticalAlignment="Center" Text="{loc:Text Lobby.Title}" />
+                        <Grid Grid.Column="1" Margin="14,0,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="TxtLobbyTitle" MaxLength="24" Style="{StaticResource PclTextBox}" KeyDown="TxtLobbyTitle_KeyDown" />
+                            <!-- The room picture; clicking it picks another one. -->
+                            <Button x:Name="BtnLobbyIcon" Grid.Column="1" Margin="8,0,0,0" Width="32" Height="32" Cursor="Hand"
+                                    Focusable="False" ToolTip="{loc:Text Lobby.IconPick}" Click="BtnLobbyIconPick_Click">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <ContentPresenter />
+                                    </ControlTemplate>
+                                </Button.Template>
+                                <Border x:Name="BoxLobbyIcon" CornerRadius="4" Background="{DynamicResource Brush7}">
+                                    <!-- A picture frame, shown while the room has none. -->
+                                    <Path x:Name="GlyphLobbyIcon" Data="M3,3.5 L13,3.5 L13,12.5 L3,12.5 Z M3.5,11 L6.5,8 L9,10.5 L10.5,9 L12.5,11"
+                                          Stroke="{DynamicResource Brush3}" StrokeThickness="1.4" StrokeLineJoin="Round"
+                                          Stretch="None" Width="16" Height="16" />
+                                </Border>
+                            </Button>
+                        </Grid>
+                        <Grid Grid.Row="1" Grid.Column="1" Margin="14,6,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="LabLobbyWorld" FontSize="12" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource BrushGray4}" />
+                            <StackPanel Grid.Column="1" Margin="12,0,0,0" Orientation="Horizontal">
+                                <Button x:Name="BtnLobbyIconMap" FontSize="12" Style="{StaticResource PclTextButton}"
+                                        Content="{loc:Text Lobby.IconMap}" Click="BtnLobbyIconMap_Click" />
+                                <Button x:Name="BtnLobbyIconPick" Margin="14,0,0,0" FontSize="12" Style="{StaticResource PclTextButton}"
+                                        Click="BtnLobbyIconPick_Click" />
+                                <Button x:Name="BtnLobbyIconRemove" Margin="14,0,0,0" FontSize="12" Style="{StaticResource PclTextButton}"
+                                        Content="{loc:Text Lobby.IconRemove}" Click="BtnLobbyIconRemove_Click" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Grid.Row="2" Margin="0,12,0,0" VerticalAlignment="Center" Text="{loc:Text Lobby.Password}" />
+                        <TextBox x:Name="TxtLobbyPassword" Grid.Row="2" Grid.Column="1" Margin="14,12,0,0" MaxLength="32"
+                                 Style="{StaticResource PclTextBox}" Tag="{loc:Text Lobby.PasswordOptional}" KeyDown="TxtLobbyTitle_KeyDown" />
+
+                        <TextBlock Grid.Row="3" Margin="0,19,0,0" VerticalAlignment="Top" Text="{loc:Text Lobby.Tags}" />
+                        <WrapPanel x:Name="PanLobbyTags" Grid.Row="3" Grid.Column="1" Margin="14,14,0,0" />
+
+                        <CheckBox x:Name="ChkLobbyRegion" Grid.Row="4" Grid.Column="1" Margin="14,4,0,0"
+                                  Style="{StaticResource PclCheckBox}" Content="{loc:Text Lobby.ShowRegion}" />
+                    </Grid>
+                </HeaderedContentControl>
+
+                <ContentControl Margin="0,15,0,0" Style="{StaticResource PclHint}">
+                    <TextBlock TextWrapping="Wrap" Text="{loc:Text Lobby.PublishNote}" />
+                </ContentControl>
             </StackPanel>
         </DockPanel>
 

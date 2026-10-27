@@ -15,7 +15,7 @@ Get the latest version from the [download page](/en/download) or from [GitHub Re
 ## First start
 
 1. Put `Campfire.exe` in any folder and double-click it. If you plan to repair a launcher, placing it in the launcher's folder lets Campfire find the launcher automatically.
-2. A short tour introduces Home, Tools and Settings in about thirty seconds. You can skip it and replay it later from **Settings › About**.
+2. A short tour introduces Home, Maps, Tools and Settings in about thirty seconds. You can skip it and replay it later from **Settings › About**.
 3. Official releases ask whether to send anonymous usage statistics. This is entirely optional and declining changes nothing; see [Updates and Privacy](./updates-privacy).
 
 ::: tip One instance at a time
@@ -28,13 +28,13 @@ The shortest path is below; see [Hosting and Joining](./multiplayer) for the ful
 
 **Host**
 
-1. On **Home**, choose **Multiplayer** and click **Create a room**.
-2. Start the game, enter a singleplayer world and open it to LAN.
-3. Campfire finds the world and creates the room. The invite code is copied to the clipboard; send it to your friends.
+1. On **Home**, click **Create a room**.
+2. Start the game and enter a singleplayer world; Campfire opens it to LAN for you.
+3. The room is created and its invite code copied to the clipboard; share it with your friends, or publish the room to the [Lobby](./lobby).
 
 **Friends**
 
-1. Copy the code from the host, then open Campfire. Home offers to join the room right away; alternatively, click **Join a room** on the multiplayer page and paste it.
+1. Copy the code from the host, then open Campfire. Home offers to join the room at once; alternatively, choose **Join a room** on **Home** and paste it, or select a room in the **Lobby**.
 2. Once connected, find the room at the bottom of the game's **Multiplayer** list and double-click it.
 
 ::: warning The networking component is downloaded once
@@ -60,6 +60,8 @@ Settings, the networking component, logs and caches live in `%LocalAppData%\Camp
 | `Link\link.log` | Multiplayer log for troubleshooting |
 | `Link\blocked.json` | The host's blocklist |
 | `Link\heads\` | Skin faces of premium players, cached for a day |
-| `agent.log` | Log of the in-game room information component |
+| `agent.log` | Log of the in-game component |
+| `mappings\` | Mojang name mapping files used by the in-game component |
+| `downloads\maps\` | Downloaded map files, removed after a week unused |
 
 **Multiplayer settings › Data** opens this folder or removes the networking component so it is downloaded again next time.

@@ -21,7 +21,7 @@
     <Company>Xocio</Company>
     <Authors>Xocio</Authors>
     <Description>An advanced Minecraft toolbox.</Description>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <Copyright>Copyright © 2026 Xocio</Copyright>
     <RepositoryUrl>https://github.com/Xocio/Campfire</RepositoryUrl>
   </PropertyGroup>
@@ -75,6 +75,8 @@
     <EmbeddedResource Include="..\java-agent\dist\CampfireAgent.jar" LogicalName="Campfire.CampfireAgent.jar" />
     <EmbeddedResource Include="..\java-agent\dist\CampfireHook.jar" LogicalName="Campfire.CampfireHook.jar" />
     <EmbeddedResource Include="..\java-agent\dist\CampfireAttach.jar" LogicalName="Campfire.CampfireAttach.jar" />
+    <!-- Name tables for releases Mojang published no mappings for; see Link/Minecraft/GameMappings.cs. -->
+    <EmbeddedResource Include="Link\Minecraft\Mappings\*.txt" LogicalName="Campfire.Mappings.%(Filename).txt" />
   </ItemGroup>
 
   <!--

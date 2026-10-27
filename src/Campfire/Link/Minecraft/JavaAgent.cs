@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,9 +14,10 @@ using Campfire.Localization;
 namespace Campfire.Link.Minecraft
 {
     /// <summary>
-    /// Attaches the small Java agent that adds the room header, footer and welcome message from inside
-    /// the host's own Minecraft server. This is the only path that works in a normal LAN world, whose
-    /// login connection is encrypted before Campfire can see any play packets.
+    /// Attaches the small Java agent that works from inside the host's own Minecraft server: it adds the room
+    /// header, footer and welcome message, which is the only path that works in a normal LAN world, whose
+    /// login connection is encrypted before Campfire can see any play packets, and it opens an imported map
+    /// to LAN when asked (see <see cref="LanOpener"/>). It runs on every release since 1.14.4.
     /// </summary>
     internal static class JavaAgent
     {
@@ -34,24 +37,71 @@ namespace Campfire.Link.Minecraft
 
         /// <summary>
         /// Loads the agent into <paramref name="processId"/> and waits until it shows the overlay. Returns
-        /// <c>false</c> when the game runs on a JRE without the attach module, the agent cannot be loaded or
+        /// <c>false</c> when no Java on this computer can attach to the game, the agent cannot be loaded or
         /// the game is not a version it knows; the room itself keeps working. An <see cref="AgentState"/>
         /// for the process must already exist, since the hook only runs while that state is fresh.
         /// </summary>
         public static async Task<bool> AttachAsync(int processId, CancellationToken cancellation)
         {
+            if (!await LoadAsync(processId, cancellation).ConfigureAwait(false))
+                return false;
+
+            try
+            {
+                // Loading the agent says nothing about the game: a modded version may use other class names,
+                // and the hook then stays idle. Only its own confirmation counts.
+                var deadline = DateTime.UtcNow + ReadyTimeout;
+                while (!File.Exists(ReadyPath(processId)))
+                {
+                    if (DateTime.UtcNow > deadline)
+                    {
+                        LinkLog.Warn("The Java agent was loaded, but the game did not start the overlay; see agent.log.");
+                        return false;
+                    }
+                    await Task.Delay(250, cancellation).ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
+            }
+
+            LinkLog.Info("In-game overlay agent attached to game process " + processId + ".");
+            return true;
+        }
+
+        /// <summary>
+        /// Loads the agent into <paramref name="processId"/>, with the mapping file of its release when that is
+        /// obfuscated. Returns whether the agent was loaded; what it can do in that game only shows through
+        /// its state files. Loading it again is harmless: the hook is installed once per game.
+        /// </summary>
+        public static async Task<bool> LoadAsync(int processId, CancellationToken cancellation)
+        {
             if (processId <= 0)
                 return false;
+
+            string mappings = null;
+            try
+            {
+                mappings = await GameMappings.PrepareAsync(processId, cancellation).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidOperationException)
+            {
+                // Without mappings only releases with official names work; the agent finds out by itself.
+                LinkLog.Warn("The mapping file could not be prepared: " + ex.Message);
+            }
 
             await Gate.WaitAsync(cancellation).ConfigureAwait(false);
             try
             {
-                string ready = ReadyPath(processId);
-
-                string java = FindJava(processId);
+                string java = await Task.Run(() => FindAttachJava(processId), cancellation).ConfigureAwait(false);
                 if (java == null)
                 {
-                    LinkLog.Warn("Could not find the Java executable of the running game; in-game overlay skipped.");
+                    LinkLog.Warn("No Java on this computer can attach to the running game; the in-game agent is skipped.");
                     return false;
                 }
 
@@ -63,10 +113,10 @@ namespace Campfire.Link.Minecraft
                 string attach = Extract(AttachResource, Path.Combine(directory, "CampfireAttach.jar"));
                 Extract(HookResource, Path.Combine(directory, "CampfireHook.jar"));
 
-                string options = "state=" + LinkSettings.DataDirectory;
+                string options = "state=" + LinkSettings.DataDirectory + (mappings != null ? "|mappings=" + mappings : "");
                 var startInfo = new ProcessStartInfo(java)
                 {
-                    Arguments = "--add-modules jdk.attach -cp " + Quote(attach) + " CampfireAttach "
+                    Arguments = "--add-modules jdk.attach -cp " + Quote(attach) + " campfire.CampfireAttach "
                                 + processId.ToString(CultureInfo.InvariantCulture) + " " + Quote(agent) + " " + Quote(options),
                     WorkingDirectory = directory,
                     UseShellExecute = false,
@@ -105,20 +155,7 @@ namespace Campfire.Link.Minecraft
                     }
                 }
 
-                // Loading the agent says nothing about the game: an older or modded version has other class
-                // names, and the hook then stays idle. Only its own confirmation counts.
-                var deadline = DateTime.UtcNow + ReadyTimeout;
-                while (!File.Exists(ready))
-                {
-                    if (DateTime.UtcNow > deadline)
-                    {
-                        LinkLog.Warn("The Java agent was loaded, but the game did not start the overlay; see agent.log.");
-                        return false;
-                    }
-                    await Task.Delay(250, cancellation).ConfigureAwait(false);
-                }
-
-                LinkLog.Info("In-game overlay agent attached to game process " + processId + ".");
+                LinkLog.Info("Java agent loaded into game process " + processId + (mappings != null ? " with mappings." : "."));
                 return true;
             }
             catch (OperationCanceledException)
@@ -141,6 +178,106 @@ namespace Campfire.Link.Minecraft
             {
                 Gate.Release();
             }
+        }
+
+        private static readonly Dictionary<string, bool> AttachSupport = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// A Java that can attach to the game: its own, which every runtime since Java 9 can do. The Java 8
+        /// runtime of releases up to 1.16 cannot, so another one on this computer does it instead, such as a
+        /// newer runtime the launcher installed next to it.
+        /// </summary>
+        private static string FindAttachJava(int processId)
+        {
+            return AttachCandidates(FindJava(processId)).FirstOrDefault(CanAttach);
+        }
+
+        private static IEnumerable<string> AttachCandidates(string game)
+        {
+            if (game != null)
+                yield return game;
+
+            var roots = new List<string>();
+            int runtime = game?.IndexOf("\\runtime\\", StringComparison.OrdinalIgnoreCase) ?? -1;
+            if (runtime > 0)
+                roots.Add(game.Substring(0, runtime + "\\runtime".Length));
+            roots.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".minecraft", "runtime"));
+
+            string home = Environment.GetEnvironmentVariable("JAVA_HOME");
+            if (!string.IsNullOrEmpty(home))
+                yield return Path.Combine(home, "bin", "java.exe");
+
+            foreach (var folder in new[] { Environment.SpecialFolder.ProgramFiles, Environment.SpecialFolder.ProgramFilesX86 })
+            {
+                string programs = Environment.GetFolderPath(folder);
+                if (string.IsNullOrEmpty(programs))
+                    continue;
+                foreach (string vendor in new[] { "Java", "Eclipse Adoptium", "Microsoft", "Zulu", "BellSoft", "Amazon Corretto" })
+                    roots.Add(Path.Combine(programs, vendor));
+            }
+
+            foreach (string root in roots.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                foreach (string java in FindJavaFiles(root))
+                    yield return java;
+            }
+        }
+
+        private static IEnumerable<string> FindJavaFiles(string root)
+        {
+            try
+            {
+                return Directory.Exists(root)
+                    ? Directory.EnumerateFiles(root, "java.exe", SearchOption.AllDirectories)
+                        .Where(f => string.Equals(Path.GetFileName(Path.GetDirectoryName(f)), "bin", StringComparison.OrdinalIgnoreCase))
+                        .ToList()
+                    : Enumerable.Empty<string>();
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                return Enumerable.Empty<string>();
+            }
+        }
+
+        /// <summary>Whether <paramref name="java"/> has the attach module; Java 8 does not even know the question.</summary>
+        private static bool CanAttach(string java)
+        {
+            lock (AttachSupport)
+            {
+                if (AttachSupport.TryGetValue(java, out bool known))
+                    return known;
+            }
+
+            bool supported = false;
+            try
+            {
+                if (File.Exists(java))
+                {
+                    var startInfo = new ProcessStartInfo(java, "--list-modules")
+                    {
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                    };
+                    using (var process = Process.Start(startInfo))
+                    {
+                        Task<string> error = process.StandardError.ReadToEndAsync();
+                        string output = process.StandardOutput.ReadToEnd();
+                        process.WaitForExit(10000);
+                        error.Wait(1000);
+                        supported = output.IndexOf("jdk.attach@", StringComparison.Ordinal) >= 0;
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is IOException || ex is InvalidOperationException
+                                       || ex is System.ComponentModel.Win32Exception || ex is AggregateException)
+            {
+            }
+
+            lock (AttachSupport)
+                AttachSupport[java] = supported;
+            return supported;
         }
 
         private static string FindJava(int processId)

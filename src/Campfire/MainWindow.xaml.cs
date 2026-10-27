@@ -27,6 +27,7 @@ namespace Campfire
         private FrameworkElement _tabPage;
         private readonly Stack<(FrameworkElement Page, string TitleKey)> _subPages = new Stack<(FrameworkElement Page, string TitleKey)>();
         private TaskCompletionSource<DialogChoice> _dialog;
+        private DialogRequest _dialogRequest;
         private Action _dialogLinkAction;
         private bool _dialogLinkCloses;
         private TrayIcon _tray;
@@ -46,7 +47,14 @@ namespace Campfire
             _shownPage = PageHome;
             _tabPage = PageHome;
             PageHome.QuickJoinRequested += PageHome_QuickJoinRequested;
+            PageMaps.MapRequested += PageMaps_MapRequested;
+            PageMap.ImportRequested += PageMap_ImportRequested;
             PageSettings.IsRoomActive = () => PageLink.IsRoomActive;
+            PageLobby.RoomRequested += PageLobby_RoomRequested;
+            PageLobby.CreateRequested += PageHome_CreateRequested;
+            PageLobbyRoom.IsRoomActive = () => PageLink.IsRoomActive;
+            PageLobbyRoom.JoinRequested += PageLobby_JoinRequested;
+            PageLobbyRoom.RoomGone += (sender, e) => PageLobby.Invalidate();
 
             Text.LanguageChanged += OnLanguageChanged;
             Closed += (sender, e) => Text.LanguageChanged -= OnLanguageChanged;
@@ -104,6 +112,7 @@ namespace Campfire
                 new TourStep { TitleKey = "Tour.1.Title", BodyKey = "Tour.1.Body", Target = () => LogoTitle, Padding = 7, Round = true, Enter = () => ShowTab(TabHome) },
                 new TourStep { TitleKey = "Tour.2.Title", BodyKey = "Tour.2.Body", Target = () => PageHome.PanStart, Padding = 8, Enter = () => ShowTab(TabHome) },
                 new TourStep { TitleKey = "Tour.3.Title", BodyKey = "Tour.3.Body", Target = () => PageHome.CardGuide, Padding = 6, Enter = () => ShowTab(TabHome) },
+                new TourStep { TitleKey = "Tour.Maps.Title", BodyKey = "Tour.Maps.Body", Target = () => TabMaps, Padding = 5, Round = true, Enter = () => ShowTab(TabMaps) },
                 new TourStep { TitleKey = "Tour.4.Title", BodyKey = "Tour.4.Body", Target = () => TabTools, Padding = 5, Round = true, Enter = () => ShowTab(TabTools) },
                 new TourStep { TitleKey = "Tour.5.Title", BodyKey = "Tour.5.Body", Target = () => TabSettings, Padding = 5, Round = true, Enter = () => ShowTab(TabSettings) },
                 new TourStep { TitleKey = "Tour.6.Title", BodyKey = "Tour.6.Body", Target = () => PageHome.TileCreate, Padding = 6, Enter = () => ShowTab(TabHome) },
@@ -128,14 +137,15 @@ namespace Campfire
 
         private int TabOrder(FrameworkElement page)
         {
-            return page == PageTools ? 1 : page == PagePreferences ? 2 : 0;
+            return page == PageMaps ? 1 : page == PageTools ? 2 : page == PagePreferences ? 3 : 0;
         }
 
         private void Tab_Checked(object sender, RoutedEventArgs e)
         {
             if (PageHome == null)
                 return;
-            FrameworkElement target = sender == TabTools ? PageTools : sender == TabSettings ? PagePreferences : (FrameworkElement)PageHome;
+            FrameworkElement target = sender == TabMaps ? PageMaps : sender == TabTools ? PageTools
+                : sender == TabSettings ? PagePreferences : (FrameworkElement)PageHome;
             int direction = Math.Sign(TabOrder(target) - TabOrder(_tabPage));
             _tabPage = target;
             ShowPage(_tabPage, direction == 0 ? 1 : direction);
@@ -144,13 +154,16 @@ namespace Campfire
         /// <summary>Opens a feature page; the title bar shows a back button and the page name instead of the tabs.</summary>
         private void OpenSubPage(FrameworkElement page, string titleKey)
         {
+            // Decided by the trail rather than by what is visible: right after going back, the page title is still
+            // fading out and would hide once the fade ends.
+            bool fromTab = _subPages.Count == 0;
             // Opening a page that is already in the trail goes back to it instead of adding it again.
             while (_subPages.Count > 0 && _subPages.Any(p => p.Page == page))
                 _subPages.Pop();
             _subPages.Push((page, titleKey));
 
             LabTitleSub.Text = Text.Get(titleKey);
-            if (PanTitleSub.Visibility != Visibility.Visible)
+            if (fromTab)
             {
                 Motion.LeavePage(PanTitleMain, 1);
                 Motion.LeavePage(PanTabs, 1);
@@ -228,6 +241,24 @@ namespace Campfire
             OpenSubPage(PageSettings, "Page.Settings");
         }
 
+        private void Page_LobbyRequested(object sender, EventArgs e)
+        {
+            OpenSubPage(PageLobby, "Page.Lobby");
+        }
+
+        private void PageLobby_RoomRequested(object sender, Link.Lobby.LobbyRoom room)
+        {
+            OpenSubPage(PageLobbyRoom, "Page.LobbyRoom");
+            PageLobbyRoom.Show(room);
+        }
+
+        /// <summary>A room was picked in the lobby: the multiplayer page joins it, and going back returns to the room.</summary>
+        private void PageLobby_JoinRequested(object sender, Pages.LobbyJoinEventArgs e)
+        {
+            OpenSubPage(PageLink, "Page.Link");
+            PageLink.JoinWithCode(e.Code, e.RoomId);
+        }
+
         private void PageSettings_SettingsChanged(object sender, EventArgs e)
         {
             PageLink.ReloadSettings();
@@ -246,16 +277,68 @@ namespace Campfire
             await PageJre.LoadInitialLauncherAsync(PageRepair.LauncherPath);
         }
 
+        private async void Page_WorldRequested(object sender, EventArgs e)
+        {
+            OpenSubPage(PageWorld, "Page.World");
+            await PageWorld.RefreshVersionsAsync(PageRepair.LauncherPath);
+        }
+
+        private void PageWorld_CreateRoomRequested(object sender, EventArgs e)
+        {
+            OpenSubPage(PageLink, "Page.Link");
+            PageLink.StartCreate();
+        }
+
+        private async void PageMaps_MapRequested(object sender, Worlds.MapSummary map)
+        {
+            OpenSubPage(PageMap, "Page.Map");
+            await PageMap.ShowAsync(map, PageMaps.InstalledVersions);
+        }
+
+        /// <summary>A map was downloaded: the import page takes over, and going back returns to the map.</summary>
+        private async void PageMap_ImportRequested(object sender, string path)
+        {
+            if (PageWorld.IsBusy)
+                return;
+            OpenSubPage(PageWorld, "Page.World");
+            var versions = PageWorld.RefreshVersionsAsync(PageRepair.LauncherPath);
+            await PageWorld.SelectAsync(path);
+            await versions;
+        }
+
+        /// <summary>Maps arrive as archives or folders; anything else is taken for a launcher.</summary>
+        private static bool IsMap(string path)
+        {
+            if (Directory.Exists(path))
+                return true;
+            string extension = Path.GetExtension(path);
+            return extension.Equals(".zip", StringComparison.OrdinalIgnoreCase)
+                   || extension.Equals(".mcworld", StringComparison.OrdinalIgnoreCase)
+                   || Path.GetFileName(path).Equals("level.dat", StringComparison.OrdinalIgnoreCase);
+        }
+
         private void Window_DragOver(object sender, DragEventArgs e)
         {
-            e.Effects = !PageRepair.IsBusy && e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Effects = !PageRepair.IsBusy && !PageWorld.IsBusy && e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
             e.Handled = true;
         }
 
         private async void Window_Drop(object sender, DragEventArgs e)
         {
-            if (PageRepair.IsBusy || !(e.Data.GetData(DataFormats.FileDrop) is string[] files))
+            if (PageRepair.IsBusy || PageWorld.IsBusy || !(e.Data.GetData(DataFormats.FileDrop) is string[] files))
                 return;
+
+            string map = files.FirstOrDefault(f => (File.Exists(f) || Directory.Exists(f)) && IsMap(f));
+            if (map != null)
+            {
+                if (_subPages.Count == 0)
+                    TabMaps.IsChecked = true;
+                OpenSubPage(PageWorld, "Page.World");
+                var versions = PageWorld.RefreshVersionsAsync(PageRepair.LauncherPath);
+                await PageWorld.SelectAsync(map);
+                await versions;
+                return;
+            }
 
             string path = files.FirstOrDefault(File.Exists);
             if (path == null)
@@ -277,8 +360,10 @@ namespace Campfire
             switch (PageLink.Stage)
             {
                 case LinkStage.Working:
-                    PageHome.SetRoom(RoomStatus(),
-                        Text.Get(PageLink.Role == LinkRole.Host ? "Home.WorkingHost" : "Home.WorkingGuest"), "Brush3");
+                    string detail = PageLink.Role != LinkRole.Host ? "Home.WorkingGuest"
+                        : PageLink.AutoLan == AutoLanState.NoGame || PageLink.AutoLan == AutoLanState.Waiting ? "Home.WorkingHostAuto"
+                        : "Home.WorkingHost";
+                    PageHome.SetRoom(RoomStatus(), Text.Get(detail), "Brush3");
                     break;
                 case LinkStage.Ready when PageLink.Role == LinkRole.Host:
                     PageHome.SetRoom(RoomStatus(), Text.Format("Home.RoomCode", PageLink.Code?.Code), "BrushGreen");
@@ -438,7 +523,7 @@ namespace Campfire
         /// </summary>
         private async void WarmUpPages()
         {
-            var pages = new FrameworkElement[] { PageTools, PagePreferences, PageLink, PageSettings, PageRepair, PageJre };
+            var pages = new FrameworkElement[] { PageMaps, PageTools, PagePreferences, PageLink, PageLobby, PageLobbyRoom, PageSettings, PageRepair, PageJre, PageWorld, PageMap };
             foreach (var page in pages)
             {
                 await Task.Delay(120);
@@ -535,6 +620,7 @@ namespace Campfire
             }
 
             _dialog = new TaskCompletionSource<DialogChoice>();
+            _dialogRequest = request;
             _dialogLinkAction = request.LinkAction;
             _dialogLinkCloses = request.LinkCloses;
 
@@ -556,6 +642,10 @@ namespace Campfire
             BtnDialogCancel.Visibility = request.SecondaryText == null ? Visibility.Collapsed : Visibility.Visible;
             BtnDialogLink.Content = request.LinkText;
             BtnDialogLink.Visibility = request.LinkText == null ? Visibility.Collapsed : Visibility.Visible;
+            TxtDialogInput.Text = "";
+            TxtDialogInput.Tag = request.InputHint;
+            TxtDialogInput.MaxLength = request.InputMaxLength;
+            TxtDialogInput.Visibility = request.InputHint == null ? Visibility.Collapsed : Visibility.Visible;
 
             if (WindowState == WindowState.Minimized)
                 WindowState = WindowState.Normal;
@@ -588,7 +678,10 @@ namespace Campfire
                 lift.BeginAnimation(TranslateTransform.YProperty, null);
                 tilt.BeginAnimation(RotateTransform.AngleProperty, null);
             }
-            (request.SecondaryText == null ? BtnDialogConfirm : BtnDialogCancel).Focus();
+            if (request.InputHint != null)
+                TxtDialogInput.Focus();
+            else
+                (request.SecondaryText == null ? BtnDialogConfirm : BtnDialogCancel).Focus();
             return await _dialog.Task;
         }
 
@@ -616,10 +709,22 @@ namespace Campfire
                 _dialogLinkAction?.Invoke();
         }
 
+        private void TxtDialogInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && _dialog != null)
+            {
+                CloseDialog(DialogChoice.Primary);
+                e.Handled = true;
+            }
+        }
+
         private void CloseDialog(DialogChoice result)
         {
             var dialog = _dialog;
             _dialog = null;
+            if (_dialogRequest != null && _dialogRequest.InputHint != null)
+                _dialogRequest.InputText = TxtDialogInput.Text;
+            _dialogRequest = null;
             _dialogLinkAction = null;
             PanDialog.IsHitTestVisible = false;
 

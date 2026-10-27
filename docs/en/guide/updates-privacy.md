@@ -18,6 +18,10 @@ When a new version is found, Campfire shows the release notes and asks first. On
 
 If a room is open, Campfire tells you beforehand that updating will close it. If the program folder is not writable, or the download or verification fails, the current version stays as it is and Campfire opens the download page for a manual update.
 
+### Required updates
+
+When an old version has a serious problem, a new version may be marked as required. Campfire insists on updating only once a correctly signed new version has been downloaded and verified; should the download or verification fail, Campfire remains fully usable.
+
 ::: info Builds from source
 Builds made from the source code never contact the update and notice service and never send usage statistics.
 :::
@@ -39,7 +43,7 @@ At most once a day per computer, and only:
 
 ### What is never collected
 
-IP addresses, game accounts and UUIDs, player names, rooms and invite codes, file paths, hardware serial numbers and network adapter addresses.
+IP addresses, game accounts and UUIDs, player names, rooms and invite codes, file paths, hardware serial numbers and network adapter addresses. The sole exception is a room you choose to list in the lobby; see [Lobby](./lobby#privacy).
 
 ### Retention and use
 
@@ -53,4 +57,4 @@ After statistics are turned off, nothing more is sent. After **Reset statistics 
 
 Multiplayer privacy options, such as hiding your IP address, reading the game account and sharing skins, are described in [Network and Privacy](./network#privacy).
 
-The full privacy notice is also available in Campfire under **Settings › General › Privacy**.
+The full privacy notice is also available in Campfire under **Settings › General › Privacy**. Every network connection Campfire makes is listed in [Network Security](./security).

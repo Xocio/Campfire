@@ -19,6 +19,8 @@ Campfire always tries a direct connection first. Whether it succeeds depends mos
 
 **Nodes** only help players find each other; game traffic never passes through Campfire's servers. Traffic goes through a relay node only when relaying is allowed and a direct connection fails.
 
+What each party can see while you play, and why the networking component cannot reach other services on your computer, is described in [Network Security](./security#multiplayer).
+
 ## Room
 
 | Option | Description |
@@ -29,6 +31,7 @@ Campfire always tries a direct connection first. Whether it succeeds depends mos
 | **Host search limit** | How long to wait for the host when joining: 30, 60 or 120 seconds |
 | **Copy the invite code after creating a room** | Puts the code on the clipboard as soon as the room is ready |
 | **Detect invite codes on the clipboard** | Home offers to join as soon as you copy a code |
+| **Open to LAN automatically when creating a room** | After creating a room, Campfire opens your singleplayer world to LAN once you enter it; see [Opening to LAN automatically](./multiplayer#opening-to-lan-automatically) |
 
 ## Network
 

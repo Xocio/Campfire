@@ -1,0 +1,42 @@
+# Names the in-game agent needs in the Minecraft 1.14 client jar (SHA-1 7a762a59345c13af7d87111207a93f5a8607f6c0).
+# client 7a762a59345c13af7d87111207a93f5a8607f6c0
+# Mojang published no mappings for this release; these were found by reading the jar's own bytecode.
+# Keys are the official names of releases since 1.14.4, so the agent looks everything up the same way.
+net.minecraft.server.MinecraftServer -> net.minecraft.server.MinecraftServer:
+    void tickServer(java.util.function.BooleanSupplier) -> a
+    net.minecraft.server.players.PlayerList getPlayerList() -> ad
+    java.lang.String getSingleplayerName() -> H
+    java.lang.String getLevelIdName() -> J
+    net.minecraft.world.level.GameType getDefaultGameType() -> g
+    net.minecraft.server.level.ServerLevel getLevel(net.minecraft.world.level.dimension.DimensionType) -> a
+net.minecraft.client.server.IntegratedServer -> dxh:
+    boolean publishServer(net.minecraft.world.level.GameType,boolean,int) -> a
+net.minecraft.server.players.PlayerList -> xq:
+    java.util.List getPlayers() -> t
+net.minecraft.server.level.ServerPlayer -> vh:
+    net.minecraft.server.network.ServerGamePacketListenerImpl connection -> b
+    int latency -> f
+net.minecraft.world.entity.Entity -> aif:
+    java.util.UUID getUUID() -> bA
+net.minecraft.server.network.ServerGamePacketListenerImpl -> vy:
+    void send(net.minecraft.network.protocol.Packet) -> a
+net.minecraft.network.protocol.Packet -> ka:
+net.minecraft.network.chat.Component -> jm:
+    net.minecraft.network.chat.Component append(net.minecraft.network.chat.Component) -> a
+net.minecraft.network.chat.TextComponent -> jv:
+net.minecraft.ChatFormatting -> c:
+    net.minecraft.ChatFormatting getByName(java.lang.String) -> c
+net.minecraft.network.protocol.game.ClientboundChatPacket -> ks:
+net.minecraft.network.protocol.game.ClientboundTabListPacket -> ng:
+    net.minecraft.network.chat.Component header -> a
+    net.minecraft.network.chat.Component footer -> b
+net.minecraft.world.level.GameType -> bhe:
+net.minecraft.server.level.ServerLevel -> vg:
+net.minecraft.world.level.Level -> bhh:
+    net.minecraft.world.level.storage.LevelData getLevelData() -> p_
+net.minecraft.world.level.storage.LevelData -> coa:
+    boolean getAllowCommands() -> u
+net.minecraft.world.level.dimension.DimensionType -> byd:
+    net.minecraft.world.level.dimension.DimensionType OVERWORLD -> a
+net.minecraft.util.HttpUtil -> zn:
+    int getAvailablePort() -> a

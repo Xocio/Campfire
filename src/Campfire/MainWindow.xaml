@@ -73,7 +73,8 @@
                                    FontWeight="Bold" Foreground="{DynamicResource BrushWhite}" />
                     </StackPanel>
 
-                    <StackPanel x:Name="PanTabs" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                    <!-- Centered in the room between the name and the buttons, which sits slightly right of the middle. -->
+                    <StackPanel x:Name="PanTabs" Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
                         <RadioButton x:Name="TabHome" GroupName="Tabs" IsChecked="True" Style="{StaticResource PclTabButton}"
                                      Checked="Tab_Checked">
                             <StackPanel Orientation="Horizontal">
@@ -84,7 +85,17 @@
                                 <TextBlock Margin="6,0,0,0" VerticalAlignment="Center" Text="{loc:Text Tab.Home}" />
                             </StackPanel>
                         </RadioButton>
-                        <RadioButton x:Name="TabTools" Margin="6,0,0,0" GroupName="Tabs" Style="{StaticResource PclTabButton}"
+                        <RadioButton x:Name="TabMaps" Margin="4,0,0,0" GroupName="Tabs" Style="{StaticResource PclTabButton}"
+                                     Checked="Tab_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="M2.5,4 L6,2.5 L10,4 L13.5,2.5 L13.5,12 L10,13.5 L6,12 L2.5,13.5 Z M6,2.5 L6,12 M10,4 L10,13.5"
+                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"
+                                      StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round" Stretch="None" Width="16" Height="16" VerticalAlignment="Center" />
+                                <TextBlock Margin="6,0,0,0" VerticalAlignment="Center" Text="{loc:Text Tab.Maps}" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton x:Name="TabTools" Margin="4,0,0,0" GroupName="Tabs" Style="{StaticResource PclTabButton}"
                                      Checked="Tab_Checked">
                             <Grid>
                                 <StackPanel Orientation="Horizontal">
@@ -100,7 +111,7 @@
                                          StrokeThickness="1" Visibility="Collapsed" />
                             </Grid>
                         </RadioButton>
-                        <RadioButton x:Name="TabSettings" Margin="6,0,0,0" GroupName="Tabs" Style="{StaticResource PclTabButton}"
+                        <RadioButton x:Name="TabSettings" Margin="4,0,0,0" GroupName="Tabs" Style="{StaticResource PclTabButton}"
                                      Checked="Tab_Checked">
                             <StackPanel Orientation="Horizontal">
                                 <Path Data="M10,8 A2,2 0 1 1 6,8 A2,2 0 1 1 10,8 Z M6.9,2 L9.1,2 L9.5,3.7 L10.6,4.3 L12.3,3.7 L13.4,5.6 L12.1,6.8 L12.1,9.2 L13.4,10.4 L12.3,12.3 L10.6,11.7 L9.5,12.3 L9.1,14 L6.9,14 L6.5,12.3 L5.4,11.7 L3.7,12.3 L2.6,10.4 L3.9,9.2 L3.9,6.8 L2.6,5.6 L3.7,3.7 L5.4,4.3 L6.5,3.7 Z"
@@ -133,16 +144,22 @@
             <!-- Pages share one cell; inactive ones are Hidden, so the window keeps a stable height. -->
             <Grid Grid.Row="1" ClipToBounds="True">
                 <pages:HomePage x:Name="PageHome" LinkRequested="PageHome_LinkRequested" CreateRequested="PageHome_CreateRequested"
-                                JoinRequested="PageHome_JoinRequested" SettingsRequested="Page_SettingsRequested" />
+                                JoinRequested="PageHome_JoinRequested" SettingsRequested="Page_SettingsRequested"
+                                LobbyRequested="Page_LobbyRequested" />
+                <pages:MapsPage x:Name="PageMaps" Visibility="Hidden" ImportRequested="Page_WorldRequested" />
                 <pages:ToolsPage x:Name="PageTools" Visibility="Hidden" RepairRequested="PageTools_RepairRequested"
                                 JreRequested="PageTools_JreRequested" />
                 <pages:PreferencesPage x:Name="PagePreferences" Visibility="Hidden"
                                        TraySettingsChanged="PagePreferences_TraySettingsChanged" />
                 <pages:LinkPage x:Name="PageLink" Visibility="Hidden" StatusChanged="PageLink_StatusChanged"
-                                SettingsRequested="Page_SettingsRequested" />
+                                SettingsRequested="Page_SettingsRequested" LobbyRequested="Page_LobbyRequested" />
+                <pages:LobbyPage x:Name="PageLobby" Visibility="Hidden" />
+                <pages:LobbyRoomPage x:Name="PageLobbyRoom" Visibility="Hidden" />
                 <pages:SettingsPage x:Name="PageSettings" Visibility="Hidden" SettingsChanged="PageSettings_SettingsChanged" />
                 <pages:RepairPage x:Name="PageRepair" Visibility="Hidden" StatusChanged="PageRepair_StatusChanged" />
                 <pages:JrePage x:Name="PageJre" Visibility="Hidden" />
+                <pages:WorldPage x:Name="PageWorld" Visibility="Hidden" CreateRoomRequested="PageWorld_CreateRoomRequested" />
+                <pages:MapPage x:Name="PageMap" Visibility="Hidden" />
             </Grid>
 
             <!-- First-run tour; dialogs stay above it. -->
@@ -176,6 +193,8 @@
                         </ScrollViewer>
                         <TextBlock x:Name="LabDialogDetail" Margin="0,8,0,0" FontSize="12" TextWrapping="Wrap"
                                    Foreground="{DynamicResource BrushGray3}" Visibility="Collapsed" />
+                        <TextBox x:Name="TxtDialogInput" Margin="0,12,0,0" Style="{StaticResource PclTextBox}" Visibility="Collapsed"
+                                 KeyDown="TxtDialogInput_KeyDown" />
                         <Grid Margin="0,20,0,0">
                             <Button x:Name="BtnDialogLink" HorizontalAlignment="Left" VerticalAlignment="Center"
                                     Style="{StaticResource PclTextButton}" Visibility="Collapsed" Click="BtnDialogLink_Click" />

@@ -14,14 +14,23 @@ namespace Campfire.Online
     /// Downloads, verifies and installs a new Campfire.exe.
     /// </summary>
     /// <remarks>
-    /// A file is only installed when its ECDSA P-256 signature matches <see cref="PublicKey"/>, so neither the
-    /// service nor a download mirror can hand out a modified program. Windows lets a running program be renamed,
+    /// A file is only installed when its ECDSA P-256 signature matches one of <see cref="PublicKeys"/>, so neither
+    /// the service nor a download mirror can hand out a modified program. Windows lets a running program be renamed,
     /// so installing renames the running file to ".old", puts the new one in its place and starts it.
     /// </remarks>
     internal static class Updater
     {
-        /// <summary>Public half of the release signing key, X and Y in base64. See tools/new-signing-key.ps1.</summary>
-        private const string PublicKey = "MKs7EnkhMauplagoZmgoOqkNRbQiwlTDVIT1zHitN7KsJL7uG8/WPZAG+Lisj/k0wCbHGcRpxMlPqr1y/DkYlw==";
+        /// <summary>
+        /// Public halves of the release signing keys, X and Y in base64. See tools/new-signing-key.ps1. A backup key
+        /// made in advance and kept offline can be added here, so releases can move to it if the current private
+        /// key ever leaks; the next release then drops the leaked key.
+        /// </summary>
+        private static readonly string[] PublicKeys =
+        {
+            "MKs7EnkhMauplagoZmgoOqkNRbQiwlTDVIT1zHitN7KsJL7uG8/WPZAG+Lisj/k0wCbHGcRpxMlPqr1y/DkYlw==",
+            // Backup key, kept offline; not used to sign releases unless the key above leaks.
+            "B8IxfxtwY7dwuOMz5/KwEjASpjTHFc5/DXF0eMiejDnOXq9FZ2VWo/OS14lPXShAoik6C5fS8AcLFaNc9oFPwg==",
+        };
 
         private const long MaxSize = 64L * 1024 * 1024;
 
@@ -38,6 +47,10 @@ namespace Campfire.Online
             return update != null && update.Version > OnlineService.ShortVersion;
         }
 
+        /// <summary>
+        /// Whether the service asks for this update before Campfire can be used. The manifest is not signed, so
+        /// this alone never closes Campfire: OnlineFlow only insists once a correctly signed file is in hand.
+        /// </summary>
         public static bool IsRequired(Manifest manifest)
         {
             return manifest?.MinVersion != null && OnlineService.ShortVersion < manifest.MinVersion && IsNewer(manifest.Update);
@@ -156,18 +169,21 @@ namespace Campfire.Online
                 return false;
             }
 
-            byte[] key = Convert.FromBase64String(PublicKey);
+            if (signatureBytes.Length != 64 || !PublicKeys.Any(key => IsSignedBy(key, data, signatureBytes)))
+                return false;
+            return VersionOf(data) == expected;
+        }
+
+        private static bool IsSignedBy(string publicKey, byte[] data, byte[] signature)
+        {
+            byte[] key = Convert.FromBase64String(publicKey);
             var parameters = new ECParameters
             {
                 Curve = ECCurve.NamedCurves.nistP256,
                 Q = new ECPoint { X = key.Take(32).ToArray(), Y = key.Skip(32).ToArray() },
             };
             using (var ecdsa = ECDsa.Create(parameters))
-            {
-                if (signatureBytes.Length != 64 || !ecdsa.VerifyData(data, signatureBytes, HashAlgorithmName.SHA256))
-                    return false;
-            }
-            return VersionOf(data) == expected;
+                return ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA256);
         }
 
         /// <summary>The three-part assembly version of a program file, read without running or loading it.</summary>

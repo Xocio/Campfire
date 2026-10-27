@@ -4,8 +4,12 @@
 #
 # The file holds the private key: put its content into the GitHub secret CAMPFIRE_SIGNING_KEY and keep a
 # backup somewhere safe. Never commit it. The public key printed at the end goes into
-# src/Campfire/Online/Updater.cs (PublicKey). A new key pair means clients with the old public key can no
-# longer update automatically, so only replace it when the private key has leaked.
+# src/Campfire/Online/Updater.cs (PublicKeys).
+#
+# Campfire accepts a release signed by any key in PublicKeys. To be ready for a leak, make a second key pair
+# now, keep its private key offline and add its public key to PublicKeys. If the current private key leaks,
+# sign releases with the backup key from then on and remove the leaked public key in that release. Clients
+# that only know the leaked key cannot update automatically and must download the new version by hand.
 param(
     [Parameter(Mandatory = $true)][string]$OutFile
 )

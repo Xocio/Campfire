@@ -89,6 +89,13 @@ namespace Campfire.Link
             set => SetFlag("link.autocopy", value);
         }
 
+        /// <summary>Whether creating a room opens the host's single-player world to LAN through the game agent.</summary>
+        public static bool AutoOpenLan
+        {
+            get => GetFlag("link.autolan", true);
+            set => SetFlag("link.autolan", value);
+        }
+
         /// <summary>Whether an invite code on the clipboard is offered for joining.</summary>
         public static bool DetectClipboard
         {
@@ -160,6 +167,46 @@ namespace Campfire.Link
         {
             get => GetFlag("link.vendor", true);
             set => SetFlag("link.vendor", value);
+        }
+
+        // ======================== Lobby ========================
+
+        /// <summary>The room name last used in the lobby, offered again next time.</summary>
+        public static string LobbyTitle
+        {
+            get => GetText("lobby.title");
+            set => AppSettings.Set("lobby.title", (value ?? "").Trim());
+        }
+
+        /// <summary>The tags last picked for the lobby.</summary>
+        public static IReadOnlyList<string> LobbyTags
+        {
+            get => GetText("lobby.tags").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            set => AppSettings.Set("lobby.tags", string.Join(",", value ?? Array.Empty<string>()));
+        }
+
+        /// <summary>Whether listed rooms show the rough region the service derives from the connection.</summary>
+        public static bool LobbyShowRegion
+        {
+            get => GetFlag("lobby.region", true);
+            set => SetFlag("lobby.region", value);
+        }
+
+        /// <summary>
+        /// A random identifier used only by the lobby, so the service can keep one listing per computer. It is
+        /// unrelated to <see cref="MachineId"/> and to the statistics identifier.
+        /// </summary>
+        public static string LobbyId
+        {
+            get
+            {
+                string id = AppSettings.Get("lobby.id");
+                if (id != null && id.Length == 32 && id.All(Uri.IsHexDigit))
+                    return id.ToLowerInvariant();
+                id = Hex.Random(16);
+                AppSettings.Set("lobby.id", id);
+                return id;
+            }
         }
 
         // ======================== Nodes ========================

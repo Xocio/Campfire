@@ -11,7 +11,7 @@ using Campfire.Online;
 namespace Campfire.Pages
 {
     /// <summary>
-    /// "Home" tab, built around multiplayer: start or join a room right here, see the room once it is open,
+    /// "Home" tab, built around multiplayer: start, join or find a room right here, see the room once it is open,
     /// and a short guide for playing together.
     /// </summary>
     public partial class HomePage : UserControl
@@ -23,7 +23,17 @@ namespace Campfire.Pages
         {
             InitializeComponent();
             Text.LanguageChanged += (sender, e) => RenderQuickJoin();
+            // Without the service there is no lobby; the other two tiles share the row.
+            if (!Link.Lobby.LobbyClient.IsAvailable)
+            {
+                TileLobby.Visibility = Visibility.Collapsed;
+                PanStart.ColumnDefinitions[3].Width = new GridLength(0);
+                PanStart.ColumnDefinitions[4].Width = new GridLength(0);
+            }
         }
+
+        /// <summary>Raised when the user wants to browse the public lobby.</summary>
+        public event EventHandler LobbyRequested;
 
         /// <summary>Raised when the multiplayer page should open as it is.</summary>
         public event EventHandler LinkRequested;
@@ -130,6 +140,11 @@ namespace Campfire.Pages
         private void BtnViewRoom_Click(object sender, RoutedEventArgs e)
         {
             LinkRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void TileLobby_Click(object sender, RoutedEventArgs e)
+        {
+            LobbyRequested?.Invoke(this, EventArgs.Empty);
         }
 
         private void BtnSettings_Click(object sender, RoutedEventArgs e)
