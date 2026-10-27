@@ -1,18 +1,24 @@
+package campfire;
+
 import java.io.File;
 import java.lang.instrument.Instrumentation;
 import java.net.URL;
 import java.util.jar.JarFile;
 
 /**
- * Entry point loaded by the attach helper. The agent is retransform-only: it adds the room status
- * hook to the already loaded server tick method.
+ * Entry point loaded by the attach helper. It adds the hook to the server tick method, both in a
+ * server class that is already loaded and in one the game loads later, such as when the host opens
+ * a world after Campfire attached.
  *
  * <p>The hook itself is put on the bootstrap class path. Minecraft may load its server classes in a
  * child class loader (the dedicated server bundler does), and only the bootstrap loader is visible
  * to every one of them.</p>
+ *
+ * <p>Options are "key=value" pairs separated by '|': "state" is the folder with Campfire's state
+ * files, "mappings" the official mapping file of an obfuscated release.</p>
  */
 public final class CampfireAgent {
-    private static final String STATE_OPTION = "state=";
+    private static final String TICK_SIGNATURE = "tickServer(java.util.function.BooleanSupplier)";
 
     private static boolean installed;
 
@@ -20,10 +26,20 @@ public final class CampfireAgent {
     }
 
     public static void agentmain(String args, Instrumentation instrumentation) {
-        // Every room attaches again; the hook is installed once per game, but always reads the state
-        // file from the folder named by the latest attach.
-        if (args != null && args.startsWith(STATE_OPTION)) {
-            System.setProperty("campfire.state", args.substring(STATE_OPTION.length()));
+        String state = null;
+        String mappings = null;
+        if (args != null) {
+            for (String option : args.split("\\|")) {
+                if (option.startsWith("state=")) {
+                    state = option.substring("state=".length());
+                } else if (option.startsWith("mappings=")) {
+                    mappings = option.substring("mappings=".length());
+                }
+            }
+        }
+        // Every attach may name a newer state folder; the hook always reads the latest one.
+        if (state != null) {
+            System.setProperty("campfire.state", state);
         }
         if (installed) {
             System.err.println("[Campfire] Agent already loaded.");
@@ -45,7 +61,16 @@ public final class CampfireAgent {
                 instrumentation.appendToBootstrapClassLoaderSearch(new JarFile(hookJar));
             }
 
-            instrumentation.addTransformer(new CampfireTransformer(), true);
+            // The hook classes now resolve from the bootstrap path, the same ones the game will call.
+            CampfireNames.load(mappings, CampfireHook.MEMBER_NAMES);
+            String tick = CampfireNames.runtimeName("net.minecraft.server.MinecraftServer", TICK_SIGNATURE);
+            String descriptor = CampfireTransformer.TICK_DESCRIPTOR;
+            if (tick == null) {
+                // Up to 1.12 the tick takes no argument.
+                tick = CampfireNames.runtimeName("net.minecraft.server.MinecraftServer", "tickServer()");
+                descriptor = tick == null ? descriptor : "()V";
+            }
+            instrumentation.addTransformer(new CampfireTransformer(tick, descriptor), true);
 
             int transformed = 0;
             for (Class<?> type : instrumentation.getAllLoadedClasses()) {
@@ -60,7 +85,8 @@ public final class CampfireAgent {
                 }
             }
 
-            System.err.println("[Campfire] Agent loaded; transformed " + transformed + " class(es).");
+            CampfireHook.log("Agent loaded" + (tick != null ? " with mappings" : "")
+                + "; transformed " + transformed + " loaded class(es).");
         } catch (Throwable error) {
             System.err.println("[Campfire] Agent failed: " + error);
             error.printStackTrace();

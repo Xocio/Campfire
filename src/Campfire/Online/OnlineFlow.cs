@@ -101,18 +101,20 @@ namespace Campfire.Online
             _offering = true;
             try
             {
-                if (!Updater.CanInstall())
-                {
-                    await OfferDownloadPageAsync(update, required);
-                    return;
-                }
-
                 // The download is small; fetching it first means the update applies at once when the user agrees.
+                // It also proves the update is real: the manifest is not signed, so a required update only keeps
+                // Campfire closed once a correctly signed file exists. Without one, Campfire stays usable.
                 string staged = await Updater.DownloadAsync(update);
                 if (staged == null)
                 {
                     if (manual || required)
-                        await DownloadFailedAsync(required);
+                        await DownloadFailedAsync();
+                    return;
+                }
+
+                if (!Updater.CanInstall())
+                {
+                    await OfferDownloadPageAsync(update, required);
                     return;
                 }
 
@@ -176,20 +178,19 @@ namespace Campfire.Online
                 _exit(null);
         }
 
-        private async Task DownloadFailedAsync(bool required)
+        /// <summary>No source delivered a correctly signed file; Campfire keeps running, even for a required update.</summary>
+        private async Task DownloadFailedAsync()
         {
             var choice = await _host.ShowDialogAsync(new DialogRequest
             {
                 Title = Text.Get("Update.DownloadFailedTitle"),
                 Message = Text.Get("Update.DownloadFailed"),
                 PrimaryText = Text.Get("Update.OpenPage"),
-                SecondaryText = Text.Get(required ? "Update.Exit" : "Dialog.Close"),
+                SecondaryText = Text.Get("Dialog.Close"),
                 IsError = true,
             });
             if (choice == DialogChoice.Primary)
                 OpenUrl(ReleasesUrl);
-            if (required)
-                _exit(null);
         }
 
         /// <summary>Release notes are Markdown; the dialog shows plain text, without the checksum section.</summary>

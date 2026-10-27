@@ -1,0 +1,39 @@
+# Names the in-game agent needs in the Minecraft 1.8.9 client jar (SHA-1 3870888a6c3d349d3771a3e9d16c9bf5e076b908).
+# client 3870888a6c3d349d3771a3e9d16c9bf5e076b908
+# Mojang published no mappings for this release; these were found by reading the jar's own bytecode.
+# Keys are the official names of releases since 1.14.4, so the agent looks everything up the same way.
+net.minecraft.server.MinecraftServer -> net.minecraft.server.MinecraftServer:
+    void tickServer() -> A
+    net.minecraft.server.players.PlayerList getPlayerList() -> ap
+    java.lang.String getSingleplayerName() -> S
+    java.lang.String getLevelIdName() -> U
+    net.minecraft.world.level.GameType getDefaultGameType() -> m
+    net.minecraft.server.level.ServerLevel getLevel(int) -> a
+net.minecraft.client.server.IntegratedServer -> bpo:
+    java.lang.String publishServer(net.minecraft.world.level.GameType,boolean) -> a
+    boolean isPublished() -> b
+net.minecraft.server.players.PlayerList -> lx:
+    java.util.List getPlayers() -> v
+net.minecraft.server.level.ServerPlayer -> lf:
+    net.minecraft.server.network.ServerGamePacketListenerImpl connection -> a
+    int latency -> h
+net.minecraft.world.entity.Entity -> pk:
+    java.util.UUID getUUID() -> aK
+net.minecraft.server.network.ServerGamePacketListenerImpl -> lm:
+    void send(net.minecraft.network.protocol.Packet) -> a
+net.minecraft.network.protocol.Packet -> ff:
+net.minecraft.network.chat.Component -> eu:
+    net.minecraft.network.chat.Component append(net.minecraft.network.chat.Component) -> a
+net.minecraft.network.chat.TextComponent -> fa:
+net.minecraft.ChatFormatting -> a:
+    net.minecraft.ChatFormatting getByName(java.lang.String) -> b
+net.minecraft.network.protocol.game.ClientboundChatPacket -> fy:
+net.minecraft.network.protocol.game.ClientboundTabListPacket -> hx:
+    net.minecraft.network.chat.Component header -> a
+    net.minecraft.network.chat.Component footer -> b
+net.minecraft.world.level.GameType -> adp$a:
+net.minecraft.server.level.ServerLevel -> le:
+net.minecraft.world.level.Level -> adm:
+    net.minecraft.world.level.storage.LevelData getLevelData() -> P
+net.minecraft.world.level.storage.LevelData -> ato:
+    boolean getAllowCommands() -> v

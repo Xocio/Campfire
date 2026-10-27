@@ -17,108 +17,169 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Xocio/Campfire/releases/latest"><img src="https://img.shields.io/github/v/release/Xocio/Campfire?label=download&color=1370F3" alt="Release" /></a>
-  <a href="https://github.com/Xocio/Campfire/releases"><img src="https://img.shields.io/github/downloads/Xocio/Campfire/total?label=downloads&color=1370F3" alt="Downloads" /></a>
-  <a href="https://github.com/Xocio/Campfire/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/Xocio/Campfire/build.yml?label=build" alt="Build" /></a>
+  <a href="https://github.com/Xocio/Campfire/releases/latest"><img src="https://img.shields.io/github/v/release/Xocio/Campfire?label=download&color=E2680C" alt="Release" /></a>
+  <a href="https://github.com/Xocio/Campfire/releases"><img src="https://img.shields.io/github/downloads/Xocio/Campfire/total?label=downloads&color=E2680C" alt="Downloads" /></a>
+  <a href="https://mccampfire.top/en/"><img src="https://img.shields.io/badge/docs-mccampfire.top-E2680C" alt="Docs" /></a>
   <img src="https://img.shields.io/badge/platform-Windows%207%20%7C%208%20%7C%2010%20%7C%2011-0B5BCB" alt="Platform" />
+  <a href="NETWORK.en.md"><img src="https://img.shields.io/badge/service%20%26%20protection-Cloudflare-F38020?logo=cloudflare&logoColor=white" alt="Cloudflare" /></a>
 </p>
 
 <p align="center">
-  <img src="docs/images/en/screenshot-main.png" width="640" alt="Campfire main window" />
+  An integrated toolbox built for Minecraft: Java Edition.<br />
+  Multiplayer across any distance, an open lobby, a complete map workflow, and precise, reversible launcher repair.
 </p>
+
+<p align="center">
+  <img src="docs/images/en/screenshot-main.png" width="640" alt="Campfire Home" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/Xocio/Campfire/releases/latest"><b>Download</b></a> · <a href="https://mccampfire.top/en/guide/getting-started">Get started</a> · <a href="https://mccampfire.top/en/">Documentation</a> · <a href="CHANGELOG.md">Changelog</a>
+</p>
+
+## Overview
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/en/screenshot-lobby.png" alt="Lobby" />
+      <h3>Lobby</h3>
+      Publish a room for every Campfire user to discover and join, with its own name, tags, password and picture.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/en/screenshot-maps.png" alt="Online maps" />
+      <h3>Online maps</h3>
+      Search the CurseForge map catalog, filtered and sorted by category, game version and popularity.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/en/screenshot-map.png" alt="Map details" />
+      <h3>Download and import</h3>
+      Choose a file to download and import it in one step; matching installed versions are marked.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/en/screenshot-import.png" alt="Import a map" />
+      <h3>Version matching</h3>
+      Identifies a map's game version, pairs it with a version that can open it, and opens it to LAN on entry.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/en/screenshot-fixed.png" alt="Launcher repair" />
+      <h3>Launcher repair</h3>
+      Restores downloads, modpack installation and JRE support in PCL. Every change is verified, the original is backed up, and restoring takes a single click.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/en/screenshot-dark.png" alt="Dark mode" />
+      <h3>Themes and appearance</h3>
+      Light, dark and Monet colors in several palette styles, complemented by refined transitions.
+    </td>
+  </tr>
+</table>
 
 ## Features
 
-Campfire brings multiplayer, launcher repair and handy tools together in a single file of about 1.3 MB. Nothing to install, and it runs on everything from Windows 7 SP1 to Windows 11.
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>Invite codes</h3>
+      A singleplayer world is opened to LAN on entry and given an invite code. No public address or port forwarding required.
+    </td>
+    <td width="33%" valign="top">
+      <h3>Peer-to-peer first</h3>
+      Direct connections come first, with latency close to a LAN; relays or self-hosted nodes take over when needed.
+    </td>
+    <td width="33%" valign="top">
+      <h3>Rooms in the game</h3>
+      A welcome message and a live Tab list of host, players and latency, across every release since 1.7.2.
+    </td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>Privacy by design</h3>
+      Your IP address can be hidden and login credentials are never read. Statistics are sent only with consent, and always open to inspection.
+    </td>
+    <td width="33%" valign="top">
+      <h3>Signed updates</h3>
+      A new version is installed only once its digital signature is verified. No server message can keep Campfire from running.
+    </td>
+    <td width="33%" valign="top">
+      <h3>Launcher independent</h3>
+      Campfire works with the running game itself, so players on different launchers share the same rooms.
+    </td>
+  </tr>
+</table>
 
-### Multiplayer
+## Service and security
 
-- **Invite codes**: once the host opens a world to LAN, Campfire detects it and creates an invite code that friends simply paste to join. No public IP, no port forwarding, no port to type; a copied code can be joined straight from the Home tab.
-- **Peer-to-peer**: direct connections come first, with latency close to a real LAN; when they fail, switch on the relay or bring your own nodes.
-- **In-game room info**: the room appears right in the multiplayer LAN worlds list. Inside the world, the chat greets each player and the Tab header and footer show the host, player count and latency live, even on authenticated and encrypted LAN worlds.
-- **Room management**: members show their skin faces; the host can remove or block guests and manage the blocklist in Multiplayer Settings.
-- **Cross-launcher**: players on other launchers share the same invite codes and land in the same room.
-- **Privacy first**: hide your IP address, keep the room to this computer, and never have your login credentials read; room name, port, nodes and search limit are all configurable.
-
-### Launcher repair
-
-- **Downloads restored**: brings back the Minecraft version list, game and mod loader installation, and modpack installation for CurseForge, Modrinth, MCBBS, HMCL, MMC and more in official PCL 2.99.
-- **Region lock lifted**: restores the downloads, installs and file completion that PCL Community Edition 2.15.1 and later switch off by region.
-- **JREs enabled**: lifts the Community Edition's default block on JREs so a JRE can launch the game just like a JDK.
-- **Precise and reversible**: patch points are found by method name and code shape, never fixed offsets; every change is verified in memory before anything is written, the original is backed up, and one click restores it. Launcher auto-update is turned off so the repair is not overwritten.
-
-### Experience
-
-- **Personal themes**: light and dark modes, with Monet colors that build a whole color scheme from your desktop wallpaper in several palette styles.
-- **Fluid motion**: carefully tuned transitions for pages, dialogs and controls, which can be turned off at any time.
-- **Runs in the background**: a notification area icon shows the multiplayer status live, and the room stays open after the window is closed.
-- **Secure updates**: official releases check for updates, and a new version is installed only if its digital signature checks out.
-- **Bilingual**: Simplified Chinese and English, following the system language and switchable at any time.
-
-## Usage
-
-### Multiplayer
-
-1. Download and open `Campfire.exe` from [Releases](https://github.com/Xocio/Campfire/releases/latest), then click **Multiplayer** on the **Home** tab.
-2. Host: click **Create a room**, then in the game enter a singleplayer world and press Esc → Open to LAN → Start LAN World. The invite code is copied once the room is ready; send it to your friends.
-3. Friends: click **Join a room** and paste the code. Then find "Campfire Room" at the bottom of the multiplayer list and double-click it.
-
-The first time, a networking component of about 14 MB is downloaded and every file is verified. Windows may ask whether the component may use the network; allowing it improves the chance of a direct connection. Keep Campfire open while playing.
-
-### Launcher repair
-
-1. Download `Campfire.exe` from [Releases](https://github.com/Xocio/Campfire/releases/latest).
-2. Put it in the launcher's folder (the official build is `Plain Craft Launcher 2.exe`; the Community Edition is `PCL2_CE_Release_x64.exe` and similar names). You can also select the launcher after starting Campfire, or drag it into the window.
-3. **Close PCL**, open Campfire, click **Launcher Repair Tool** on the **Tools** tab, then click **Repair**.
-
-<p align="center">
-  <img src="docs/images/en/screenshot-fixed.png" width="640" alt="Repair completed" />
+<p>
+  <img src="https://img.shields.io/badge/Cloudflare-service%20and%20security%20protection-F38020?logo=cloudflare&logoColor=white" alt="Service and security protection by Cloudflare" />
 </p>
 
-Launch PCL as usual afterwards. The original launcher is kept as `Plain Craft Launcher 2.exe.bak` in the same folder; click **Restore** to bring it back.
+Campfire's update, notice, lobby and online map services are provided and protected by **Cloudflare**, with all traffic encrypted over HTTPS. Game data never passes through Campfire's servers.
 
-**Requirements**: Windows 7 SP1 / 8 / 8.1 / 10 / 11 with .NET Framework 4.8. PCL 2.99 itself requires .NET Framework 4.8, so any PC that runs PCL can run Campfire. Windows 10 / 11 include it; on Windows 7 / 8, download it from [Microsoft](https://dotnet.microsoft.com/download/dotnet-framework/net48) if needed. On Windows 7, install KB3063858 and KB4474419 through Windows Update before using multiplayer.
+The server can deliver only text and list data, which cannot change settings, run commands or start programs. Only updates that pass signature verification and the multiplayer component with matching hashes are ever run. See [NETWORK.en.md](NETWORK.en.md) for the full account.
 
-## Supported versions
+## Getting started
+
+| | Multiplayer | Launcher repair |
+| --- | --- | --- |
+| **1** | Download and run `Campfire.exe` from [Releases](https://github.com/Xocio/Campfire/releases/latest) | Place `Campfire.exe` in the launcher's folder |
+| **2** | The host clicks **Create a room**, then enters a singleplayer world | Close PCL and open **Tools › Launcher Repair Tool** |
+| **3** | Friends enter the invite code, or choose a room in the **Lobby** | Click **Repair**, then start PCL as usual |
+
+**Requirements**: Windows 7 SP1 or later with .NET Framework 4.8. Multiplayer on Windows 7 additionally requires KB3063858 and KB4474419.
+
+The complete guide is available in the [documentation](https://mccampfire.top/en/).
+
+<details>
+<summary><b>Supported launcher versions</b></summary>
 
 | Launcher | Result |
 | --- | --- |
 | Official PCL 2.99.0.0 | ✅ Repairable |
-| Official PCL before 2.99 | Downloads work, no repair needed |
-| [PCL Community Edition](https://github.com/PCL-Community/PCL-CE) 2.15.1 and later | ✅ Repairable (region lock) |
-| PCL Community Edition 2.15.0 and earlier | Downloads work, no repair needed |
+| Official PCL before 2.99 | Downloads work; no repair needed |
+| [PCL Community Edition](https://github.com/PCL-Community/PCL-CE) 2.15.1 and later | ✅ Region lock can be lifted |
+| PCL Community Edition 2.15.0 and earlier | Downloads work; no repair needed |
 
-Campfire locates its patch points by method name and code shape instead of fixed offsets, so minor launcher updates will most likely keep working. If a version is not recognized, Campfire reports it as unsupported and **does not modify any file**.
+Campfire locates its patch points by method name and code shape rather than fixed offsets, so later minor releases are usually supported as they are. An unrecognized version is reported as unsupported, and **no file is modified**.
 
-The Community Edition ships as a .NET single-file bundle, so Campfire first locates the `PCL.Core` assembly inside it and rewrites the region check in place. The file keeps its size and bundle layout; nothing is repacked.
+The Community Edition ships as a .NET single-file bundle. Campfire locates the `PCL.Core` assembly inside it and rewrites the region check in place; the file keeps its size and bundle layout, and nothing is repacked.
 
-## FAQ
+</details>
+
+<details>
+<summary><b>FAQ</b></summary>
 
 **Whose servers carry the game traffic?**
-Game traffic never passes through Campfire's servers. The host and friends connect directly whenever possible; public nodes only help them find each other. Game traffic goes through a relay node only if you turn the relay on and a direct connection fails.
+None of Campfire's. The host and friends connect peer-to-peer whenever possible, and public nodes only help them find each other. Game traffic passes through a relay node only when relaying is allowed and a direct connection fails.
 
-**"Invalid session" when joining?**
-When the host opens LAN with a premium account, the game verifies every joining player. Ask the host to open LAN with an offline account.
+**Joining fails with "Invalid session".**
+When the host opens LAN with a premium account, the game verifies every joining player. Enter through the LAN worlds at the bottom of the multiplayer list, or ask the host to open LAN with an offline account.
 
-**Can't join a room?**
-Check the invite code and that the room is still open. If both networks are strict (such as NAT4), a direct connection may be impossible; turn on the relay in Settings or let someone with a better network host. "View multiplayer log" on the failure page shows the details.
+**A room cannot be joined.**
+Confirm that the invite code is correct and that the room is still open. When both networks are restrictive, a direct connection may not be possible; allow relaying in the multiplayer settings, or let the player with the better network host. **View multiplayer log** on the failure page records the exact cause.
 
-**Why is the in-game Tab information missing?**
-Campfire tries to attach a small Java agent to the host's game process, which sends the welcome message and Tab header/footer from the server. Vanilla 26.3 / 26.4 are supported for now. If the game runs on a JRE without `jdk.attach`, or a mod loader remaps the class names, Campfire falls back to the LAN entry (at the bottom of the multiplayer list) and the game connection is unaffected. The reason is written to `%LocalAppData%\Campfire\agent.log`.
+**The Tab information does not appear in the game.**
+Campfire attaches a small Java agent to the host's game process, supporting vanilla 1.7.2 and later as well as loaders that keep the official names. When the game runs on a JRE without `jdk.attach`, or a loader such as Fabric or Quilt remaps its classes, Campfire falls back to the LAN entry and the connection is unaffected. The cause is recorded in `%LocalAppData%\Campfire\agent.log`.
 
-**Is it safe?**
-Campfire only changes download-related methods of the launcher: four in the official build and one region check in the Community Edition (`RegionAssessment.IsRestricted`). It adds no network activity. The repaired launcher is built in memory, reloaded and verified item by item before anything is written to disk; if any step fails, the original file stays untouched.
+**Is the launcher repair safe?**
+Campfire changes only download-related methods: four in the official build and one region check in the Community Edition, with no network behavior added. The repaired launcher is built in memory, reloaded and verified item by item before anything is written; should any step fail, the original remains untouched.
 
-**My antivirus flags it. What now?**
-Tools that modify other programs are occasionally flagged by mistake. Campfire is fully open source: review the code and [build it yourself](#building-from-source).
+**An antivirus product flags Campfire.**
+Tools that modify other programs are occasionally flagged in error. Campfire is fully open source; the code can be reviewed and built from source.
 
-**Can PCL still update after the repair?**
-To keep the repair in place, Campfire disables PCL's auto-update. To upgrade, download the new PCL manually, then run Campfire again to check whether a repair is needed.
+**Can PCL still update after a repair?**
+To keep the repair in place, Campfire disables PCL's auto-update. To upgrade, download the new PCL manually and run Campfire again to check whether a repair is needed.
 
-**How do I undo the repair?**
-Open Campfire and click **Restore**, or delete `Plain Craft Launcher 2.exe` and rename `Plain Craft Launcher 2.exe.bak` back to it.
+**How is a repair undone?**
+Click **Restore** in Campfire, or delete `Plain Craft Launcher 2.exe` and rename `Plain Craft Launcher 2.exe.bak` back to its original name.
 
-## How it works
+</details>
+
+<details>
+<summary><b>How the repair works</b></summary>
 
 | Repair | Method changed | Description |
 | --- | --- | --- |
@@ -126,9 +187,12 @@ Open Campfire and click **Restore**, or delete `Plain Craft Launcher 2.exe` and 
 | Install modpack from file | `ModModpack.ModpackInstall()` | Restores file selection and installs in a background thread |
 | Modpack installation | `ModModpack.ModpackInstall(File, …)` | Calls the installer that matches the detected modpack format |
 | Disable auto-update | `ModSecret.UpdateStart` | Returns immediately |
-| Community region lock | `RegionAssessment.get_IsRestricted` | Returns `false`; every guarded entry (download, install, repair, modpack) reads this one property |
+| Community region lock | `RegionAssessment.get_IsRestricted` | Returns `false`; every guarded entry reads this one property |
 
-## Building from source
+</details>
+
+<details>
+<summary><b>Building from source</b></summary>
 
 Requires the [.NET SDK](https://dotnet.microsoft.com/download) 8 or later, or Visual Studio 2022 or later.
 
@@ -138,19 +202,22 @@ cd Campfire
 dotnet build src/Campfire/Campfire.csproj -c Release
 ```
 
-You can also open `Campfire.slnx` in Visual Studio.
+`Campfire.slnx` can also be opened in Visual Studio.
 
 Start with `--lang=en` or `--lang=zh` to override the display language.
 
-The Java agent attached to the game for multiplayer is prebuilt in `src/java-agent/dist`, so building Campfire needs no JDK. After changing the agent sources, run `powershell -File src/java-agent/build.ps1` with JDK 21 or later, then build Campfire.
+The Java agent attached to the game is prebuilt in `src/java-agent/dist`, so building Campfire requires no JDK. After changing the agent sources, run `powershell -File src/java-agent/build.ps1` with JDK 21 or later, then build Campfire.
 
-Builds from source never contact Campfire's update and notice service and never send usage statistics.
+Builds from source never contact Campfire's online service and never send usage statistics; multiplayer with invite codes is unaffected.
 
-## Project layout
+</details>
+
+<details>
+<summary><b>Project layout</b></summary>
 
 ```
 Campfire/
-├─ docs/                         Documentation and images
+├─ docs/                         Documentation site and images
 ├─ src/Campfire/
 │  ├─ Patching/                  Patch framework
 │  │  ├─ Patch.cs                Patch base class
@@ -162,6 +229,7 @@ Campfire/
 │  ├─ Launcher/                  Launcher inspection, repair, restore, process check
 │  ├─ Link/                      Multiplayer: rooms, networking and the game connection proxy
 │  ├─ Online/                    Update check, notices and anonymous usage statistics
+│  ├─ Worlds/                    Map browsing, downloads and import
 │  ├─ Tools/                     JRE Tool
 │  ├─ Pages/                     Pages and settings
 │  ├─ Controls/                  Animations and custom controls
@@ -171,24 +239,37 @@ Campfire/
 │  ├─ MainWindow.xaml            Main window and page changes
 │  ├─ TrayIcon.cs                Notification area icon
 │  └─ EmbeddedAssemblyLoader.cs  Loads embedded dependencies
-├─ src/java-agent/               Java agent attached to the host's game for the welcome message and Tab info
+├─ src/java-agent/               Java agent attached to the host's game
 ├─ tools/                        Release signing scripts
 └─ Campfire.slnx
 ```
 
-To add a repair: derive from `Patch`, implement `TextKey` / `FindTarget` / `GetState` / `Apply`, add it to `PatchCatalog.All`, and add `Patch.<TextKey>.Title` / `Description` to `Localization/Text.Chinese.cs` and `Text.English.cs`. The Community Edition goes through `CommunityLauncher` instead: its patch point lives in the bundled `PCL.Core` assembly and can only be rewritten in place.
+To add a repair: derive from `Patch`, implement `TextKey` / `FindTarget` / `GetState` / `Apply`, add it to `PatchCatalog.All`, and add `Patch.<TextKey>.Title` / `Description` to `Localization/Text.Chinese.cs` and `Text.English.cs`. The Community Edition is handled by `CommunityLauncher`: its patch point lives in the bundled `PCL.Core` assembly and can only be rewritten in place.
+
+</details>
 
 ## Dependencies
 
-- [dnlib](https://github.com/0xd4d/dnlib): reads and writes .NET assemblies, MIT License
-- [EasyTier](https://github.com/EasyTier/EasyTier): networking component for multiplayer, downloaded on demand the first time, LGPL-3.0
-- [ASM](https://asm.ow2.io): Java bytecode library, packaged in the component attached to the game for multiplayer, BSD-3-Clause
+| Component | Purpose | License |
+| --- | --- | --- |
+| [dnlib](https://github.com/0xd4d/dnlib) | Reads and writes .NET assemblies | MIT |
+| [EasyTier](https://github.com/EasyTier/EasyTier) | Networking component for multiplayer, downloaded on first use | LGPL-3.0 |
+| [ASM](https://asm.ow2.io) | Java bytecode library, packaged with the in-game component | BSD-3-Clause |
 
 Full license texts are in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Notes
 
-- Campfire is a community project, not affiliated with PCL or its author.
-- Repairs run locally; nothing is uploaded or downloaded.
-- Official releases check for updates and notices. Anonymous usage statistics are sent only after you agree; you can see what is sent and turn it off at any time under Settings › General.
-- Please report issues on the [issue tracker](https://github.com/Xocio/Campfire/issues).
+- Campfire is an independent community project, not affiliated with PCL or its author.
+- The rooms shown in the lobby screenshot are sample data.
+- Questions and suggestions are welcome in [Issues](https://github.com/Xocio/Campfire/issues).
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=xocio%2Fcampfire&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=xocio/campfire&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=xocio/campfire&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=xocio/campfire&type=date&legend=top-left" />
+ </picture>
+</a>

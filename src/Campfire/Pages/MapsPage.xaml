@@ -1,0 +1,92 @@
+<UserControl x:Class="Campfire.Pages.MapsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Campfire.Localization">
+
+    <UserControl.Resources>
+        <!-- The list always keeps room for its scroll bar, so the cards line up whether it scrolls or not. -->
+        <Style TargetType="ScrollBar" BasedOn="{StaticResource {x:Type ScrollBar}}">
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Height="503">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ======================== Local maps ======================== -->
+        <HeaderedContentControl Margin="22,20,22,0" Header="{loc:Text Maps.Local}" Style="{StaticResource PclCard}">
+            <StackPanel Margin="-8,-4,-8,-6">
+                <Button x:Name="EntryImport" Style="{StaticResource PclEntry}" Click="EntryImport_Click">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="40" Height="40" CornerRadius="20" Background="{DynamicResource Brush7}">
+                            <!-- A folded map. -->
+                            <Path Data="M2.5,4 L6,2.5 L10,4 L13.5,2.5 L13.5,12 L10,13.5 L6,12 L2.5,13.5 Z M6,2.5 L6,12 M10,4 L10,13.5"
+                                  Stroke="{DynamicResource Brush3}" StrokeThickness="1.6" StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round" StrokeLineJoin="Round" Stretch="None" Width="16" Height="16"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <TextBlock FontSize="14" Text="{loc:Text Maps.Import}" />
+                            <TextBlock Margin="0,2,0,0" FontSize="12" Foreground="{DynamicResource BrushGray4}"
+                                       TextTrimming="CharacterEllipsis" Text="{loc:Text Maps.ImportDescription}" />
+                        </StackPanel>
+                        <Path Grid.Column="2" Margin="14,0,0,0" Data="M5.75,3.5 L10.25,8 L5.75,12.5" Stroke="{DynamicResource BrushGray5}"
+                              StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                              StrokeLineJoin="Round" Stretch="None" Width="16" Height="16" VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+            </StackPanel>
+        </HeaderedContentControl>
+
+        <!-- ======================== Search ======================== -->
+        <Grid Grid.Row="1" Margin="22,16,22,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="112" />
+                <ColumnDefinition Width="112" />
+                <ColumnDefinition Width="112" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="TxtSearch" Height="30" Style="{StaticResource PclTextBox}" Tag="{loc:Text Maps.SearchHint}"
+                     MaxLength="100" KeyDown="TxtSearch_KeyDown" TextChanged="TxtSearch_TextChanged" />
+            <ComboBox x:Name="CmbCategory" Grid.Column="1" Margin="8,0,0,0" MaxDropDownHeight="300"
+                      Style="{StaticResource PclComboBox}" SelectionChanged="Filter_SelectionChanged" />
+            <ComboBox x:Name="CmbVersion" Grid.Column="2" Margin="8,0,0,0" MaxDropDownHeight="300"
+                      Style="{StaticResource PclComboBox}" SelectionChanged="Filter_SelectionChanged" />
+            <ComboBox x:Name="CmbSort" Grid.Column="3" Margin="8,0,0,0" Style="{StaticResource PclComboBox}"
+                      SelectionChanged="Filter_SelectionChanged" />
+        </Grid>
+
+        <!-- ======================== Results ======================== -->
+        <ScrollViewer x:Name="ScrollMaps" Grid.Row="2" Margin="12,8,6,10" VerticalScrollBarVisibility="Visible" Focusable="False"
+                      ScrollChanged="ScrollMaps_ScrollChanged">
+            <StackPanel Margin="10,4,10,8">
+                <HeaderedContentControl x:Name="CardMaps" Header="{loc:Text Maps.Header}" Style="{StaticResource PclCard}">
+                    <StackPanel>
+                        <StackPanel x:Name="ListMaps" Margin="-8,-4,-8,0" />
+                        <!-- Loading, empty and error states, and loading more at the end of the list. -->
+                        <StackPanel x:Name="PanState" Margin="0,4,0,2" HorizontalAlignment="Center" Orientation="Horizontal">
+                            <Control x:Name="SpinState" Margin="0,0,8,0" VerticalAlignment="Center" Style="{StaticResource PclSpinner}" />
+                            <TextBlock x:Name="LabState" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="480"
+                                       Foreground="{DynamicResource BrushGray3}" />
+                            <Button x:Name="BtnRetry" Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource PclTextButton}"
+                                    Content="{loc:Text Maps.Retry}" Visibility="Collapsed" Click="BtnRetry_Click" />
+                        </StackPanel>
+                    </StackPanel>
+                </HeaderedContentControl>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

@@ -72,6 +72,7 @@ namespace Campfire.Pages
 
                 ChkAutoCopy.IsChecked = LinkSettings.AutoCopyCode;
                 ChkClipboard.IsChecked = LinkSettings.DetectClipboard;
+                ChkAutoLan.IsChecked = LinkSettings.AutoOpenLan;
                 ChkRelay.IsChecked = LinkSettings.AllowRelay || LinkSettings.HideAddress;
                 ChkRelay.IsEnabled = !LinkSettings.HideAddress;
                 ChkLanShare.IsChecked = LinkSettings.ShareWithLan;
@@ -163,6 +164,7 @@ namespace Campfire.Pages
         {
             LinkSettings.AutoCopyCode = ChkAutoCopy.IsChecked == true;
             LinkSettings.DetectClipboard = ChkClipboard.IsChecked == true;
+            LinkSettings.AutoOpenLan = ChkAutoLan.IsChecked == true;
             if (ChkRelay.IsEnabled)
                 LinkSettings.AllowRelay = ChkRelay.IsChecked == true;
             LinkSettings.ShareWithLan = ChkLanShare.IsChecked == true;

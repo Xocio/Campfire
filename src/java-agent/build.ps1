@@ -28,14 +28,18 @@ New-Item -ItemType Directory -Force $hookClasses, $agentClasses, $attachClasses,
 try {
     $source = Join-Path $PSScriptRoot 'src'
 
-    & javac -encoding UTF-8 --release 21 -d $hookClasses (Join-Path $source 'CampfireHook.java')
-    if ($LASTEXITCODE -ne 0) { throw 'CampfireHook.java did not compile.' }
+    # The hook and the agent run inside the game, which is Java 8 up to Minecraft 1.16; the attach
+    # bridge runs on a Java 9 or later that has the attach module.
+    & javac -encoding UTF-8 --release 8 -Xlint:-options -d $hookClasses `
+        (Join-Path $source 'CampfireHook.java') (Join-Path $source 'CampfireNames.java')
+    if ($LASTEXITCODE -ne 0) { throw 'The hook classes did not compile.' }
 
-    & javac -encoding UTF-8 --release 21 -cp $AsmJar -d $agentClasses `
+    # The agent calls into the hook, which it finds on the bootstrap class path at run time.
+    & javac -encoding UTF-8 --release 8 -Xlint:-options -cp "$AsmJar;$hookClasses" -d $agentClasses `
         (Join-Path $source 'CampfireTransformer.java') (Join-Path $source 'CampfireAgent.java')
     if ($LASTEXITCODE -ne 0) { throw 'The agent classes did not compile.' }
 
-    & javac -encoding UTF-8 --release 21 --add-modules jdk.attach -d $attachClasses (Join-Path $source 'CampfireAttach.java')
+    & javac -encoding UTF-8 --release 9 --add-modules jdk.attach -d $attachClasses (Join-Path $source 'CampfireAttach.java')
     if ($LASTEXITCODE -ne 0) { throw 'CampfireAttach.java did not compile.' }
 
     # Shade ASM into the agent jar; the hook jar stays free of third-party classes so it can
@@ -50,11 +54,11 @@ try {
     }
 
     $agentManifest = Join-Path $work 'agent.mf'
-    @('Manifest-Version: 1.0', 'Agent-Class: CampfireAgent', 'Can-Retransform-Classes: true',
+    @('Manifest-Version: 1.0', 'Agent-Class: campfire.CampfireAgent', 'Can-Retransform-Classes: true',
       'Can-Redefine-Classes: true', '') | Set-Content -Path $agentManifest -Encoding ascii
 
     $attachManifest = Join-Path $work 'attach.mf'
-    @('Manifest-Version: 1.0', 'Main-Class: CampfireAttach', '') |
+    @('Manifest-Version: 1.0', 'Main-Class: campfire.CampfireAttach', '') |
         Set-Content -Path $attachManifest -Encoding ascii
 
     & jar --create --file (Join-Path $Output 'CampfireAgent.jar') --manifest $agentManifest -C $agentClasses .

@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Campfire.Link.Lobby;
 using Campfire.Link.Minecraft;
 using Campfire.Link.Room;
 using Campfire.Link.Runtime;
@@ -44,6 +45,19 @@ namespace Campfire.Link
         Done,
     }
 
+    /// <summary>How far the host's world is from being opened to LAN by Campfire itself.</summary>
+    internal enum AutoLanState
+    {
+        /// <summary>Not tried: the setting is off, the port was typed in, or the world is already found.</summary>
+        Off,
+        /// <summary>No game is running yet.</summary>
+        NoGame,
+        /// <summary>The game was asked; the world opens once the host is in one.</summary>
+        Waiting,
+        /// <summary>This game cannot do it; the host opens the world by hand.</summary>
+        Unsupported,
+    }
+
     /// <summary>
     /// Creates or joins one room and keeps it running. All members are read and changed on the UI thread;
     /// <see cref="Changed"/> is raised there whenever something visible changes.
@@ -63,9 +77,11 @@ namespace Campfire.Link
         private LanWorldAnnouncer _announcer;
         private GameProxy _gate;
         private AgentState _agentState;
+        private readonly List<LanOpener> _lanOpeners = new List<LanOpener>();
         private readonly Dictionary<string, DateTime> _removedNames = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
         private volatile string _lanStatus;
         private PlayerProfile _self;
+        private LobbyPublisher _lobby;
 
         /// <summary>Guest: local port forwarded to the host's room service.</summary>
         private int _serviceLocalPort;
@@ -96,6 +112,9 @@ namespace Campfire.Link
         /// <summary>Host: the port of the LAN world.</summary>
         public int MinecraftPort { get; private set; }
 
+        /// <summary>Host: whether Campfire is opening the world to LAN itself while the room is set up.</summary>
+        public AutoLanState AutoLan { get; private set; }
+
         /// <summary>Guest: the local port that leads to the host's world.</summary>
         public int LocalPort { get; private set; }
 
@@ -122,6 +141,9 @@ namespace Campfire.Link
 
         public LinkException Error { get; private set; }
 
+        /// <summary>Host: the listing in the public lobby, or <c>null</c> when the room is not listed there.</summary>
+        public LobbyPublisher Lobby => _lobby;
+
         public StepState GetStepState(LinkStep step)
         {
             return _steps.TryGetValue(step, out var state) ? state : StepState.Pending;
@@ -144,9 +166,13 @@ namespace Campfire.Link
                 var world = manualPort.HasValue
                     ? Task.FromResult(manualPort.Value)
                     : LocalWorldFinder.WaitForLocalWorldAsync(token);
+                if (!manualPort.HasValue && LinkSettings.AutoOpenLan)
+                    _ = OpenWorldToLanAsync(run, world);
                 await InstallComponentAsync(token);
 
                 int port = await world;
+                StopOpeningLan();
+                AutoLan = AutoLanState.Off;
                 if (manualPort.HasValue && !await MinecraftProbe.IsServerAsync(port, TimeSpan.FromSeconds(3)))
                     throw new LinkException("Link.Error.PortNotGame", port);
                 token.ThrowIfCancellationRequested();
@@ -487,6 +513,35 @@ namespace Campfire.Link
         }
 
 
+        // ======================== Lobby ========================
+
+        /// <summary>
+        /// Host: keeps the room listed in the public lobby until it closes or <see cref="Unpublish"/> is called.
+        /// Returns <c>false</c> when the room it was listed for is no longer open; the caller then takes the listing down.
+        /// </summary>
+        /// <param name="ticket">The listing just made for <see cref="LobbyListing.Code"/>.</param>
+        public bool Publish(LobbyListing listing, LobbyTicket ticket)
+        {
+            if (Role != LinkRole.Host || Stage != LinkStage.Ready || Code?.Code != listing.Code?.Code)
+                return false;
+            _lobby?.Dispose();
+            _lobby = new LobbyPublisher(listing, ticket, () => Players.Count, _ui);
+            _lobby.Changed += (sender, e) => OnChanged();
+            _lobby.Start();
+            OnChanged();
+            return true;
+        }
+
+        /// <summary>Host: takes the room out of the public lobby; the room itself stays open.</summary>
+        public void Unpublish()
+        {
+            if (_lobby == null)
+                return;
+            _lobby.Dispose();
+            _lobby = null;
+            OnChanged();
+        }
+
         /// <summary>Leaves or closes the room, or cancels setting it up.</summary>
         public void Stop()
         {
@@ -503,7 +558,10 @@ namespace Campfire.Link
         /// <summary>Ends everything immediately; used when Campfire exits.</summary>
         public void Shutdown()
         {
+            // The lobby listing would drop out by itself within minutes; a short wait takes it down at once.
+            var closing = _lobby?.CloseAsync();
             Release();
+            closing?.Wait(TimeSpan.FromSeconds(2));
         }
 
         // ======================== Helpers ========================
@@ -519,6 +577,7 @@ namespace Campfire.Link
             Download = null;
             Code = null;
             MinecraftPort = 0;
+            AutoLan = AutoLanState.Off;
             LocalPort = 0;
             IsSharedWithLan = false;
             Players = Array.Empty<PlayerProfile>();
@@ -537,12 +596,15 @@ namespace Campfire.Link
         {
             _run?.Cancel();
             _run = null;
+            _lobby?.Dispose();
+            _lobby = null;
             _announcer?.Dispose();
             _announcer = null;
             _gate?.Dispose();
             _gate = null;
             _agentState?.Dispose();
             _agentState = null;
+            StopOpeningLan();
             lock (_removedNames)
                 _removedNames.Clear();
             _lanStatus = null;
@@ -595,6 +657,105 @@ namespace Campfire.Link
             {
                 LinkLog.Warn("The in-game overlay agent could not be started: " + ex.Message);
             }
+        }
+
+        /// <summary>
+        /// While the room waits for a LAN world, asks each running game to open the world the host plays to LAN,
+        /// the way the game's own button does. Opening it by hand still works; whichever happens first counts.
+        /// </summary>
+        private async Task OpenWorldToLanAsync(CancellationTokenSource run, Task world)
+        {
+            var token = run.Token;
+            var asked = new HashSet<int>();
+            var answered = new HashSet<int>();
+            SetAutoLan(AutoLanState.NoGame);
+            try
+            {
+                while (!world.IsCompleted && run == _run && !token.IsCancellationRequested)
+                {
+                    var games = await Task.Run(() => Worlds.RunningGame.Find(), token);
+                    if (run != _run || world.IsCompleted)
+                        return;
+
+                    // A game that was closed stops waiting; one started later is asked as soon as it appears.
+                    var running = new HashSet<int>(games.Select(g => g.ProcessId));
+                    foreach (var gone in Openers().Where(o => !running.Contains(o.ProcessId)))
+                        RemoveOpener(gone);
+
+                    foreach (var game in games.Where(g => asked.Add(g.ProcessId)))
+                    {
+                        var opener = new LanOpener(game.ProcessId, null);
+                        lock (_lanOpeners)
+                            _lanOpeners.Add(opener);
+                        LinkLog.Info($"Asking game {game.ProcessId} to open its world to LAN.");
+                        if (!await JavaAgent.LoadAsync(game.ProcessId, token))
+                        {
+                            LinkLog.Warn($"Game {game.ProcessId} cannot open its world to LAN by itself.");
+                            RemoveOpener(opener);
+                        }
+                        if (run != _run)
+                            return;
+                    }
+
+                    foreach (var opener in Openers())
+                    {
+                        int? result = opener.ReadResult();
+                        if (result == -1)
+                        {
+                            LinkLog.Warn($"Game {opener.ProcessId} could not open its world to LAN.");
+                            RemoveOpener(opener);
+                        }
+                        else if (result != null && answered.Add(opener.ProcessId))
+                        {
+                            // The world is open; finding it on the port takes a moment.
+                            LinkLog.Info(result > 0
+                                ? $"Game {opener.ProcessId} opened its world to LAN on port {result}."
+                                : $"The world of game {opener.ProcessId} was already open to LAN.");
+                        }
+                    }
+
+                    SetAutoLan(asked.Count == 0 || running.Count == 0 ? AutoLanState.NoGame
+                        : Openers().Count > 0 ? AutoLanState.Waiting : AutoLanState.Unsupported);
+                    await Task.Delay(2000, token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                LinkLog.Warn("Opening the world to LAN failed: " + ex.Message);
+                if (run == _run)
+                    SetAutoLan(AutoLanState.Unsupported);
+            }
+
+            void SetAutoLan(AutoLanState state)
+            {
+                if (run != _run || world.IsCompleted || AutoLan == state)
+                    return;
+                AutoLan = state;
+                OnChanged();
+            }
+        }
+
+        private List<LanOpener> Openers()
+        {
+            lock (_lanOpeners)
+                return _lanOpeners.ToList();
+        }
+
+        private void RemoveOpener(LanOpener opener)
+        {
+            lock (_lanOpeners)
+                _lanOpeners.Remove(opener);
+            opener.Dispose();
+        }
+
+        /// <summary>Withdraws every request, so a world the host opens or closes later is left alone.</summary>
+        private void StopOpeningLan()
+        {
+            foreach (var opener in Openers())
+                RemoveOpener(opener);
         }
 
         private async Task InstallComponentAsync(CancellationToken token)

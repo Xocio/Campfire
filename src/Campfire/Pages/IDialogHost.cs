@@ -49,6 +49,14 @@ namespace Campfire.Pages
 
         /// <summary>Message color instead of the theme's.</summary>
         public Color? MessageColor { get; set; }
+
+        /// <summary>Shows a text box with this placeholder below the message; <c>null</c> shows none.</summary>
+        public string InputHint { get; set; }
+
+        public int InputMaxLength { get; set; } = 64;
+
+        /// <summary>What was typed in the text box, set when the dialog closes.</summary>
+        public string InputText { get; set; }
     }
 
     /// <summary>

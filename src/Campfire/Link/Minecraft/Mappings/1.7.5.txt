@@ -1,0 +1,36 @@
+# Names the in-game agent needs in the Minecraft 1.7.5 client jar (SHA-1 77aa70ac5054cbf1140b6449b579e950d5050c4a).
+# client 77aa70ac5054cbf1140b6449b579e950d5050c4a
+# Mojang published no mappings for this release; these were found by reading the jar's own bytecode.
+# Keys are the official names of releases since 1.14.4, so the agent looks everything up the same way.
+net.minecraft.server.MinecraftServer -> net.minecraft.server.MinecraftServer:
+    void tickServer() -> u
+    net.minecraft.server.players.PlayerList getPlayerList() -> ag
+    java.lang.String getSingleplayerName() -> L
+    java.lang.String getLevelIdName() -> N
+    net.minecraft.world.level.GameType getDefaultGameType() -> i
+    net.minecraft.server.level.ServerLevel getLevel(int) -> a
+net.minecraft.client.server.IntegratedServer -> btq:
+    java.lang.String publishServer(net.minecraft.world.level.GameType,boolean) -> a
+    boolean isPublished() -> a
+net.minecraft.server.players.PlayerList -> lm:
+    java.util.List players -> a
+net.minecraft.server.level.ServerPlayer -> mv:
+    net.minecraft.server.network.ServerGamePacketListenerImpl connection -> a
+    int latency -> h
+net.minecraft.world.entity.Entity -> qx:
+    java.util.UUID getUUID() -> aA
+net.minecraft.server.network.ServerGamePacketListenerImpl -> ng:
+    void send(net.minecraft.network.protocol.Packet) -> a
+net.minecraft.network.protocol.Packet -> fq:
+net.minecraft.network.chat.Component -> fg:
+    net.minecraft.network.chat.Component append(net.minecraft.network.chat.Component) -> a
+net.minecraft.network.chat.TextComponent -> fn:
+net.minecraft.ChatFormatting -> a:
+    net.minecraft.ChatFormatting getByName(java.lang.String) -> b
+net.minecraft.network.protocol.game.ClientboundChatPacket -> gg:
+net.minecraft.world.level.GameType -> agh:
+net.minecraft.server.level.ServerLevel -> ms:
+net.minecraft.world.level.Level -> afy:
+    net.minecraft.world.level.storage.LevelData getLevelData() -> N
+net.minecraft.world.level.storage.LevelData -> axp:
+    boolean getAllowCommands() -> v

@@ -72,8 +72,8 @@ export default defineConfig({
       lang: 'zh-CN',
       themeConfig: {
         nav: [
-          { text: '指南', link: '/guide/what-is-campfire', activeMatch: '^/guide/(?!multiplayer|room|network)' },
-          { text: '多人联机', link: '/guide/multiplayer', activeMatch: '^/guide/(multiplayer|room|network)' },
+          { text: '指南', link: '/guide/what-is-campfire', activeMatch: '^/guide/(?!multiplayer|room|lobby|network)' },
+          { text: '多人联机', link: '/guide/multiplayer', activeMatch: '^/guide/(multiplayer|room|lobby|network)' },
           { text: '下载', link: '/download' },
           ...versionMenu(true)
         ],
@@ -90,9 +90,14 @@ export default defineConfig({
               text: '多人联机',
               items: [
                 { text: '创建与加入房间', link: '/guide/multiplayer' },
+                { text: '联机大厅', link: '/guide/lobby' },
                 { text: '房间管理', link: '/guide/room' },
                 { text: '网络与隐私', link: '/guide/network' }
               ]
+            },
+            {
+              text: '地图',
+              items: [{ text: '浏览与导入地图', link: '/guide/maps' }]
             },
             {
               text: '工具',
@@ -112,6 +117,7 @@ export default defineConfig({
               text: '深入',
               items: [
                 { text: '工作原理', link: '/guide/how-it-works' },
+                { text: '联网与安全', link: '/guide/security' },
                 { text: '常见问题', link: '/guide/faq' }
               ]
             }
@@ -122,7 +128,7 @@ export default defineConfig({
           text: '在 GitHub 上编辑此页'
         },
         footer: {
-          message: 'Campfire 是开源免费的社区项目，与 Mojang Studios 及微软均无关联。',
+          message: 'Campfire 是开源免费的社区项目，与 Mojang Studios 及微软均无关联。<br />在线服务由 <a href="https://www.cloudflare.com/" target="_blank" rel="noopener">Cloudflare</a> 提供服务与安全防护。',
           copyright: 'Copyright © 2026 Xocio'
         },
         docFooter: { prev: '上一页', next: '下一页' },
@@ -151,8 +157,8 @@ export default defineConfig({
       description: 'An advanced Minecraft toolbox',
       themeConfig: {
         nav: [
-          { text: 'Guide', link: '/en/guide/what-is-campfire', activeMatch: '^/en/guide/(?!multiplayer|room|network)' },
-          { text: 'Multiplayer', link: '/en/guide/multiplayer', activeMatch: '^/en/guide/(multiplayer|room|network)' },
+          { text: 'Guide', link: '/en/guide/what-is-campfire', activeMatch: '^/en/guide/(?!multiplayer|room|lobby|network)' },
+          { text: 'Multiplayer', link: '/en/guide/multiplayer', activeMatch: '^/en/guide/(multiplayer|room|lobby|network)' },
           { text: 'Download', link: '/en/download' },
           ...versionMenu(false)
         ],
@@ -169,9 +175,14 @@ export default defineConfig({
               text: 'Multiplayer',
               items: [
                 { text: 'Hosting and Joining', link: '/en/guide/multiplayer' },
+                { text: 'Lobby', link: '/en/guide/lobby' },
                 { text: 'Managing a Room', link: '/en/guide/room' },
                 { text: 'Network and Privacy', link: '/en/guide/network' }
               ]
+            },
+            {
+              text: 'Maps',
+              items: [{ text: 'Browsing and Importing Maps', link: '/en/guide/maps' }]
             },
             {
               text: 'Tools',
@@ -191,6 +202,7 @@ export default defineConfig({
               text: 'In Depth',
               items: [
                 { text: 'How It Works', link: '/en/guide/how-it-works' },
+                { text: 'Network Security', link: '/en/guide/security' },
                 { text: 'FAQ', link: '/en/guide/faq' }
               ]
             }
@@ -201,7 +213,7 @@ export default defineConfig({
           text: 'Edit this page on GitHub'
         },
         footer: {
-          message: 'Campfire is a free, open-source community project, not affiliated with Mojang Studios or Microsoft.',
+          message: 'Campfire is a free, open-source community project, not affiliated with Mojang Studios or Microsoft.<br />Online services are provided and protected by <a href="https://www.cloudflare.com/" target="_blank" rel="noopener">Cloudflare</a>.',
           copyright: 'Copyright © 2026 Xocio'
         }
       }

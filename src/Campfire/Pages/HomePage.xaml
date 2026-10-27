@@ -24,90 +24,116 @@
             <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="Foreground" Value="{DynamicResource Brush1}" />
         </Style>
+
+        <!-- A start tile: icon in a tinted circle, then the title and a short line below it. -->
+        <Thickness x:Key="TilePadding">14,14,12,13</Thickness>
+        <Style x:Key="TileIcon" TargetType="Border">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Background" Value="{DynamicResource Brush7}" />
+        </Style>
+        <Style x:Key="TileGlyph" TargetType="Path">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Stretch" Value="None" />
+            <Setter Property="Stroke" Value="{DynamicResource Brush3}" />
+            <Setter Property="StrokeThickness" Value="2" />
+            <Setter Property="StrokeStartLineCap" Value="Round" />
+            <Setter Property="StrokeEndLineCap" Value="Round" />
+            <Setter Property="StrokeLineJoin" Value="Round" />
+        </Style>
+        <Style x:Key="TileTitle" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,12,0,0" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style x:Key="TileText" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,3,0,0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushGray4}" />
+        </Style>
     </UserControl.Resources>
 
     <StackPanel Margin="22,20,22,18">
 
         <!-- ======================== Multiplayer ======================== -->
-        <HeaderedContentControl Header="{loc:Text Home.Link}" Style="{StaticResource PclCard}">
-            <StackPanel>
-                <TextBlock Margin="0,0,0,12" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource BrushGray4}"
-                           Text="{loc:Text Home.LinkDescription}" />
-
-                <!-- No room yet: start one or join one. -->
-                <Grid x:Name="PanStart">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="12" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Button x:Name="TileCreate" Style="{StaticResource PclTile}" Click="TileCreate_Click">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Border Width="42" Height="42" CornerRadius="21" Background="{DynamicResource Brush7}">
-                                <Path Data="M8,2.5 L8,13.5 M2.5,8 L13.5,8" Stroke="{DynamicResource Brush3}"
-                                      StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                      Stretch="None" Width="16" Height="16" />
-                            </Border>
-                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                <TextBlock FontSize="15" FontWeight="Bold" Text="{loc:Text Link.Create}" />
-                                <TextBlock Margin="0,3,0,0" FontSize="12" Foreground="{DynamicResource BrushGray4}"
-                                           TextWrapping="Wrap" Text="{loc:Text Link.CreateDescription}" />
-                            </StackPanel>
-                        </Grid>
-                    </Button>
-                    <Button x:Name="TileJoin" Grid.Column="2" Style="{StaticResource PclTile}" Click="TileJoin_Click">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Border Width="42" Height="42" CornerRadius="21" Background="{DynamicResource Brush7}">
-                                <Path Data="M2.5,8 L9.5,8 M6.5,5 L9.5,8 L6.5,11 M9.5,2.5 L13.5,2.5 L13.5,13.5 L9.5,13.5"
-                                      Stroke="{DynamicResource Brush3}" StrokeThickness="2" StrokeStartLineCap="Round"
-                                      StrokeEndLineCap="Round" StrokeLineJoin="Round" Stretch="None" Width="16" Height="16" />
-                            </Border>
-                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                <TextBlock FontSize="15" FontWeight="Bold" Text="{loc:Text Link.Join}" />
-                                <TextBlock Margin="0,3,0,0" FontSize="12" Foreground="{DynamicResource BrushGray4}"
-                                           TextWrapping="Wrap" Text="{loc:Text Link.JoinDescription}" />
-                            </StackPanel>
-                        </Grid>
-                    </Button>
-                </Grid>
-
-                <!-- A room is being set up or is open: its state and the way back to it. -->
-                <Border x:Name="PanRoom" Padding="16,14" CornerRadius="6" BorderThickness="1"
-                        Background="{DynamicResource BrushTile}" BorderBrush="{DynamicResource Brush6}" Visibility="Collapsed">
-                    <Grid>
+        <Grid>
+            <HeaderedContentControl Header="{loc:Text Home.Link}" Style="{StaticResource PclCard}">
+                <Grid>
+                    <!-- No room yet: the three ways to play together, side by side. -->
+                    <Grid x:Name="PanStart">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Ellipse x:Name="DotRoom" Width="9" Height="9" Margin="2,0,0,0" VerticalAlignment="Center" />
-                        <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
-                            <TextBlock x:Name="LabRoomTitle" FontSize="15" FontWeight="Bold" />
-                            <TextBlock x:Name="LabRoomDetail" Margin="0,3,0,0" FontSize="12" TextTrimming="CharacterEllipsis"
-                                       Foreground="{DynamicResource BrushGray4}" />
-                        </StackPanel>
-                        <Button x:Name="BtnViewRoom" Grid.Column="2" Margin="12,0,0,0" MinWidth="112" VerticalAlignment="Center"
-                                FontWeight="Bold" Style="{StaticResource PclButtonHighlight}" Content="{loc:Text Home.ViewRoom}"
-                                Click="BtnViewRoom_Click" />
+                        <Button x:Name="TileCreate" Style="{StaticResource PclTile}" Padding="{StaticResource TilePadding}" Click="TileCreate_Click">
+                            <StackPanel>
+                                <Border Style="{StaticResource TileIcon}">
+                                    <Path Style="{StaticResource TileGlyph}" Data="M8,2.5 L8,13.5 M2.5,8 L13.5,8" />
+                                </Border>
+                                <TextBlock Style="{StaticResource TileTitle}" Text="{loc:Text Link.Create}" />
+                                <TextBlock Style="{StaticResource TileText}" Text="{loc:Text Link.CreateDescription}" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="TileJoin" Grid.Column="2" Style="{StaticResource PclTile}" Padding="{StaticResource TilePadding}"
+                                Click="TileJoin_Click">
+                            <StackPanel>
+                                <Border Style="{StaticResource TileIcon}">
+                                    <Path Style="{StaticResource TileGlyph}"
+                                          Data="M2.5,8 L9.5,8 M6.5,5 L9.5,8 L6.5,11 M9.5,2.5 L13.5,2.5 L13.5,13.5 L9.5,13.5" />
+                                </Border>
+                                <TextBlock Style="{StaticResource TileTitle}" Text="{loc:Text Link.Join}" />
+                                <TextBlock Style="{StaticResource TileText}" Text="{loc:Text Link.JoinDescription}" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="TileLobby" Grid.Column="4" Style="{StaticResource PclTile}" Padding="{StaticResource TilePadding}"
+                                Click="TileLobby_Click">
+                            <StackPanel>
+                                <Border Style="{StaticResource TileIcon}">
+                                    <!-- A magnifier: looking through the public rooms. -->
+                                    <Path Style="{StaticResource TileGlyph}"
+                                          Data="M2.75,7 A4.25,4.25 0 1 1 11.25,7 A4.25,4.25 0 1 1 2.75,7 Z M10.1,10.1 L13.5,13.5" />
+                                </Border>
+                                <TextBlock Style="{StaticResource TileTitle}" Text="{loc:Text Home.Lobby}" />
+                                <TextBlock Style="{StaticResource TileText}" Text="{loc:Text Home.LobbyDescription}" />
+                            </StackPanel>
+                        </Button>
                     </Grid>
-                </Border>
 
-                <Grid Margin="0,12,0,0">
-                    <Button HorizontalAlignment="Left" Style="{StaticResource PclTextButton}" Content="{loc:Text Home.OpenLink}"
-                            Click="BtnViewRoom_Click" />
-                    <Button HorizontalAlignment="Right" Style="{StaticResource PclTextButton}" Content="{loc:Text Home.LinkSettings}"
-                            Click="BtnSettings_Click" />
+                    <!-- A room is being set up or is open: its state and the way back to it. -->
+                    <Border x:Name="PanRoom" Padding="16,14" CornerRadius="6" BorderThickness="1"
+                            Background="{DynamicResource BrushTile}" BorderBrush="{DynamicResource Brush6}" Visibility="Collapsed">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Ellipse x:Name="DotRoom" Width="9" Height="9" Margin="2,0,0,0" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="LabRoomTitle" FontSize="15" FontWeight="Bold" />
+                                <TextBlock x:Name="LabRoomDetail" Margin="0,3,0,0" FontSize="12" TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource BrushGray4}" />
+                            </StackPanel>
+                            <Button x:Name="BtnViewRoom" Grid.Column="2" Margin="12,0,0,0" MinWidth="112" VerticalAlignment="Center"
+                                    FontWeight="Bold" Style="{StaticResource PclButtonHighlight}" Content="{loc:Text Home.ViewRoom}"
+                                    Click="BtnViewRoom_Click" />
+                        </Grid>
+                    </Border>
                 </Grid>
-            </StackPanel>
-        </HeaderedContentControl>
+            </HeaderedContentControl>
+
+            <!-- Sits in the card's title line, on the right. -->
+            <Button Margin="0,11,15,0" HorizontalAlignment="Right" VerticalAlignment="Top" FontSize="12"
+                    Style="{StaticResource PclTextButton}" Content="{loc:Text Home.LinkSettings}" Click="BtnSettings_Click" />
+        </Grid>
 
         <!-- Shown when the clipboard holds an invite code, so joining takes one click. -->
         <ContentControl x:Name="HintQuickJoin" Margin="0,15,0,0" Style="{StaticResource PclHint}" Visibility="Collapsed">

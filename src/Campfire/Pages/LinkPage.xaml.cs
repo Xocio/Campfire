@@ -14,6 +14,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Campfire.Controls;
 using Campfire.Link;
+using Campfire.Link.Lobby;
 using Campfire.Link.Minecraft;
 using Campfire.Link.Room;
 using Campfire.Link.Runtime;
@@ -42,6 +43,26 @@ namespace Campfire.Pages
         private string _playersSignature;
         private bool _enteringCode;
         private bool? _hasIPv6;
+
+        /// <summary>Tags offered when listing a room, as the service accepts them by default.</summary>
+        private static readonly string[] LobbyTagIds =
+            { "survival", "creative", "building", "redstone", "minigame", "modded", "adventure", "pvp", "casual" };
+
+        private const int MaxLobbyTags = 3;
+
+        // Listing the room in the lobby.
+        private bool _publishOpen;
+        private bool _publishing;
+        private bool _worldReading;
+        private ServerStatus _worldStatus;
+
+        /// <summary>The picture the room is listed with, and the one of the world being played, if found.</summary>
+        private byte[] _lobbyIcon;
+        private byte[] _mapIcon;
+
+        /// <summary>The lobby room being joined, so a room that cannot be reached is reported once.</summary>
+        private string _lobbyRoomId;
+        private readonly HashSet<string> _reportedRooms = new HashSet<string>();
 
         // What to repeat when the user chooses "Retry".
         private LinkRole _lastRole;
@@ -86,6 +107,9 @@ namespace Campfire.Pages
 
         /// <summary>Raised when the user asks for the full settings.</summary>
         public event EventHandler SettingsRequested;
+
+        /// <summary>Raised when the user wants to browse the public lobby.</summary>
+        public event EventHandler LobbyRequested;
 
         /// <summary>Whether a room is being set up or is open.</summary>
         public bool IsRoomActive => _session.IsActive;
@@ -136,6 +160,8 @@ namespace Campfire.Pages
 
         internal int MinecraftPort => _session.MinecraftPort;
 
+        internal AutoLanState AutoLan => _session.AutoLan;
+
         internal string GameAddress => AddressText();
 
         /// <summary>Closes or leaves the room, asking first as the page's own button does.</summary>
@@ -158,11 +184,13 @@ namespace Campfire.Pages
         }
 
         /// <summary>Joins <paramref name="code"/> right away, unless a room is already active.</summary>
-        internal async void JoinWithCode(RoomCode code)
+        /// <param name="lobbyRoomId">The lobby room the code came from, or <c>null</c>.</param>
+        internal async void JoinWithCode(RoomCode code, string lobbyRoomId = null)
         {
             if (_session.IsActive)
                 return;
             TxtCode.Text = code.Code;
+            _lobbyRoomId = lobbyRoomId;
             await StartJoinAsync(code);
         }
 
@@ -188,6 +216,8 @@ namespace Campfire.Pages
         private void Render()
         {
             UIElement panel = _shownPanel;
+            if (_session.Stage != LinkStage.Ready || _session.Role != LinkRole.Host)
+                _publishOpen = false;
             switch (_session.Stage)
             {
                 case LinkStage.Idle:
@@ -208,7 +238,7 @@ namespace Campfire.Pages
                             _codeCopiedAt = DateTime.MinValue;
                         }
                         RenderHost();
-                        panel = PanHost;
+                        panel = _publishOpen ? PanPublish : PanHost;
                     }
                     else
                     {
@@ -255,6 +285,9 @@ namespace Campfire.Pages
             Motion.Progress(BarDownload, downloading ? download.Value.Fraction : 0);
 
             Motion.Show(HintWorld, host && _session.GetStepState(LinkStep.World) == StepState.Active);
+            LabAutoLan.Visibility = _session.AutoLan == AutoLanState.Off ? Visibility.Collapsed : Visibility.Visible;
+            if (_session.AutoLan != AutoLanState.Off)
+                LabAutoLan.Text = Text.Get("Link.AutoLan." + _session.AutoLan);
             Motion.Show(HintSearch, !host && _session.GetStepState(LinkStep.FindHost) == StepState.Active
                                     && _session.SearchTime.TotalSeconds >= 12);
         }
@@ -305,6 +338,7 @@ namespace Campfire.Pages
             LabHostLinks.Text = ConnectionsText;
             LabHostNat.Text = LocalNatText;
             Motion.Show(HintHostNodes, _session.ConnectedNodes == 0);
+            RenderLobby();
 
             CardHostPlayers.Header = Text.Format("Link.Players", _session.Players.Count);
             RenderPlayers(ListHostPlayers);
@@ -394,7 +428,7 @@ namespace Campfire.Pages
 
         private int PanelOrder(UIElement panel)
         {
-            return panel == PanSelect ? 0 : panel == PanJoin ? 1 : panel == PanWorking ? 2 : 3;
+            return panel == PanSelect ? 0 : panel == PanJoin ? 1 : panel == PanWorking ? 2 : panel == PanPublish ? 4 : 3;
         }
 
         /// <summary>Shows why the room failed, with the choice to try again.</summary>
@@ -404,6 +438,11 @@ namespace Campfire.Pages
             var error = _session.Error;
             if (host == null || error == null)
                 return;
+
+            // A lobby room nobody can reach is reported, so it leaves the lobby once several players fail.
+            if (_session.Role == LinkRole.Guest && _lobbyRoomId != null && _reportedRooms.Add(_lobbyRoomId)
+                && (error.TextKey == "Link.Error.RoomNotFound" || error.TextKey == "Link.Error.HostNoAnswer"))
+                _ = ReportUnreachableAsync(_lobbyRoomId);
 
             string adviceKey = error.TextKey + ".Advice";
             var choice = await host.ShowDialogAsync(new DialogRequest
@@ -544,6 +583,7 @@ namespace Campfire.Pages
                 TxtCode.Focus();
                 return;
             }
+            _lobbyRoomId = null;
             await StartJoinAsync(code);
         }
 
@@ -698,12 +738,305 @@ namespace Campfire.Pages
             }
         }
 
+        // ======================== Lobby ========================
+
+        private void RenderLobby()
+        {
+            bool available = LobbyClient.IsAvailable;
+            PanLobbyState.Visibility = BtnLobby.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
+            var lobby = _session.Lobby;
+            string text = null;
+            string brush = null;
+            if (lobby == null)
+            {
+                text = Text.Get("Lobby.State.None");
+            }
+            else if (lobby.State == LobbyState.Listed)
+            {
+                text = Text.Get(lobby.Locked ? "Lobby.State.ListedLocked" : "Lobby.State.Listed");
+                brush = "BrushGreen";
+            }
+            else if (lobby?.State == LobbyState.Publishing)
+            {
+                text = Text.Get(lobby.Error == null ? "Lobby.State.Publishing" : "Lobby.State.Retrying");
+                brush = lobby.Error == null ? "Brush3" : "BrushOrange";
+            }
+            else if (lobby?.State == LobbyState.Stopped)
+            {
+                text = lobby.Error != null ? LobbyText.Problem(lobby.Error) : Text.Get("Lobby.Problem.Other");
+                brush = "BrushRed";
+            }
+
+            LabLobby.Text = text ?? "";
+            LabLobby.ToolTip = text;
+            DotLobby.Visibility = brush == null ? Visibility.Collapsed : Visibility.Visible;
+            if (brush != null)
+                DotLobby.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, brush);
+
+            // Listing is the step to take, so it stands out; taking it down is an ordinary button.
+            bool listed = lobby != null && lobby.State != LobbyState.Stopped;
+            BtnLobby.Content = Text.Get(listed ? "Lobby.Unpublish" : "Lobby.Publish");
+            BtnLobby.Style = (Style)FindResource(listed ? "PclButton" : "PclButtonHighlight");
+            BtnLobby.FontWeight = listed ? FontWeights.Normal : FontWeights.Bold;
+        }
+
+        private void BtnLobby_Click(object sender, RoutedEventArgs e)
+        {
+            var lobby = _session.Lobby;
+            if (lobby != null && lobby.State != LobbyState.Stopped)
+                _session.Unpublish();
+            else
+                OpenPublish();
+        }
+
+        /// <summary>Shows the form for listing the open room, filled in from last time and from the world itself.</summary>
+        private async void OpenPublish()
+        {
+            if (_session.Role != LinkRole.Host || _session.Stage != LinkStage.Ready)
+                return;
+            _publishOpen = true;
+            string title = LinkSettings.LobbyTitle;
+            TxtLobbyTitle.Text = title.Length > 0 ? title : Text.Format("Lobby.DefaultTitle", LinkSettings.EffectivePlayerName);
+            // A password is for this room only, so it is never kept for the next one.
+            TxtLobbyPassword.Text = "";
+            _lobbyIcon = null;
+            _mapIcon = null;
+            RenderLobbyIcon();
+            FillLobbyTags(LinkSettings.LobbyTags);
+            ChkLobbyRegion.IsChecked = LinkSettings.LobbyShowRegion;
+            SetPublishing(false);
+            _worldStatus = null;
+            _worldReading = true;
+            RenderWorldStatus();
+            Render();
+            _ = Dispatcher.BeginInvoke(new Action(() =>
+            {
+                TxtLobbyTitle.Focus();
+                TxtLobbyTitle.SelectAll();
+            }), DispatcherPriority.Input);
+
+            int port = _session.MinecraftPort;
+            var status = await MinecraftProbe.GetStatusAsync(port, TimeSpan.FromSeconds(3));
+            if (!_publishOpen || _session.MinecraftPort != port)
+                return;
+            _worldStatus = status;
+            _worldReading = false;
+            RenderWorldStatus();
+
+            // The world's own picture is offered first.
+            var mapIcon = await RoomIcon.FindMapIconAsync(status?.WorldName);
+            if (!_publishOpen || _session.MinecraftPort != port)
+                return;
+            _mapIcon = mapIcon;
+            if (_lobbyIcon == null)
+                _lobbyIcon = mapIcon;
+            RenderLobbyIcon();
+        }
+
+        private void RenderLobbyIcon()
+        {
+            var image = RoomIcon.Decode(_lobbyIcon);
+            if (image != null)
+            {
+                var brush = new System.Windows.Media.ImageBrush(image) { Stretch = System.Windows.Media.Stretch.UniformToFill };
+                System.Windows.Media.RenderOptions.SetBitmapScalingMode(brush, System.Windows.Media.BitmapScalingMode.HighQuality);
+                BoxLobbyIcon.Background = brush;
+            }
+            else
+            {
+                // No picture of its own: the room is listed with the default one.
+                BoxLobbyIcon.Background = RoomIcon.DefaultBrush();
+            }
+            GlyphLobbyIcon.Visibility = Visibility.Collapsed;
+            BtnLobbyIconMap.Visibility = _mapIcon != null && _lobbyIcon != _mapIcon ? Visibility.Visible : Visibility.Collapsed;
+            BtnLobbyIconPick.Content = Text.Get(_lobbyIcon == null ? "Lobby.IconPick" : "Lobby.IconChange");
+            BtnLobbyIconRemove.Visibility = _lobbyIcon != null ? Visibility.Visible : Visibility.Collapsed;
+            // The first button of the row has no gap in front of it.
+            BtnLobbyIconPick.Margin = new Thickness(BtnLobbyIconMap.Visibility == Visibility.Visible ? 14 : 0, 0, 0, 0);
+        }
+
+        private async void BtnLobbyIconPick_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = Text.Get("Lobby.IconPickTitle"),
+                Filter = Text.Get("Lobby.IconFilter") + "|*.png;*.jpg;*.jpeg;*.bmp;*.gif",
+            };
+            if (dialog.ShowDialog(Window.GetWindow(this)) != true)
+                return;
+            var icon = RoomIcon.FromFile(dialog.FileName);
+            if (icon == null)
+            {
+                await Dialogs.Of(this).ErrorAsync(Text.Get("Lobby.IconFailedTitle"), Text.Get("Lobby.IconFailed"));
+                return;
+            }
+            _lobbyIcon = icon;
+            RenderLobbyIcon();
+        }
+
+        private void BtnLobbyIconMap_Click(object sender, RoutedEventArgs e)
+        {
+            _lobbyIcon = _mapIcon;
+            RenderLobbyIcon();
+        }
+
+        private void BtnLobbyIconRemove_Click(object sender, RoutedEventArgs e)
+        {
+            _lobbyIcon = null;
+            RenderLobbyIcon();
+        }
+
+        private void RenderWorldStatus()
+        {
+            var status = _worldStatus;
+            if (_worldReading)
+                LabLobbyWorld.Text = Text.Get("Lobby.WorldReading");
+            else if (status == null || status.Version.Length == 0)
+                LabLobbyWorld.Text = Text.Get("Lobby.WorldUnknown");
+            else if (status.WorldName.Length > 0)
+                LabLobbyWorld.Text = Text.Format("Lobby.WorldInfo", status.Version, status.WorldName);
+            else
+                LabLobbyWorld.Text = Text.Format("Lobby.WorldVersion", status.Version);
+        }
+
+        private void FillLobbyTags(IEnumerable<string> selected)
+        {
+            var chosen = new HashSet<string>(selected.Take(MaxLobbyTags));
+            PanLobbyTags.Children.Clear();
+            foreach (string id in LobbyTagIds)
+            {
+                string name = LobbyText.Tag(id);
+                if (name == null)
+                    continue;
+                var chip = new CheckBox { Style = (Style)FindResource("PclSegment"), Content = name, Tag = id, IsChecked = chosen.Contains(id) };
+                chip.Checked += LobbyTag_Checked;
+                PanLobbyTags.Children.Add(chip);
+            }
+            var hint = new TextBlock
+            {
+                Margin = new Thickness(4, 0, 0, 6),
+                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = 12,
+                Text = Text.Get("Lobby.TagsHint"),
+            };
+            hint.SetResourceReference(TextBlock.ForegroundProperty, "BrushGray5");
+            PanLobbyTags.Children.Add(hint);
+        }
+
+        private List<string> SelectedLobbyTags()
+        {
+            return PanLobbyTags.Children.OfType<CheckBox>().Where(c => c.IsChecked == true).Select(c => (string)c.Tag).ToList();
+        }
+
+        private void LobbyTag_Checked(object sender, RoutedEventArgs e)
+        {
+            if (SelectedLobbyTags().Count > MaxLobbyTags)
+                ((CheckBox)sender).IsChecked = false;
+        }
+
+        private void TxtLobbyTitle_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && BtnPublishConfirm.IsEnabled)
+                BtnPublishConfirm_Click(sender, e);
+        }
+
+        private void BtnPublishBack_Click(object sender, RoutedEventArgs e)
+        {
+            _publishOpen = false;
+            Render();
+        }
+
+        private async void BtnPublishConfirm_Click(object sender, RoutedEventArgs e)
+        {
+            var dialogs = Dialogs.Of(this);
+            if (_publishing || dialogs == null)
+                return;
+            string title = TxtLobbyTitle.Text.Trim();
+            if (title.Length == 0)
+            {
+                await dialogs.ErrorAsync(Text.Get("Lobby.PublishFailedTitle"), Text.Get("Lobby.TitleEmpty"));
+                TxtLobbyTitle.Focus();
+                return;
+            }
+
+            var tags = SelectedLobbyTags();
+            var status = _worldStatus;
+            var listing = new LobbyListing
+            {
+                Code = _session.Code,
+                Title = title,
+                Host = LinkSettings.EffectivePlayerName,
+                Version = status?.Version ?? "",
+                Map = status?.WorldName ?? "",
+                Tags = tags,
+                MaxPlayers = status?.MaxPlayers ?? 0,
+                ShowRegion = ChkLobbyRegion.IsChecked == true,
+                Password = TxtLobbyPassword.Text.Trim(),
+                Icon = _lobbyIcon,
+            };
+            LinkSettings.LobbyTitle = title;
+            LinkSettings.LobbyTags = tags;
+            LinkSettings.LobbyShowRegion = listing.ShowRegion;
+
+            SetPublishing(true);
+            try
+            {
+                var ticket = await LobbyClient.PublishAsync(listing, _session.Players.Count);
+                // The room may have closed while the service answered.
+                if (!_session.Publish(listing, ticket))
+                {
+                    _ = LobbyPublisher.CloseQuietlyAsync(ticket);
+                    return;
+                }
+                _publishOpen = false;
+                Render();
+            }
+            catch (LobbyException ex)
+            {
+                await dialogs.ErrorAsync(Text.Get("Lobby.PublishFailedTitle"), LobbyText.Problem(ex));
+                if (ex.Kind == LobbyError.Blocked && _publishOpen)
+                {
+                    TxtLobbyTitle.Focus();
+                    TxtLobbyTitle.SelectAll();
+                }
+            }
+            finally
+            {
+                SetPublishing(false);
+            }
+        }
+
+        private void SetPublishing(bool publishing)
+        {
+            _publishing = publishing;
+            BtnPublishConfirm.IsEnabled = !publishing;
+            BtnPublishConfirm.Content = Text.Get(publishing ? "Lobby.Publishing" : "Lobby.PublishConfirm");
+        }
+
+        private void BtnGoLobby_Click(object sender, RoutedEventArgs e)
+        {
+            LobbyRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private static async Task ReportUnreachableAsync(string roomId)
+        {
+            try
+            {
+                await LobbyClient.ReportAsync(roomId, "unreachable");
+            }
+            catch (LobbyException ex)
+            {
+                LinkLog.Warn("The unreachable lobby room could not be reported: " + ex.Message);
+            }
+        }
+
         // ======================== Helpers ========================
 
         private async void OnFirstLoaded(object sender, RoutedEventArgs e)
         {
             Loaded -= OnFirstLoaded;
             UpdatePlaceholders();
+            BtnGoLobby.Visibility = LobbyClient.IsAvailable ? Visibility.Visible : Visibility.Collapsed;
 
             if (!EasyTierPackage.IsSupportedSystem)
             {
@@ -746,6 +1079,13 @@ namespace Campfire.Pages
 
         private void OnLanguageChanged(object sender, EventArgs e)
         {
+            if (_publishOpen)
+            {
+                FillLobbyTags(SelectedLobbyTags());
+                RenderWorldStatus();
+                RenderLobbyIcon();
+                SetPublishing(_publishing);
+            }
             _playersSignature = null;
             UpdatePlaceholders();
             UpdateNetworkLabel();

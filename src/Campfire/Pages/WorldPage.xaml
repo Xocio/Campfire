@@ -1,0 +1,75 @@
+<UserControl x:Class="Campfire.Pages.WorldPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Campfire.Localization">
+
+    <StackPanel Margin="22,20,22,18">
+
+        <!-- ======================== Map ======================== -->
+        <HeaderedContentControl Header="{loc:Text World.Map}" Style="{StaticResource PclCard}">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="LabWorldName" FontSize="14" TextTrimming="CharacterEllipsis" MaxWidth="380"
+                                       Text="{loc:Text World.NoMap}" />
+                            <Border x:Name="PanVersion" Margin="8,0,0,0" Padding="6,0" CornerRadius="3"
+                                    VerticalAlignment="Center" Background="{DynamicResource Brush7}" Visibility="Collapsed">
+                                <TextBlock x:Name="LabVersion" FontSize="12" Foreground="{DynamicResource Brush3}" />
+                            </Border>
+                        </StackPanel>
+                        <TextBlock x:Name="LabSourcePath" Margin="0,3,0,0" FontSize="12" Foreground="{DynamicResource BrushGray4}"
+                                   TextTrimming="CharacterEllipsis" Text="{loc:Text World.PickHint}" />
+                    </StackPanel>
+                    <Button x:Name="BtnBrowse" Grid.Column="1" Margin="16,0,0,0" Content="{loc:Text World.Browse}"
+                            Style="{StaticResource PclButton}" Click="BtnBrowse_Click" />
+                </Grid>
+
+                <!-- An archive with several worlds: pick one. -->
+                <ComboBox x:Name="CmbWorld" Margin="0,12,0,0" Style="{StaticResource PclComboBox}" Visibility="Collapsed"
+                          SelectionChanged="CmbWorld_SelectionChanged" />
+
+                <ContentControl x:Name="HintStatus" Margin="0,14,0,0" Style="{StaticResource PclHint}">
+                    <TextBlock x:Name="LabStatus" TextWrapping="Wrap" />
+                </ContentControl>
+            </StackPanel>
+        </HeaderedContentControl>
+
+        <!-- ======================== Target version ======================== -->
+        <HeaderedContentControl Margin="0,15,0,0" Header="{loc:Text World.Target}" Style="{StaticResource PclCard}">
+            <StackPanel>
+                <ScrollViewer x:Name="ScrollVersions" MaxHeight="150" VerticalScrollBarVisibility="Auto" Focusable="False">
+                    <StackPanel x:Name="ListVersions" />
+                </ScrollViewer>
+                <TextBlock x:Name="LabVersions" TextWrapping="Wrap" Foreground="{DynamicResource BrushGray3}"
+                           Text="{loc:Text World.Scanning}" />
+                <TextBlock x:Name="LabSaves" Margin="0,10,0,0" FontSize="12" Foreground="{DynamicResource BrushGray4}"
+                           TextTrimming="CharacterEllipsis" Visibility="Collapsed" />
+                <CheckBox x:Name="ChkAutoLan" Margin="0,12,0,0" Style="{StaticResource PclCheckBox}"
+                          Content="{loc:Text World.AutoLan}" Visibility="Collapsed" Click="ChkAutoLan_Click" />
+                <Grid Margin="0,10,0,0">
+                    <Button x:Name="BtnAddFolder" HorizontalAlignment="Left" Style="{StaticResource PclTextButton}"
+                            Content="{loc:Text World.AddFolder}" Click="BtnAddFolder_Click" />
+                    <Button x:Name="BtnOpenSaves" HorizontalAlignment="Right" Style="{StaticResource PclTextButton}"
+                            Content="{loc:Text World.OpenSaves}" IsEnabled="False" Click="BtnOpenSaves_Click" />
+                </Grid>
+            </StackPanel>
+        </HeaderedContentControl>
+
+        <Grid Margin="0,18,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ProgressBar x:Name="BarImport" Margin="0,0,20,0" VerticalAlignment="Center" Style="{StaticResource PclProgressBar}"
+                         Visibility="Hidden" />
+            <Button x:Name="BtnImport" Grid.Column="1" MinWidth="140" FontWeight="Bold" Content="{loc:Text World.Import}"
+                    Style="{StaticResource PclButtonHighlight}" IsEnabled="False" Click="BtnImport_Click" />
+        </Grid>
+
+    </StackPanel>
+</UserControl>
