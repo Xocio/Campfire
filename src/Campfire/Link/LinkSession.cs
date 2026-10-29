@@ -45,6 +45,18 @@ namespace Campfire.Link
         Done,
     }
 
+    /// <summary>Guest: whether the host's mod list is known.</summary>
+    internal enum HostModsState
+    {
+        /// <summary>The host does not share it: another program, an older Campfire or a dedicated server.</summary>
+        None,
+        Loading,
+        Ready,
+
+        /// <summary>The host has turned mod sync off; it may turn it on again while the room is open.</summary>
+        Off,
+    }
+
     /// <summary>How far the host's world is from being opened to LAN by Campfire itself.</summary>
     internal enum AutoLanState
     {
@@ -85,6 +97,9 @@ namespace Campfire.Link
 
         /// <summary>Guest: local port forwarded to the host's room service.</summary>
         private int _serviceLocalPort;
+
+        /// <summary>Guest: the host answers mod list requests, so the list is checked again now and then.</summary>
+        private bool _hostSharesMods;
 
         /// <param name="ui">Context of the UI thread; background events are posted to it.</param>
         public LinkSession(SynchronizationContext ui)
@@ -144,6 +159,11 @@ namespace Campfire.Link
         /// <summary>Host: the listing in the public lobby, or <c>null</c> when the room is not listed there.</summary>
         public LobbyPublisher Lobby => _lobby;
 
+        /// <summary>Guest: the host's game version and mods, once <see cref="ModsState"/> is <see cref="HostModsState.Ready"/>.</summary>
+        public Mods.ModList HostMods { get; private set; }
+
+        public HostModsState ModsState { get; private set; }
+
         public StepState GetStepState(LinkStep step)
         {
             return _steps.TryGetValue(step, out var state) ? state : StepState.Pending;
@@ -190,6 +210,7 @@ namespace Campfire.Link
                 _gate.Refuse = RefuseGamePlayer;
                 _server = RoomServer.Start(_self, _gate.Port);
                 _server.PlayersChanged += (sender, e) => Post(run, () => Players = _server?.GetPlayers() ?? Players);
+                _ = PrepareModsAsync(run, port);
 
                 int gameProcess = GameAccount.Current?.ProcessId ?? 0;
                 if (gameProcess > 0)
@@ -334,6 +355,7 @@ namespace Campfire.Link
                 LinkLog.Info($"Joined room {Mask(Code)}.");
                 Online.Telemetry.Count("link.join");
                 OnChanged();
+                _ = FetchHostModsAsync(run);
 
                 await MonitorGuestAsync(run);
             }
@@ -450,6 +472,19 @@ namespace Campfire.Link
                                   ?? throw new LinkException("Link.Error.HostLost");
                     }
                 }
+
+                // The host may turn mod sync on or off, or reopen the world with other mods.
+                if (_hostSharesMods && tick % 5 == 1)
+                {
+                    try
+                    {
+                        await ReadHostModsAsync(token);
+                    }
+                    catch (Exception ex) when (RoomClient.IsConnectionError(ex) && !token.IsCancellationRequested)
+                    {
+                        // A lost host is noticed by the heartbeat.
+                    }
+                }
                 UpdateLanStatus();
                 OnChanged();
             }
@@ -512,6 +547,126 @@ namespace Campfire.Link
             return new GameOverlayInfo(host?.GameName ?? host?.Name, players.Count, guest?.LatencyMs);
         }
 
+
+        // ======================== Mods ========================
+
+        /// <summary>Host: reads the mods of the game running the world, so players can compare theirs.</summary>
+        private async Task PrepareModsAsync(CancellationTokenSource run, int gamePort)
+        {
+            Mods.ModHost mods = null;
+            try
+            {
+                mods = await Mods.ModHost.PrepareAsync(gamePort, LinkSettings.ServeMods);
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidOperationException
+                                       || ex is ArgumentException)
+            {
+                LinkLog.Warn("The host's mods could not be read: " + ex.Message);
+            }
+            if (run != _run || _server == null)
+                return;
+            if (mods != null)
+                _server.Mods = mods;
+            else
+                _server.ModsUnavailable = true;
+            OnChanged();
+        }
+
+        /// <summary>Host: the mods of the game running the world, once read.</summary>
+        public Mods.ModList OwnMods => _server?.Mods?.List;
+
+        /// <summary>Host: whether players may compare and sync mods with this computer.</summary>
+        public bool ModSyncAllowed => _server?.ModsAllowed ?? LinkSettings.ShareMods;
+
+        /// <summary>Host: lets players sync mods or stops them, at once and for later rooms too.</summary>
+        public void SetModSync(bool allowed)
+        {
+            LinkSettings.ShareMods = allowed;
+            if (_server != null)
+                _server.ModsAllowed = allowed;
+            LinkLog.Info("Mod sync " + (allowed ? "allowed" : "stopped") + " by the host.");
+            OnChanged();
+        }
+
+        /// <summary>Guest: asks the host for its mods once the room is joined; hosts that do not share them are left alone.</summary>
+        private async Task FetchHostModsAsync(CancellationTokenSource run)
+        {
+            var token = run.Token;
+            try
+            {
+                var protocols = await _client.GetProtocolsAsync(token);
+                if (!protocols.Contains(RoomProtocol.ModList) || run != _run)
+                    return;
+                ModsState = HostModsState.Loading;
+                OnChanged();
+
+                // The host reads its mods while the room opens; a large folder can take a moment.
+                for (int attempt = 0; attempt < 20 && run == _run; attempt++)
+                {
+                    if (await ReadHostModsAsync(token))
+                    {
+                        // From now on the list is checked again now and then, as the host may turn sync on or off.
+                        _hostSharesMods = run == _run;
+                        return;
+                    }
+                    await Task.Delay(3000, token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch (Exception ex) when (RoomClient.IsConnectionError(ex))
+            {
+                LinkLog.Warn("The host's mod list could not be read: " + ex.Message);
+            }
+            if (run == _run)
+            {
+                ModsState = HostModsState.None;
+                OnChanged();
+            }
+        }
+
+        /// <summary>Guest: asks the host for its mod list once. Returns <c>false</c> while the host is still reading it.</summary>
+        private async Task<bool> ReadHostModsAsync(CancellationToken token)
+        {
+            var (list, off) = await _client.GetModListAsync(token);
+            if (off)
+            {
+                if (ModsState != HostModsState.Off)
+                {
+                    ModsState = HostModsState.Off;
+                    OnChanged();
+                }
+                return true;
+            }
+            if (list == null)
+                return false;
+
+            bool changed = ModsState != HostModsState.Ready;
+            if (HostMods == null || HostMods.Signature != list.Signature)
+            {
+                // A new list object makes the pages compare again, so it is only replaced when something differs.
+                HostMods = list;
+                changed = true;
+                LinkLog.Info($"The host plays {list.GameVersion ?? "?"} {list.Loader?.ToString() ?? "?"} with {list.Mods.Count} mod(s).");
+            }
+            ModsState = HostModsState.Ready;
+            if (changed)
+                OnChanged();
+            return true;
+        }
+
+        /// <summary>
+        /// Guest: a separate connection to the host's room service for downloading mods, so a long transfer never
+        /// holds up the heartbeat. Returns <c>null</c> when the room is gone.
+        /// </summary>
+        public Task<RoomClient> ConnectForModsAsync(CancellationToken cancellation)
+        {
+            if (Role != LinkRole.Guest || Stage != LinkStage.Ready || _serviceLocalPort == 0)
+                return Task.FromResult<RoomClient>(null);
+            return RoomClient.TryConnectAsync(_serviceLocalPort, cancellation);
+        }
 
         // ======================== Lobby ========================
 
@@ -587,6 +742,9 @@ namespace Campfire.Link
             ConnectedNodes = -1;
             LocalNat = NatKind.Unknown;
             SearchTime = TimeSpan.Zero;
+            HostMods = null;
+            ModsState = HostModsState.None;
+            _hostSharesMods = false;
             _serviceLocalPort = 0;
             OnChanged();
             return _run;

@@ -367,6 +367,7 @@ namespace Campfire.Themes
                 Solids["BrushRedLight"] = Color.FromRgb(0xFD, 0xE8, 0xE8);
                 Solids["BrushOrange"] = Color.FromRgb(0xB8, 0x62, 0x00);
                 Solids["BrushOrangeLight"] = Color.FromRgb(0xFD, 0xF1, 0xE0);
+                SetLampColors();
                 Solids["BrushDialogMask"] = N(0.18, 2, 0x66);
 
                 Gradients["BrushTitleBar"] = new[] { Solids["Brush2"], Solids["Brush3"], Solids["Brush2"] };
@@ -405,12 +406,21 @@ namespace Campfire.Themes
                 Solids["BrushRedLight"] = new Oklch(0.30, 0.055, 25).ToColor();
                 Solids["BrushOrange"] = new Oklch(0.79, 0.14, 70).ToColor();
                 Solids["BrushOrangeLight"] = new Oklch(0.31, 0.05, 70).ToColor();
+                SetLampColors();
                 Solids["BrushDialogMask"] = Color.FromArgb(0x8C, 0x05, 0x05, 0x08);
 
                 Gradients["BrushTitleBar"] = new[] { A(0.43, accent * 0.85), A(0.51, accent * 0.9), A(0.43, accent * 0.85) };
                 Gradients["BrushBackground"] = new[] { N(0.205, 1.5), N(0.185, 1.8), N(0.165, 2.0) };
                 Colors["ColorShadow"] = Color.FromRgb(0, 0, 0);
                 Solids["BrushShadowRing"] = Color.FromArgb(0x90, 0, 0, 0);
+            }
+
+            /// <summary>Status lamps on the title bar: bright enough to read on any accent in either theme.</summary>
+            private void SetLampColors()
+            {
+                Solids["BrushLampGreen"] = Color.FromRgb(0x3C, 0xDC, 0x7C);
+                Solids["BrushLampYellow"] = Color.FromRgb(0xFF, 0xD4, 0x3B);
+                Solids["BrushLampRed"] = Color.FromRgb(0xFF, 0x4D, 0x4F);
             }
 
             private void SetRamp(params Color[] ramp)

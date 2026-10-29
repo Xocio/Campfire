@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Campfire.Mods;
 
 namespace Campfire.Link.Room
 {
@@ -31,9 +32,17 @@ namespace Campfire.Link.Room
         /// <summary>Error bodies that tell a joining Campfire why the host turned it away.</summary>
         public const string RemovedReply = "campfire:removed";
         public const string BlockedReply = "campfire:blocked";
-        private static readonly byte[] ProtocolList = Encoding.UTF8.GetBytes(
-            string.Join("\0", RoomProtocol.Ping, RoomProtocol.Protocols, RoomProtocol.ServerPort,
-                RoomProtocol.PlayerPing, RoomProtocol.PlayerList));
+
+        /// <summary>Error bodies of the mod requests.</summary>
+        public const string ModsPendingReply = "campfire:mods_pending";
+        public const string ModsUnavailableReply = "campfire:mods_unavailable";
+        public const string ModsOffReply = "campfire:mods_off";
+        public const string ModFileRefusedReply = "campfire:mod_file_refused";
+
+        private readonly byte[] _protocolList;
+        private volatile bool _modsAllowed;
+        private volatile ModHost _mods;
+        private volatile bool _modsUnavailable;
 
         private readonly PlayerProfile _host;
         private readonly int _minecraftPort;
@@ -47,12 +56,41 @@ namespace Campfire.Link.Room
             _host = host;
             _minecraftPort = minecraftPort;
             _listener = listener;
+            _modsAllowed = LinkSettings.ShareMods;
+            // The mod kinds are always listed, so players keep asking and notice when the host turns sync on.
+            var kinds = new[]
+            {
+                RoomProtocol.Ping, RoomProtocol.Protocols, RoomProtocol.ServerPort, RoomProtocol.PlayerPing, RoomProtocol.PlayerList,
+                RoomProtocol.ModList, RoomProtocol.ModFile,
+            };
+            _protocolList = Encoding.UTF8.GetBytes(string.Join("\0", kinds));
         }
 
         /// <summary>Raised on a worker thread when a player joins, leaves or renames.</summary>
         public event EventHandler PlayersChanged;
 
         public int Port => ((IPEndPoint)_listener.LocalEndpoint).Port;
+
+        /// <summary>The host's mods once they are read; until then players are told to ask again.</summary>
+        public ModHost Mods
+        {
+            get => _mods;
+            set => _mods = value;
+        }
+
+        /// <summary>Set when the host's mods cannot be read, such as for a dedicated server; players then stop asking.</summary>
+        public bool ModsUnavailable
+        {
+            get => _modsUnavailable;
+            set => _modsUnavailable = value;
+        }
+
+        /// <summary>Whether the host lets players compare and sync mods right now; it can change while the room is open.</summary>
+        public bool ModsAllowed
+        {
+            get => _modsAllowed;
+            set => _modsAllowed = value;
+        }
 
         public static RoomServer Start(PlayerProfile host, int minecraftPort)
         {
@@ -163,18 +201,30 @@ namespace Campfire.Link.Room
                     case RoomProtocol.Ping:
                         return (RoomFraming.StatusOk, request.Body);
                     case RoomProtocol.Protocols:
-                        return (RoomFraming.StatusOk, ProtocolList);
+                        return (RoomFraming.StatusOk, _protocolList);
                     case RoomProtocol.ServerPort:
                         return (RoomFraming.StatusOk, new[] { (byte)(_minecraftPort >> 8), (byte)_minecraftPort });
                     case RoomProtocol.PlayerPing:
                         return HandlePlayerPing(request.Body);
                     case RoomProtocol.PlayerList:
                         return (RoomFraming.StatusOk, SerializePlayers());
+                    case RoomProtocol.ModList:
+                        var mods = _mods;
+                        if (!_modsAllowed)
+                            return (RoomFraming.StatusError, Encoding.UTF8.GetBytes(ModsOffReply));
+                        if (mods != null)
+                            return (RoomFraming.StatusOk, mods.ListJson);
+                        return (RoomFraming.StatusError, Encoding.UTF8.GetBytes(_modsUnavailable ? ModsUnavailableReply : ModsPendingReply));
+                    case RoomProtocol.ModFile:
+                        return _modsAllowed
+                            ? HandleModFile(request.Body)
+                            : (RoomFraming.StatusError, Encoding.UTF8.GetBytes(ModFileRefusedReply));
                     default:
                         return (RoomFraming.StatusError, Encoding.UTF8.GetBytes("Requested protocol hasn't been implemented."));
                 }
             }
-            catch (Exception ex) when (ex is FormatException || ex is ArgumentException || ex is InvalidOperationException)
+            catch (Exception ex) when (ex is FormatException || ex is ArgumentException || ex is InvalidOperationException
+                                       || ex is IOException || ex is UnauthorizedAccessException)
             {
                 return (RoomFraming.StatusError, Encoding.UTF8.GetBytes(ex.Message));
             }
@@ -215,6 +265,20 @@ namespace Campfire.Link.Room
             if (changed)
                 PlayersChanged?.Invoke(this, EventArgs.Empty);
             return (RoomFraming.StatusOk, Array.Empty<byte>());
+        }
+
+        private (byte Status, byte[] Body) HandleModFile(byte[] body)
+        {
+            if (body == null || body.Length != 48)
+                return (RoomFraming.StatusError, Encoding.UTF8.GetBytes("Invalid mod file request."));
+            string sha1 = Encoding.ASCII.GetString(body, 0, 40);
+            long offset = 0;
+            for (int i = 40; i < 48; i++)
+                offset = (offset << 8) | body[i];
+            var chunk = _mods?.ReadChunk(sha1, offset);
+            return chunk == null
+                ? (RoomFraming.StatusError, Encoding.UTF8.GetBytes(ModFileRefusedReply))
+                : (RoomFraming.StatusOk, chunk);
         }
 
         private byte[] SerializePlayers()

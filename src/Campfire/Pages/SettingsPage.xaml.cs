@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -17,11 +19,18 @@ namespace Campfire.Pages
     /// </summary>
     public partial class SettingsPage : UserControl
     {
+        private readonly List<ServerRow> _servers = new List<ServerRow>();
         private bool _loading;
+        private bool _componentMissing;
+        private string _testError;
 
         public SettingsPage()
         {
             InitializeComponent();
+
+            foreach (var node in PublicNodes.All)
+                PanServers.Children.Add(CreateServerRow(node));
+            PublicNodes.Changed += (sender, e) => Dispatcher.BeginInvoke(new Action(UpdateServers));
 
             foreach (int seconds in LinkSettings.SearchTimeoutChoices)
             {
@@ -41,7 +50,10 @@ namespace Campfire.Pages
             IsVisibleChanged += (sender, e) =>
             {
                 if (IsVisible)
+                {
                     Load();
+                    TestServersIfStale();
+                }
             };
             Load();
         }
@@ -73,10 +85,20 @@ namespace Campfire.Pages
                 ChkAutoCopy.IsChecked = LinkSettings.AutoCopyCode;
                 ChkClipboard.IsChecked = LinkSettings.DetectClipboard;
                 ChkAutoLan.IsChecked = LinkSettings.AutoOpenLan;
+                ChkShareMods.IsChecked = LinkSettings.ShareMods;
+                ChkServeMods.IsChecked = LinkSettings.ServeMods;
+                ChkServeMods.IsEnabled = LinkSettings.ShareMods;
                 ChkRelay.IsChecked = LinkSettings.AllowRelay || LinkSettings.HideAddress;
                 ChkRelay.IsEnabled = !LinkSettings.HideAddress;
                 ChkLanShare.IsChecked = LinkSettings.ShareWithLan;
-                ChkPublicNodes.IsChecked = LinkSettings.UsePublicNodes;
+                foreach (var row in _servers)
+                {
+                    row.Check.Content = Text.Get(row.Node.RegionKey);
+                    row.Check.IsChecked = LinkSettings.IsNodeEnabled(row.Node);
+                    string provider = Text.Format("Settings.ServerProvider", row.Node.Provider);
+                    row.Provider.Text = row.Node.IsLimited ? provider + " · " + Text.Get("Settings.ServerLimited") : provider;
+                }
+                UpdateServers();
                 ChkHideAddress.IsChecked = LinkSettings.HideAddress;
                 ChkGameAccount.IsChecked = LinkSettings.ReadGameAccount;
                 ChkSkins.IsChecked = LinkSettings.ShowSkins;
@@ -165,6 +187,9 @@ namespace Campfire.Pages
             LinkSettings.AutoCopyCode = ChkAutoCopy.IsChecked == true;
             LinkSettings.DetectClipboard = ChkClipboard.IsChecked == true;
             LinkSettings.AutoOpenLan = ChkAutoLan.IsChecked == true;
+            LinkSettings.ShareMods = ChkShareMods.IsChecked == true;
+            LinkSettings.ServeMods = ChkServeMods.IsChecked == true;
+            ChkServeMods.IsEnabled = LinkSettings.ShareMods;
             if (ChkRelay.IsEnabled)
                 LinkSettings.AllowRelay = ChkRelay.IsChecked == true;
             LinkSettings.ShareWithLan = ChkLanShare.IsChecked == true;
@@ -176,16 +201,135 @@ namespace Campfire.Pages
 
         // ======================== Network ========================
 
-        private async void ChkPublicNodes_Click(object sender, RoutedEventArgs e)
+        // ======================== Relay servers ========================
+
+        private sealed class ServerRow
         {
-            bool use = ChkPublicNodes.IsChecked == true;
-            if (!use && LinkSettings.ParseNodes(TxtNodes.Text, out _).Count == 0)
+            public PublicNode Node;
+            public CheckBox Check;
+            public TextBlock Provider;
+            public TextBlock Latency;
+        }
+
+        private FrameworkElement CreateServerRow(PublicNode node)
+        {
+            var row = new ServerRow { Node = node };
+            var grid = new Grid { Margin = new Thickness(0, 10, 0, 0) };
+            grid.ColumnDefinitions.Add(new ColumnDefinition());
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            row.Check = new CheckBox
             {
-                ChkPublicNodes.IsChecked = true;
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Style = (Style)FindResource("PclCheckBox"),
+            };
+            row.Check.Click += Server_Click;
+            grid.Children.Add(row.Check);
+
+            // Lines up with the check box text: 17 for the box and 9 for the gap.
+            row.Provider = new TextBlock { Margin = new Thickness(26, 2, 0, 0), FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
+            row.Provider.SetResourceReference(TextBlock.ForegroundProperty, "BrushGray4");
+            Grid.SetRow(row.Provider, 1);
+            grid.Children.Add(row.Provider);
+
+            row.Latency = new TextBlock { Margin = new Thickness(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(row.Latency, 1);
+            grid.Children.Add(row.Latency);
+
+            _servers.Add(row);
+            return grid;
+        }
+
+        /// <summary>Scrolls to the relay servers, for the status lamp on the title bar.</summary>
+        public void ShowServers()
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                double top = CardServers.TranslatePoint(new Point(0, 0), (UIElement)ScrollSettings.Content).Y;
+                ScrollSettings.ScrollToVerticalOffset(Math.Max(0, top - 8));
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        private void UpdateServers()
+        {
+            bool testing = PublicNodes.IsTesting;
+            foreach (var row in _servers)
+            {
+                string brush;
+                if (PublicNodes.TryGetLatency(row.Node, out var latency))
+                {
+                    row.Latency.Text = latency == null
+                        ? Text.Get("Settings.ServerUnreachable")
+                        : Text.Format("Settings.ServerLatency", Math.Round(latency.Value).ToString(CultureInfo.InvariantCulture));
+                    brush = latency == null ? "BrushRed" : latency <= PublicNodes.HighLatencyMs ? "BrushGreen" : "BrushOrange";
+                }
+                else
+                {
+                    row.Latency.Text = Text.Get(testing ? "Settings.ServerTesting" : "Settings.ServerUntested");
+                    brush = "BrushGray5";
+                }
+                row.Latency.SetResourceReference(TextBlock.ForegroundProperty, brush);
+            }
+
+            BtnTestServers.IsEnabled = !testing && EasyTierPackage.IsSupportedSystem;
+            if (testing)
+                LabServers.Text = Text.Get("Settings.ServersTesting");
+            else if (_testError != null)
+                LabServers.Text = Text.Format("Settings.ServersTestFailed", _testError);
+            else if (PublicNodes.TestedAt.HasValue)
+                LabServers.Text = Text.Format("Settings.ServersTestedAt", PublicNodes.TestedAt.Value.ToString("HH:mm", CultureInfo.InvariantCulture));
+            else
+                LabServers.Text = _componentMissing ? Text.Get("Settings.ServersFirstTest") : "";
+        }
+
+        /// <summary>Measures the servers when the page opens, unless the last results are recent.</summary>
+        private async void TestServersIfStale()
+        {
+            if (PublicNodes.IsTesting || !EasyTierPackage.IsSupportedSystem
+                || PublicNodes.TestedAt.HasValue && DateTime.Now - PublicNodes.TestedAt.Value < PublicNodes.Freshness)
+                return;
+
+            // The first test downloads the component, so that only happens when asked for.
+            _componentMissing = !await Task.Run(() => EasyTierPackage.IsInstalled());
+            if (_componentMissing)
+                UpdateServers();
+            else
+                await TestServersAsync();
+        }
+
+        private async void BtnTestServers_Click(object sender, RoutedEventArgs e)
+        {
+            await TestServersAsync();
+        }
+
+        private async Task TestServersAsync()
+        {
+            _testError = null;
+            try
+            {
+                await PublicNodes.TestAsync();
+                _componentMissing = false;
+            }
+            catch (Exception ex)
+            {
+                _testError = ex.Message;
+            }
+            UpdateServers();
+        }
+
+        private async void Server_Click(object sender, RoutedEventArgs e)
+        {
+            var enabled = _servers.Where(r => r.Check.IsChecked == true).Select(r => r.Node).ToList();
+            if (enabled.Count == 0 && LinkSettings.ParseNodes(TxtNodes.Text, out _).Count == 0)
+            {
+                ((CheckBox)sender).IsChecked = true;
                 await Dialogs.Of(this).ErrorAsync(Text.Get("Settings.NoNodesTitle"), Text.Get("Settings.NoNodes"));
                 return;
             }
-            LinkSettings.UsePublicNodes = use;
+            LinkSettings.SetEnabledNodes(enabled);
+            PublicNodes.Evaluate();
             Changed();
         }
 

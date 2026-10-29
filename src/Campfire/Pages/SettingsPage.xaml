@@ -66,6 +66,22 @@
                 </StackPanel>
             </HeaderedContentControl>
 
+            <!-- ======================== Mods ======================== -->
+            <HeaderedContentControl Margin="0,15,0,0" Header="{loc:Text Settings.Mods}" Style="{StaticResource PclCard}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <CheckBox x:Name="ChkShareMods" Style="{StaticResource PclCheckBox}"
+                                  Content="{loc:Text Settings.ShareMods}" Click="Flag_Click" />
+                        <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Settings.ShareModsNote}" />
+                    </StackPanel>
+                    <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+                        <CheckBox x:Name="ChkServeMods" Style="{StaticResource PclCheckBox}"
+                                  Content="{loc:Text Settings.ServeMods}" Click="Flag_Click" />
+                        <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Settings.ServeModsNote}" />
+                    </StackPanel>
+                </StackPanel>
+            </HeaderedContentControl>
+
             <!-- ======================== Network ======================== -->
             <HeaderedContentControl Margin="0,15,0,0" Header="{loc:Text Settings.Network}" Style="{StaticResource PclCard}">
                 <StackPanel>
@@ -81,13 +97,25 @@
                         <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Settings.LanShareNote}" />
                     </StackPanel>
 
-                    <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
-                        <CheckBox x:Name="ChkPublicNodes" Style="{StaticResource PclCheckBox}"
-                                  Content="{loc:Text Settings.PublicNodes}" Click="ChkPublicNodes_Click" />
-                        <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Settings.PublicNodesNote}" />
+                </StackPanel>
+            </HeaderedContentControl>
+
+            <!-- ======================== Relay servers ======================== -->
+            <HeaderedContentControl x:Name="CardServers" Margin="0,15,0,0" Header="{loc:Text Settings.Servers}"
+                                    Style="{StaticResource PclCard}">
+                <StackPanel>
+                    <TextBlock FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource BrushGray4}"
+                               Text="{loc:Text Settings.ServersNote}" />
+                    <StackPanel x:Name="PanServers" Margin="0,2,0,0" />
+
+                    <StackPanel Margin="0,14,0,0" Orientation="Horizontal">
+                        <Button x:Name="BtnTestServers" Height="32" Content="{loc:Text Settings.TestServers}"
+                                Style="{StaticResource PclButton}" Click="BtnTestServers_Click" />
+                        <TextBlock x:Name="LabServers" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="12"
+                                   Foreground="{DynamicResource BrushGray4}" />
                     </StackPanel>
 
-                    <Grid Margin="0,12,0,0">
+                    <Grid Margin="0,14,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" SharedSizeGroup="Label" />
                             <ColumnDefinition Width="*" />
@@ -97,6 +125,9 @@
                                  Tag="{loc:Text Settings.NodesPlaceholder}" ToolTip="{loc:Text Settings.NodesTooltip}"
                                  LostKeyboardFocus="TxtNodes_LostFocus" />
                     </Grid>
+
+                    <TextBlock Margin="0,14,0,0" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource BrushGray4}"
+                               Text="{loc:Text Settings.ServersThanks}" />
                 </StackPanel>
             </HeaderedContentControl>
 

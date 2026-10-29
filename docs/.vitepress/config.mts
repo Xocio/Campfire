@@ -40,7 +40,11 @@ export default defineConfig({
 
   themeConfig: {
     logo: '/logo.gif',
-    socialLinks: [{ icon: 'github', link: repo }],
+    socialLinks: [
+      { icon: 'github', link: repo },
+      { icon: 'telegram', link: 'https://t.me/CampfireGroup', ariaLabel: 'Telegram' },
+      { icon: 'telegram', link: 'https://t.me/McCampfire', ariaLabel: 'Telegram Channel' }
+    ],
     search: {
       provider: 'local',
       options: {

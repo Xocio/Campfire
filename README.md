@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  友情链接：<a href="https://linux.do">LINUX DO</a>
+  交流：<a href="https://t.me/CampfireGroup">Telegram 群聊</a> · <a href="https://t.me/McCampfire">Telegram 频道</a>
 </p>
 
 <p align="center">

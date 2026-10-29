@@ -22,6 +22,9 @@ namespace Campfire.Link.Runtime
         private const int OutputLines = 300;
         private static readonly TimeSpan CliTimeout = TimeSpan.FromSeconds(10);
 
+        // Starts one at a time: the leftover sweep would otherwise remove the file of an instance that is just starting.
+        private static readonly object StartSync = new object();
+
         private readonly Process _process;
         private readonly string _configPath;
         private readonly int _rpcPort;
@@ -54,6 +57,12 @@ namespace Campfire.Link.Runtime
         }
 
         public static EasyTierInstance Start(EasyTierConfig config)
+        {
+            lock (StartSync)
+                return StartLocked(config);
+        }
+
+        private static EasyTierInstance StartLocked(EasyTierConfig config)
         {
             StopLeftovers();
 

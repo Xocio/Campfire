@@ -69,6 +69,10 @@ namespace Campfire.Pages
         private RoomCode _lastCode;
         private int? _lastManualPort;
 
+        // Comparing the host's mods with this computer's, as a guest.
+        private Campfire.Mods.ModCheck _modCheck;
+        private Campfire.Mods.ModList _checkedHost;
+
         private bool _codeCopied;
         private DateTime _codeCopiedAt = DateTime.MinValue;
         private DateTime _addressCopiedAt = DateTime.MinValue;
@@ -110,6 +114,14 @@ namespace Campfire.Pages
 
         /// <summary>Raised when the user wants to browse the public lobby.</summary>
         public event EventHandler LobbyRequested;
+
+        /// <summary>Raised when the user wants to compare or sync mods with the host.</summary>
+        public event EventHandler ModsRequested;
+
+        /// <summary>Folders that hold a launcher, also searched for installed versions; set by the window.</summary>
+        internal Func<IEnumerable<string>> LauncherDirectories { get; set; }
+
+        internal LinkSession Session => _session;
 
         /// <summary>Whether a room is being set up or is open.</summary>
         public bool IsRoomActive => _session.IsActive;
@@ -339,6 +351,7 @@ namespace Campfire.Pages
             LabHostNat.Text = LocalNatText;
             Motion.Show(HintHostNodes, _session.ConnectedNodes == 0);
             RenderLobby();
+            RenderModSync();
 
             CardHostPlayers.Header = Text.Format("Link.Players", _session.Players.Count);
             RenderPlayers(ListHostPlayers);
@@ -356,6 +369,87 @@ namespace Campfire.Pages
 
             CardGuestPlayers.Header = Text.Format("Link.Players", _session.Players.Count);
             RenderPlayers(ListGuestPlayers);
+            RenderMods();
+        }
+
+        // ======================== Mods ========================
+
+        /// <summary>Shows how the mods compare once the host's list arrives; the check runs once per list.</summary>
+        private void RenderMods()
+        {
+            var host = _session.HostMods;
+            if (host == null)
+            {
+                _modCheck = null;
+                _checkedHost = null;
+            }
+            else if (host != _checkedHost)
+            {
+                StartModCheck(host);
+            }
+
+            // The button appears once the comparison is ready; its tooltip tells the result.
+            var check = _session.ModsState == HostModsState.Ready && _modCheck?.Host == host ? _modCheck : null;
+            bool shown = check != null && check.HostHasMods;
+            bool differs = shown && (check.Version == null || !check.Comparison.IsMatch);
+            BtnMods.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+            if (!shown)
+                return;
+
+            BtnMods.ToolTip = check.Version == null ? Text.Get("Mods.State.NoVersion")
+                : check.Comparison.IsMatch ? Text.Get("Mods.State.Match")
+                : Text.Format("Mods.State.Differs", check.Comparison.Changes.Count);
+            // Syncing is the step to take while the mods differ, so it stands out like the lobby button does.
+            BtnMods.Style = (Style)FindResource(differs ? "PclButtonHighlight" : "PclButton");
+            BtnMods.FontWeight = differs ? FontWeights.Bold : FontWeights.Normal;
+        }
+
+        /// <summary>Host: the button that lets players sync mods, once the host's own mods are read.</summary>
+        private void RenderModSync()
+        {
+            var own = _session.OwnMods;
+            bool shown = own != null && (own.Mods.Any(m => m.IsShared) || (own.Loader != null && own.Loader != Campfire.Worlds.VersionLoader.Vanilla));
+            BtnModSync.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+            if (!shown)
+                return;
+            bool allowed = _session.ModSyncAllowed;
+            BtnModSync.Content = Text.Get(allowed ? "Mods.HostStop" : "Mods.HostAllow");
+            BtnModSync.ToolTip = Text.Get(allowed ? "Mods.HostStopTip" : "Mods.HostAllowTip");
+        }
+
+        private void BtnModSync_Click(object sender, RoutedEventArgs e)
+        {
+            _session.SetModSync(!_session.ModSyncAllowed);
+        }
+
+        private async void StartModCheck(Campfire.Mods.ModList host)
+        {
+            _checkedHost = host;
+            try
+            {
+                var check = await Campfire.Mods.ModCheck.RunAsync(host, LauncherDirectories?.Invoke() ?? Array.Empty<string>());
+                if (_session.HostMods == host)
+                    _modCheck = check;
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidOperationException)
+            {
+                LinkLog.Warn("The mods could not be compared: " + ex.Message);
+            }
+            Render();
+        }
+
+        /// <summary>Takes the comparison made on the sync page, so both pages agree.</summary>
+        internal void SetModCheck(Campfire.Mods.ModCheck check)
+        {
+            if (check == null || check.Host != _session.HostMods)
+                return;
+            _modCheck = check;
+            Render();
+        }
+
+        private void BtnMods_Click(object sender, RoutedEventArgs e)
+        {
+            ModsRequested?.Invoke(this, EventArgs.Empty);
         }
 
         private void RenderPlayers(ItemsControl list)
@@ -745,13 +839,10 @@ namespace Campfire.Pages
             bool available = LobbyClient.IsAvailable;
             PanLobbyState.Visibility = BtnLobby.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
             var lobby = _session.Lobby;
+            // Before listing, the button says it all; a status line only appears once the room is in the lobby.
             string text = null;
             string brush = null;
-            if (lobby == null)
-            {
-                text = Text.Get("Lobby.State.None");
-            }
-            else if (lobby.State == LobbyState.Listed)
+            if (lobby?.State == LobbyState.Listed)
             {
                 text = Text.Get(lobby.Locked ? "Lobby.State.ListedLocked" : "Lobby.State.Listed");
                 brush = "BrushGreen";
