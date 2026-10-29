@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  Friends: <a href="https://linux.do">LINUX DO</a>
+  Community: <a href="https://t.me/CampfireGroup">Telegram group</a> · <a href="https://t.me/McCampfire">Telegram channel</a>
 </p>
 
 <p align="center">

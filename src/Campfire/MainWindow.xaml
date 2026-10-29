@@ -58,6 +58,18 @@
                         <controls:CampfireLogo x:Name="LogoTitle" Width="32" Height="32" Margin="-2,-2,-2,0" />
                         <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="Campfire" FontSize="19"
                                    FontWeight="Bold" Foreground="{DynamicResource BrushWhite}" />
+                        <!-- Relay server status; opens the server list. -->
+                        <Button x:Name="BtnRelayLamp" Margin="5,2,0,0" VerticalAlignment="Center" Cursor="Hand" Focusable="False"
+                                Click="BtnRelayLamp_Click">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Grid Width="18" Height="18" Background="Transparent">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Grid>
+                                </ControlTemplate>
+                            </Button.Template>
+                            <Ellipse x:Name="DotRelay" Width="9" Height="9" StrokeThickness="1.5" Stroke="{DynamicResource BrushWhite}" />
+                        </Button>
                     </StackPanel>
 
                     <!-- On a feature page the logo and tabs give way to a back button and the page name. -->
@@ -152,7 +164,8 @@
                 <pages:PreferencesPage x:Name="PagePreferences" Visibility="Hidden"
                                        TraySettingsChanged="PagePreferences_TraySettingsChanged" />
                 <pages:LinkPage x:Name="PageLink" Visibility="Hidden" StatusChanged="PageLink_StatusChanged"
-                                SettingsRequested="Page_SettingsRequested" LobbyRequested="Page_LobbyRequested" />
+                                SettingsRequested="Page_SettingsRequested" LobbyRequested="Page_LobbyRequested"
+                                ModsRequested="PageLink_ModsRequested" />
                 <pages:LobbyPage x:Name="PageLobby" Visibility="Hidden" />
                 <pages:LobbyRoomPage x:Name="PageLobbyRoom" Visibility="Hidden" />
                 <pages:SettingsPage x:Name="PageSettings" Visibility="Hidden" SettingsChanged="PageSettings_SettingsChanged" />
@@ -160,6 +173,7 @@
                 <pages:JrePage x:Name="PageJre" Visibility="Hidden" />
                 <pages:WorldPage x:Name="PageWorld" Visibility="Hidden" CreateRoomRequested="PageWorld_CreateRoomRequested" />
                 <pages:MapPage x:Name="PageMap" Visibility="Hidden" />
+                <pages:ModsPage x:Name="PageMods" Visibility="Hidden" />
             </Grid>
 
             <!-- First-run tour; dialogs stay above it. -->

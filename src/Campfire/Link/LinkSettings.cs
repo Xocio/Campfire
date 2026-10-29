@@ -11,18 +11,6 @@ namespace Campfire.Link
     /// </summary>
     internal static class LinkSettings
     {
-        /// <summary>
-        /// Public nodes that introduce players to each other. Players only find each other when they share at
-        /// least one node, so this list should change rarely and only by adding.
-        /// </summary>
-        private static readonly string[] DefaultNodes =
-        {
-            "tcp://public.easytier.top:11010",
-            "tcp://public2.easytier.cn:54321",
-            "https://etnode.zkitefly.eu.org/node1",
-            "https://etnode.zkitefly.eu.org/node2",
-        };
-
         /// <summary>Choices offered for <see cref="SearchTimeoutSeconds"/>.</summary>
         public static readonly int[] SearchTimeoutChoices = { 30, 60, 120 };
 
@@ -101,6 +89,31 @@ namespace Campfire.Link
         {
             get => GetFlag("link.clipboard", true);
             set => SetFlag("link.clipboard", value);
+        }
+
+        // ======================== Mods ========================
+
+        /// <summary>Host: whether players in the room see the game version and mods of the host's game.</summary>
+        public static bool ShareMods
+        {
+            get => GetFlag("link.sharemods", true);
+            set => SetFlag("link.sharemods", value);
+        }
+
+        /// <summary>Host: whether players may download the host's mods from this computer.</summary>
+        public static bool ServeMods
+        {
+            get => GetFlag("link.servemods", true);
+            set => SetFlag("link.servemods", value);
+        }
+
+        /// <summary>Guest: where mod sync gets files from, as last chosen.</summary>
+        public static Mods.ModSource ModSource
+        {
+            get => Enum.TryParse(AppSettings.Get("link.modsource"), out Mods.ModSource value) && Enum.IsDefined(typeof(Mods.ModSource), value)
+                ? value
+                : Mods.ModSource.OfficialFirst;
+            set => AppSettings.Set("link.modsource", value.ToString());
         }
 
         // ======================== Network ========================
@@ -211,13 +224,33 @@ namespace Campfire.Link
 
         // ======================== Nodes ========================
 
-        /// <summary>Custom nodes first, then the defaults if enabled, without duplicates.</summary>
+        /// <summary>Custom nodes first, then the enabled built-in nodes, without duplicates.</summary>
         public static IReadOnlyList<string> GetNodes()
         {
-            var nodes = ParseNodes(CustomNodes, out _);
-            return (UsePublicNodes ? nodes.Concat(DefaultNodes) : nodes)
+            return ParseNodes(CustomNodes, out _)
+                .Concat(PublicNodes.All.Where(IsNodeEnabled).Select(n => n.Url))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
+        }
+
+        /// <summary>Whether a built-in node is used. Nodes added by later versions start enabled.</summary>
+        public static bool IsNodeEnabled(PublicNode node)
+        {
+            return UsePublicNodes && !GetDisabledNodes().Contains(node.Id);
+        }
+
+        /// <summary>Saves which built-in nodes are used; every other one is turned off.</summary>
+        public static void SetEnabledNodes(IEnumerable<PublicNode> enabled)
+        {
+            var ids = new HashSet<string>(enabled.Select(n => n.Id), StringComparer.Ordinal);
+            AppSettings.Set("link.nodes.off", string.Join(",", PublicNodes.All.Where(n => !ids.Contains(n.Id)).Select(n => n.Id)));
+            UsePublicNodes = ids.Count > 0;
+        }
+
+        private static HashSet<string> GetDisabledNodes()
+        {
+            return new HashSet<string>(GetText("link.nodes.off").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries),
+                StringComparer.Ordinal);
         }
 
         /// <summary>
@@ -238,7 +271,8 @@ namespace Campfire.Link
                 string node = part.Contains("://") ? part : "tcp://" + part;
                 if (Uri.TryCreate(node, UriKind.Absolute, out var uri) && !string.IsNullOrEmpty(uri.Host)
                     && (uri.Scheme == "tcp" || uri.Scheme == "udp" || uri.Scheme == "ws" || uri.Scheme == "wss"
-                        || uri.Scheme == "quic" || uri.Scheme == "http" || uri.Scheme == "https"))
+                        || uri.Scheme == "quic" || uri.Scheme == "http" || uri.Scheme == "https"
+                        || uri.Scheme == "txt" || uri.Scheme == "srv"))
                     nodes.Add(node);
                 else
                     rejected.Add(part);

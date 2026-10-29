@@ -21,7 +21,7 @@
     <Company>Xocio</Company>
     <Authors>Xocio</Authors>
     <Description>An advanced Minecraft toolbox.</Description>
-    <Version>1.1.1</Version>
+    <Version>1.1.2</Version>
     <Copyright>Copyright © 2026 Xocio</Copyright>
     <RepositoryUrl>https://github.com/Xocio/Campfire</RepositoryUrl>
   </PropertyGroup>

@@ -102,6 +102,46 @@ namespace Campfire.Link.Room
             return items.Select(item => PlayerProfile.FromJson(item, null)).Where(p => p != null).ToList();
         }
 
+        /// <summary>The request kinds the host's room service answers.</summary>
+        public async Task<IReadOnlyList<string>> GetProtocolsAsync(CancellationToken cancellation)
+        {
+            var response = await SendAsync(RoomProtocol.Protocols, null, RequestTimeout, cancellation).ConfigureAwait(false);
+            if (!response.IsOk)
+                return Array.Empty<string>();
+            return Encoding.UTF8.GetString(response.Body).Split(new[] { '\0' }, StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        /// <summary>
+        /// The host's mods. The list is <c>null</c> while the host is still reading them, and also when the host has
+        /// turned mod sync off, which <c>Off</c> tells.
+        /// </summary>
+        public async Task<(Mods.ModList List, bool Off)> GetModListAsync(CancellationToken cancellation)
+        {
+            var response = await SendAsync(RoomProtocol.ModList, null, RequestTimeout, cancellation).ConfigureAwait(false);
+            if (!response.IsOk)
+            {
+                string reply = Encoding.UTF8.GetString(response.Body);
+                if (reply == RoomServer.ModsPendingReply || reply == RoomServer.ModsOffReply)
+                    return (null, reply == RoomServer.ModsOffReply);
+                throw new InvalidDataException("Mod list rejected.");
+            }
+            return (Mods.ModList.FromJson(Json.TryParse(Encoding.UTF8.GetString(response.Body)))
+                    ?? throw new InvalidDataException("Mod list is not an object."), false);
+        }
+
+        /// <summary>A piece of the host's jar <paramref name="sha1"/> from <paramref name="offset"/>; empty past its end.</summary>
+        public async Task<byte[]> GetModChunkAsync(string sha1, long offset, CancellationToken cancellation)
+        {
+            var body = new byte[48];
+            Encoding.ASCII.GetBytes(sha1, 0, 40, body, 0);
+            for (int i = 0; i < 8; i++)
+                body[47 - i] = (byte)(offset >> (8 * i));
+            var response = await SendAsync(RoomProtocol.ModFile, body, RequestTimeout, cancellation).ConfigureAwait(false);
+            if (!response.IsOk)
+                throw new InvalidDataException("The host did not hand out the file.");
+            return response.Body;
+        }
+
         public void Dispose()
         {
             _client.Close();

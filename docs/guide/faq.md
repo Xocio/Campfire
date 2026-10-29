@@ -108,3 +108,5 @@ Campfire 只修改与下载、安装直接相关的少数方法，不添加任�
 ### 如何反馈问题？
 
 请在 [GitHub Issues](https://github.com/Xocio/Campfire/issues) 中提交，并尽量附上系统版本、操作步骤，以及联机日志或截图。
+
+也可以加入 [Telegram 群聊](https://t.me/CampfireGroup) 交流，或关注 [Telegram 频道](https://t.me/McCampfire) 获取更新动态。

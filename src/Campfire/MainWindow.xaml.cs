@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,8 +11,10 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Threading;
 using Campfire.Controls;
 using Campfire.Link;
+using Campfire.Link.Runtime;
 using Campfire.Localization;
 using Campfire.Online;
 using Campfire.Pages;
@@ -55,6 +58,8 @@ namespace Campfire
             PageLobbyRoom.IsRoomActive = () => PageLink.IsRoomActive;
             PageLobbyRoom.JoinRequested += PageLobby_JoinRequested;
             PageLobbyRoom.RoomGone += (sender, e) => PageLobby.Invalidate();
+            PageLink.LauncherDirectories = LauncherDirectories;
+            PageMods.CheckChanged += (sender, check) => PageLink.SetModCheck(check);
 
             Text.LanguageChanged += OnLanguageChanged;
             Closed += (sender, e) => Text.LanguageChanged -= OnLanguageChanged;
@@ -65,6 +70,7 @@ namespace Campfire
                 UpdateTray();
                 WarmUpPages();
                 StartOnline();
+                StartRelayLamp();
                 OfferTour();
                 await LoadInitialLauncherAsync();
             };
@@ -241,6 +247,20 @@ namespace Campfire
             OpenSubPage(PageSettings, "Page.Settings");
         }
 
+        /// <summary>The joined room's mod sync; going back returns to the room.</summary>
+        private async void PageLink_ModsRequested(object sender, EventArgs e)
+        {
+            OpenSubPage(PageMods, "Page.Mods");
+            await PageMods.ShowAsync(PageLink.Session, LauncherDirectories());
+        }
+
+        /// <summary>Folders that may hold a launcher next to its game folder: Campfire's own and the repaired launcher's.</summary>
+        private IEnumerable<string> LauncherDirectories()
+        {
+            string launcher = PageRepair.LauncherPath;
+            return new[] { AppDomain.CurrentDomain.BaseDirectory, string.IsNullOrEmpty(launcher) ? null : Path.GetDirectoryName(launcher) };
+        }
+
         private void Page_LobbyRequested(object sender, EventArgs e)
         {
             OpenSubPage(PageLobby, "Page.Lobby");
@@ -413,6 +433,7 @@ namespace Campfire
                 LabTitleSub.Text = Text.Get(_subPages.Peek().TitleKey);
             PageLink_StatusChanged(this, EventArgs.Empty);
             PageRepair_StatusChanged(this, EventArgs.Empty);
+            UpdateRelayLamp();
         }
 
         private void Window_Activated(object sender, EventArgs e)
@@ -523,7 +544,7 @@ namespace Campfire
         /// </summary>
         private async void WarmUpPages()
         {
-            var pages = new FrameworkElement[] { PageMaps, PageTools, PagePreferences, PageLink, PageLobby, PageLobbyRoom, PageSettings, PageRepair, PageJre, PageWorld, PageMap };
+            var pages = new FrameworkElement[] { PageMaps, PageTools, PagePreferences, PageLink, PageLobby, PageLobbyRoom, PageSettings, PageRepair, PageJre, PageWorld, PageMap, PageMods };
             foreach (var page in pages)
             {
                 await Task.Delay(120);
@@ -783,6 +804,70 @@ namespace Campfire
         private void StartOnline()
         {
             new OnlineFlow(this, () => PageLink.IsRoomActive, PageHome.ShowNotice, ExitAndStart).Start();
+        }
+
+        // ======================== Relay lamp ========================
+
+        private static readonly TimeSpan RelayTestInterval = TimeSpan.FromMinutes(30);
+
+        /// <summary>Tests the relay servers shortly after start and then every half hour, once multiplayer was used.</summary>
+        private async void StartRelayLamp()
+        {
+            PublicNodes.Changed += (sender, e) => Dispatcher.BeginInvoke(new Action(UpdateRelayLamp));
+            UpdateRelayLamp();
+
+            var timer = new DispatcherTimer { Interval = RelayTestInterval };
+            timer.Tick += (sender, e) => TestRelaysQuietly();
+            timer.Start();
+            await Task.Delay(3000);
+            TestRelaysQuietly();
+        }
+
+        private static async void TestRelaysQuietly()
+        {
+            // Downloading the component is left to the first room or an explicit test.
+            if (PublicNodes.IsTesting || !EasyTierPackage.IsSupportedSystem || !await Task.Run(() => EasyTierPackage.IsInstalled()))
+                return;
+            try
+            {
+                await PublicNodes.TestAsync();
+            }
+            catch (Exception)
+            {
+                // Already logged; the lamp keeps its last state.
+            }
+        }
+
+        private void UpdateRelayLamp()
+        {
+            string latency = PublicNodes.BestLatency.HasValue
+                ? Math.Round(PublicNodes.BestLatency.Value).ToString(CultureInfo.InvariantCulture)
+                : "";
+            switch (PublicNodes.Health)
+            {
+                case NodeHealth.Good:
+                    DotRelay.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushLampGreen");
+                    BtnRelayLamp.ToolTip = Text.Format("Lamp.Good", latency);
+                    break;
+                case NodeHealth.Slow:
+                    DotRelay.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushLampYellow");
+                    BtnRelayLamp.ToolTip = Text.Format("Lamp.Slow", latency);
+                    break;
+                case NodeHealth.Down:
+                    DotRelay.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushLampRed");
+                    BtnRelayLamp.ToolTip = Text.Get("Lamp.Down");
+                    break;
+                default:
+                    DotRelay.Fill = Brushes.Transparent;
+                    BtnRelayLamp.ToolTip = Text.Get("Lamp.Unknown");
+                    break;
+            }
+        }
+
+        private void BtnRelayLamp_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSubPage(PageSettings, "Page.Settings");
+            PageSettings.ShowServers();
         }
 
         /// <summary>Closes Campfire without asking again, then starts <paramref name="path"/> when given.</summary>

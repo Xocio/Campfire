@@ -108,3 +108,5 @@ Only one Campfire runs per session. Opening it again brings the running window t
 ### How do I report a problem?
 
 Open an issue in [GitHub Issues](https://github.com/Xocio/Campfire/issues), ideally with your Windows version, the steps you took, and the multiplayer log or a screenshot.
+
+You can also chat in the [Telegram group](https://t.me/CampfireGroup) or follow the [Telegram channel](https://t.me/McCampfire) for updates.

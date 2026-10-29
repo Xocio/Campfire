@@ -43,6 +43,17 @@ namespace Campfire.Link.Minecraft
             }
         }
 
+        /// <summary>The process listening on TCP <paramref name="port"/>, or 0 when none does.</summary>
+        public static int FindProcess(int port)
+        {
+            foreach (var (listening, pid) in ReadListeners(AfInet, 24, 8, 20).Concat(ReadListeners(AfInet6, 56, 20, 52)))
+            {
+                if (listening == port && pid > 0)
+                    return pid;
+            }
+            return 0;
+        }
+
         private static IEnumerable<int> GetJavaListeningPorts()
         {
             var ports = new SortedSet<int>();

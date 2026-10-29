@@ -315,6 +315,9 @@
                                TextTrimming="CharacterEllipsis" Foreground="{DynamicResource BrushGray4}" />
                 </Grid>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <!-- Lets players sync mods with this computer, or stops them. Shown once the host's mods are read. -->
+                    <Button x:Name="BtnModSync" Margin="12,0,0,0" Style="{StaticResource PclButton}" Visibility="Collapsed"
+                            Click="BtnModSync_Click" />
                     <Button x:Name="BtnLobby" Margin="12,0,0,0" MinWidth="140" Click="BtnLobby_Click" />
                     <Button x:Name="BtnCloseRoom" Margin="12,0,0,0" Content="{loc:Text Link.CloseRoom}"
                             Style="{StaticResource PclButton}" Click="BtnStop_Click" />
@@ -454,8 +457,13 @@
         <!-- ======================== Room joined (guest) ======================== -->
         <DockPanel x:Name="PanGuest" Visibility="Hidden">
             <Grid DockPanel.Dock="Bottom" Margin="0,18,0,0">
-                <Button x:Name="BtnLeaveRoom" HorizontalAlignment="Right" Content="{loc:Text Link.LeaveRoom}" Style="{StaticResource PclButton}"
-                        Click="BtnStop_Click" />
+                <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                    <!-- Shown when the host shares its mods; it stands out while they differ from this computer's. -->
+                    <Button x:Name="BtnMods" MinWidth="140" Content="{loc:Text Mods.Sync}" Style="{StaticResource PclButton}"
+                            Visibility="Collapsed" Click="BtnMods_Click" />
+                    <Button x:Name="BtnLeaveRoom" Margin="12,0,0,0" Content="{loc:Text Link.LeaveRoom}"
+                            Style="{StaticResource PclButton}" Click="BtnStop_Click" />
+                </StackPanel>
             </Grid>
             <StackPanel>
                 <HeaderedContentControl Header="{loc:Text Link.GuestReady}" Style="{StaticResource PclCard}">

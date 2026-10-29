@@ -104,6 +104,23 @@ namespace Campfire.Worlds
             return result;
         }
 
+        /// <summary>Reads the one version called <paramref name="name"/>, or returns <c>null</c> when it is missing or broken.</summary>
+        public static InstalledVersion Load(GameFolder folder, string name)
+        {
+            try
+            {
+                return Read(folder, name, new Dictionary<string, Dictionary<string, object>>(StringComparer.OrdinalIgnoreCase));
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidDataException
+                                       || ex is ArgumentException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>The mods folder this version's game reads, next to its saves folder.</summary>
+        public string ModsDirectory => Path.Combine(Path.GetDirectoryName(SavesDirectory), "mods");
+
         private static InstalledVersion Read(GameFolder folder, string name, Dictionary<string, Dictionary<string, object>> cache)
         {
             var json = LoadJson(folder, name, cache);

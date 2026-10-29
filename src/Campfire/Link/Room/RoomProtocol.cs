@@ -20,6 +20,15 @@ namespace Campfire.Link.Room
         /// <summary>Returns every player in the room as a JSON array.</summary>
         public const string PlayerList = "c:player_profiles_list";
 
+        /// <summary>Campfire only: the game version, loader and mods of the host's game as JSON.</summary>
+        public const string ModList = "campfire:mods";
+
+        /// <summary>
+        /// Campfire only: a piece of one of the host's mods. The body is the jar's SHA-1 in hex followed by the
+        /// offset as eight big-endian bytes; the answer is up to 512 KB of the file, empty past its end.
+        /// </summary>
+        public const string ModFile = "campfire:mod_file";
+
         /// <summary>Virtual host name prefix of a room's host; the room service port follows it.</summary>
         public const string HostNamePrefix = "scaffolding-mc-server-";
 
