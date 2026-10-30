@@ -179,7 +179,7 @@ namespace Campfire.Pages
             switch (error.Kind)
             {
                 case LobbyError.Blocked:
-                    return Text.Get("Lobby.TitleBlocked");
+                    return Text.Get(error.Field == "description" ? "Lobby.DescriptionBlocked" : "Lobby.TitleBlocked");
                 case LobbyError.Removed:
                 case LobbyError.Reported:
                 case LobbyError.Banned:

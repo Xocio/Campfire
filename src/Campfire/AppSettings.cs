@@ -38,7 +38,7 @@ namespace Campfire
             return current;
         }
 
-        /// <summary>Whether Campfire has never saved anything before, so this is the first time it runs.</summary>
+        /// <summary>Whether Campfire has never saved anything before.</summary>
         public static bool IsFirstRun { get; } = !File.Exists(Path.Combine(DataDirectory, "settings.ini"));
 
         private static string FilePath =>Path.Combine(DataDirectory, "settings.ini");
@@ -58,8 +58,7 @@ namespace Campfire
         {
             lock (Sync)
             {
-                // Another Campfire may have saved since this one loaded, for example one left in the notification
-                // area. Reading the file again keeps its changes instead of writing back an old copy.
+                // Reads the file again before writing.
                 _values = null;
                 EnsureLoaded();
                 if (value == null)

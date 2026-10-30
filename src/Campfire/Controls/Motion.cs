@@ -42,14 +42,16 @@ namespace Campfire.Controls
         /// Shows a page. Its cards drop in one after another; a page without cards drops in as a whole.
         /// <paramref name="direction"/> is kept for elements without cards, which slide in from that side.
         /// </summary>
-        public static void EnterPage(FrameworkElement page, int direction)
+        public static void EnterPage(FrameworkElement page, int direction, bool animate = true)
         {
             Next(page);
             page.IsHitTestVisible = true;
             page.Visibility = Visibility.Visible;
             page.BeginAnimation(UIElement.OpacityProperty, null);
             page.Opacity = 1;
-            if (!Enabled)
+            animate &= Enabled;
+            (page as IPageMotion)?.Entering(animate);
+            if (!animate)
             {
                 foreach (var item in Items(page) ?? new List<FrameworkElement> { page })
                     Reset(item);
@@ -67,8 +69,7 @@ namespace Campfire.Controls
                 return;
             }
 
-            // The first frame of a page that just appeared is slow: it is laid out and drawn for the first time.
-            // The cards wait out of sight until that is done, so the whole fall plays on smooth frames.
+            // The cards stay hidden for two frames, then fall in.
             int generation = Current(page);
             foreach (var item in items)
             {
@@ -85,14 +86,15 @@ namespace Campfire.Controls
         }
 
         /// <summary>The cards of a page sink a little and fade, one shortly after another; then the page hides.</summary>
-        public static void LeavePage(FrameworkElement page, int direction)
+        public static void LeavePage(FrameworkElement page, int direction, bool animate = true)
         {
             int generation = Next(page);
-            if (!Enabled || page.Visibility != Visibility.Visible)
+            if (!animate || !Enabled || page.Visibility != Visibility.Visible)
             {
                 page.Visibility = Visibility.Hidden;
                 return;
             }
+            (page as IPageMotion)?.Leaving();
 
             page.IsHitTestVisible = false;
             var items = Items(page);
@@ -128,22 +130,26 @@ namespace Campfire.Controls
             });
         }
 
-        /// <summary>Switches between two parts of a page that share one place.</summary>
-        public static void Swap(FrameworkElement from, FrameworkElement to, int direction = 1)
+        /// <summary>
+        /// Switches between two parts of a page that share one place. Without <paramref name="animate"/> the switch
+        /// happens at once, for a page that is out of sight.
+        /// </summary>
+        public static void Swap(FrameworkElement from, FrameworkElement to, int direction = 1, bool animate = true)
         {
             if (from == to)
                 return;
             if (from != null)
-                LeavePage(from, direction);
+                LeavePage(from, direction, animate);
             if (to != null)
-                EnterPage(to, direction);
+                EnterPage(to, direction, animate);
         }
 
         /// <summary>The items of a side navigation slide in from the left, one after another.</summary>
-        public static void EnterNavigation(Panel navigation)
+        public static void EnterNavigation(Panel navigation, bool animate = true)
         {
+            int generation = Next(navigation);
             var items = navigation.Children.OfType<FrameworkElement>().Where(c => c.Visibility == Visibility.Visible).ToList();
-            if (!Enabled)
+            if (!animate || !Enabled)
             {
                 items.ForEach(Reset);
                 return;
@@ -157,6 +163,8 @@ namespace Campfire.Controls
             }
             AfterFrames(2, () =>
             {
+                if (Current(navigation) != generation)
+                    return;
                 for (int i = 0; i < items.Count; i++)
                 {
                     var delay = TimeSpan.FromMilliseconds(i * 30);
@@ -167,6 +175,62 @@ namespace Campfire.Controls
                     land.BeginAnimation(TranslateTransform.XProperty, Hold(-25, 0, delay, 300, Settle));
                 }
             });
+        }
+
+        /// <summary>The items of a side navigation fade while sliding back to the left, all together.</summary>
+        public static void LeaveNavigation(Panel navigation)
+        {
+            Next(navigation);
+            if (!Enabled)
+                return;
+            foreach (var item in navigation.Children.OfType<FrameworkElement>().Where(c => c.Visibility == Visibility.Visible))
+            {
+                item.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, Ms(70)) { EasingFunction = FluentIn });
+                var (glide, land) = Layers(item);
+                glide.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(-8, Ms(70)) { EasingFunction = FluentIn });
+                land.BeginAnimation(TranslateTransform.XProperty, null);
+                land.X = 0;
+            }
+        }
+
+        /// <summary>
+        /// The background of a side bar grows out of the left edge. Leaving, it folds back into the edge.
+        /// </summary>
+        public static void EnterSideBar(FrameworkElement bar, bool animate = true)
+        {
+            int generation = Next(bar);
+            var scale = SideScale(bar);
+            scale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            if (!animate || !Enabled)
+            {
+                scale.ScaleX = 1;
+                return;
+            }
+
+            scale.ScaleX = 0;
+            AfterFrames(2, () =>
+            {
+                if (Current(bar) == generation)
+                    scale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0, 1, Ms(260)) { EasingFunction = Fluent });
+            });
+        }
+
+        /// <inheritdoc cref="EnterSideBar"/>
+        public static void LeaveSideBar(FrameworkElement bar)
+        {
+            Next(bar);
+            if (Enabled)
+                SideScale(bar).BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0, Ms(70)) { EasingFunction = FluentIn });
+        }
+
+        private static ScaleTransform SideScale(FrameworkElement bar)
+        {
+            if (bar.RenderTransform is ScaleTransform scale && !scale.IsFrozen)
+                return scale;
+            bar.RenderTransformOrigin = new Point(0, 0.5);
+            scale = new ScaleTransform();
+            bar.RenderTransform = scale;
+            return scale;
         }
 
         // ======================== Elements ========================
@@ -324,7 +388,7 @@ namespace Campfire.Controls
                    && group.Children[0] is TranslateTransform && group.Children[1] is TranslateTransform;
         }
 
-        /// <summary>The element's two movement layers; their offsets add up, so two curves can play at once.</summary>
+        /// <summary>The element's two movement layers; their offsets add up.</summary>
         private static (TranslateTransform First, TranslateTransform Second) Layers(UIElement element)
         {
             if (IsLayerGroup(element.RenderTransform))
@@ -384,5 +448,15 @@ namespace Campfire.Controls
         {
             public int Value;
         }
+    }
+
+    /// <summary>A page with parts outside its cards, such as a side bar, that move along when it enters or leaves.</summary>
+    internal interface IPageMotion
+    {
+        /// <summary>The page is being shown; <paramref name="animate"/> is false when it appears at once.</summary>
+        void Entering(bool animate);
+
+        /// <summary>The page starts leaving; it hides once its cards are gone.</summary>
+        void Leaving();
     }
 }

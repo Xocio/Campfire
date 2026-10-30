@@ -7,7 +7,7 @@ using Campfire.Patching;
 namespace Campfire.Launcher
 {
     /// <summary>
-    /// Finds the launcher next to Campfire so the user does not have to pick it manually.
+    /// Finds the launcher next to Campfire.
     /// </summary>
     internal static class LauncherLocator
     {

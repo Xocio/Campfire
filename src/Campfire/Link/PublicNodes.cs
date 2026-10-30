@@ -18,7 +18,7 @@ namespace Campfire.Link
             IsLimited = limited;
         }
 
-        /// <summary>Stable name used in settings, so a node keeps its choice when its address changes.</summary>
+        /// <summary>Stable name used in settings.</summary>
         public string Id { get; }
 
         public string Url { get; }
@@ -42,8 +42,7 @@ namespace Campfire.Link
     }
 
     /// <summary>
-    /// The built-in public nodes and their measured latency. Players only find each other when they share at least
-    /// one node, so a node is only removed once it no longer answers anyone.
+    /// The built-in public nodes and their measured latency.
     /// </summary>
     internal static class PublicNodes
     {
@@ -58,8 +57,7 @@ namespace Campfire.Link
         private static Task _test;
 
         /// <summary>
-        /// Community nodes that relay traffic, spread over several providers so one blocked or busy node is not
-        /// enough to stop a room. The last one is the only node earlier versions can still reach.
+        /// Community nodes that relay traffic, from several providers. The last one is the only node earlier versions can reach.
         /// </summary>
         public static IReadOnlyList<PublicNode> All { get; } = new[]
         {

@@ -12,8 +12,7 @@ namespace Campfire.Worlds
     /// A Minecraft game running on this computer and the folder it keeps its worlds in, read from its command line.
     /// </summary>
     /// <remarks>
-    /// Every launcher passes the game folder as --gameDir, so this is where the game really looks for worlds,
-    /// whatever the launcher's isolation settings are. Only that value and the version path are read; the access
+    /// The game folder is read from --gameDir. Only that value and the version path are read; the access
     /// token on the same command line is never kept.
     /// </remarks>
     internal sealed class RunningGame
@@ -37,8 +36,7 @@ namespace Campfire.Worlds
         /// <summary>Whether the game was started from <paramref name="version"/>, judged by the version folder on its class path.</summary>
         public bool Runs(InstalledVersion version)
         {
-            // Launchers may pass the folder through a junction or in another spelling, so only the part from
-            // "versions" on is compared.
+            // Only the part from "versions" on is compared.
             string marker = Path.DirectorySeparatorChar + "versions" + Path.DirectorySeparatorChar + version.Name + Path.DirectorySeparatorChar;
             return _commandLine.Replace('/', Path.DirectorySeparatorChar).IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0;
         }
@@ -80,8 +78,7 @@ namespace Campfire.Worlds
                 return null;
             string name = arguments[index + 1];
 
-            // An isolated game folder is the version folder itself; otherwise the folder shows up in the paths the
-            // launcher passes, such as the natives folder.
+            // An isolated game folder is the version folder itself; otherwise it is read from the launcher's paths, such as the natives folder.
             var folders = new List<string>();
             string parent = Path.GetDirectoryName(GameDirectory);
             if (parent != null && string.Equals(Path.GetFileName(parent), "versions", StringComparison.OrdinalIgnoreCase))

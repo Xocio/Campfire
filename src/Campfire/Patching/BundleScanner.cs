@@ -39,9 +39,8 @@ namespace Campfire.Patching
     /// Locates managed assemblies inside a .NET single-file launcher (PCL Community Edition).
     /// </summary>
     /// <remarks>
-    /// A bundled launcher is a native host with the assemblies appended as separate PE images,
-    /// so it cannot be opened by dnlib as a whole. Images are found by walking the MZ/PE headers
-    /// of the file; assembly names are confirmed by loading the slice with dnlib.
+    /// A bundled launcher is a native host with the assemblies appended as separate PE images.
+    /// Images are found by walking the MZ/PE headers of the file; assembly names are confirmed by loading the slice with dnlib.
     /// </remarks>
     internal static class BundleScanner
     {

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -28,7 +28,11 @@ namespace Campfire.Pages
             NoService,
         }
 
+        /// <summary>A reload asked for with the button can be repeated only after this long.</summary>
+        private static readonly TimeSpan RefreshCooldown = TimeSpan.FromSeconds(10);
+
         private readonly DispatcherTimer _cooldown;
+        private DateTime _cooldownUntil = DateTime.MinValue;
         private readonly DispatcherTimer _typing;
         private LobbyList _list;
         private List<string> _versionChoices = new List<string>();
@@ -41,10 +45,12 @@ namespace Campfire.Pages
         public LobbyPage()
         {
             InitializeComponent();
-            _cooldown = new DispatcherTimer();
+            // Counts the seconds left on the button.
+            _cooldown = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _cooldown.Tick += (sender, e) =>
             {
-                _cooldown.Stop();
+                if (DateTime.UtcNow >= _cooldownUntil)
+                    _cooldown.Stop();
                 UpdateRefreshButton();
             };
             _typing = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
@@ -86,7 +92,7 @@ namespace Campfire.Pages
                 _ = RefreshAsync();
         }
 
-        private async Task RefreshAsync()
+        private async Task RefreshAsync(bool asked = false)
         {
             if (_loading)
                 return;
@@ -119,16 +125,23 @@ namespace Campfire.Pages
             {
                 _loading = false;
                 // Reloading at once costs the service a request and shows nothing new.
-                _cooldown.Interval = _refreshInterval;
-                _cooldown.Stop();
-                _cooldown.Start();
+                if (asked)
+                {
+                    _cooldownUntil = DateTime.UtcNow + RefreshCooldown;
+                    _cooldown.Stop();
+                    _cooldown.Start();
+                }
                 UpdateRefreshButton();
             }
         }
 
         private void UpdateRefreshButton()
         {
-            BtnRefresh.IsEnabled = LobbyClient.IsAvailable && !_loading && !_cooldown.IsEnabled;
+            double wait = (_cooldownUntil - DateTime.UtcNow).TotalSeconds;
+            BtnRefresh.IsEnabled = LobbyClient.IsAvailable && !_loading && wait <= 0;
+            BtnRefresh.Content = Text.Get("Lobby.Refresh");
+            if (wait > 0)
+                BtnRefresh.Content = Text.Format("Lobby.RefreshWait", (int)Math.Ceiling(wait));
         }
 
         // ======================== Rendering ========================
@@ -286,7 +299,9 @@ namespace Campfire.Pages
 
         private void BtnRefresh_Click(object sender, RoutedEventArgs e)
         {
-            _ = RefreshAsync();
+            if (DateTime.UtcNow < _cooldownUntil)
+                return;
+            _ = RefreshAsync(true);
         }
 
         private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e)

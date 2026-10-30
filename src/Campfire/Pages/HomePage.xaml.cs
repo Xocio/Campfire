@@ -44,6 +44,9 @@ namespace Campfire.Pages
         /// <summary>Raised when the user wants to enter an invite code.</summary>
         public event EventHandler JoinRequested;
 
+        /// <summary>Raised when the user wants the rooms used before.</summary>
+        public event EventHandler RecentRequested;
+
         /// <summary>Raised when the user wants the multiplayer settings.</summary>
         public event EventHandler SettingsRequested;
 
@@ -145,6 +148,11 @@ namespace Campfire.Pages
         private void TileLobby_Click(object sender, RoutedEventArgs e)
         {
             LobbyRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void TileRecent_Click(object sender, RoutedEventArgs e)
+        {
+            RecentRequested?.Invoke(this, EventArgs.Empty);
         }
 
         private void BtnSettings_Click(object sender, RoutedEventArgs e)

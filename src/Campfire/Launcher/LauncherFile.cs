@@ -77,8 +77,7 @@ namespace Campfire.Launcher
         }
 
         /// <summary>
-        /// Version of a community launcher. The bundled <c>PCL.Core</c> assembly is a library, so its version says
-        /// nothing; the executable's version resource is the release number.
+        /// Version of a community launcher, read from the executable's version resource.
         /// </summary>
         public static string ReadBundleVersion(string path, BundleImage image)
         {

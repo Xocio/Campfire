@@ -75,7 +75,7 @@ namespace Campfire.Mods
                 string url = file.TryGetValue("url", out object u) ? u as string : null;
                 if (!IsAllowed(url))
                     continue;
-                // A fingerprint ignores whitespace bytes, so the hash decides whether it is really the host's file.
+                // A fingerprint ignores whitespace bytes; the hash decides.
                 foreach (var mod in mods.Where(m => m.Sha1 == sha1))
                     result[mod.Sha1] = new OfficialFile(url);
             }

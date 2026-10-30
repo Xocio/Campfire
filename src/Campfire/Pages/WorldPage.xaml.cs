@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -57,7 +57,7 @@ namespace Campfire.Pages
         private InstalledVersion _importedFor;
         private bool _savesConfirmed;
 
-        // The hint is produced on demand so it follows language changes.
+        // The hint is produced on demand.
         private HintKind _hintKind;
         private Func<string> _hintText;
 
@@ -407,7 +407,7 @@ namespace Campfire.Pages
             Render();
         }
 
-        /// <summary>Forgets the last import, so the next click imports again; the copy stays where it is.</summary>
+        /// <summary>Forgets the last import; the copy stays where it is.</summary>
         private void ResetImport()
         {
             StopWatching();
@@ -511,7 +511,7 @@ namespace Campfire.Pages
         /// <summary>
         /// Whether the agent can open worlds of <paramref name="version"/> to LAN: a release since 1.14.4, with no
         /// loader or one that keeps Minecraft's own names, or one of the older releases Campfire carries names for
-        /// when it runs without a loader. Fabric and Quilt rename the game's classes while it runs.
+        /// when it runs without a loader. Fabric and Quilt are not supported.
         /// </summary>
         private static bool SupportsAutoLan(InstalledVersion version)
         {
@@ -678,18 +678,9 @@ namespace Campfire.Pages
 
         private async void BtnAddFolder_Click(object sender, RoutedEventArgs e)
         {
-            string picked;
-            using (var dialog = new System.Windows.Forms.FolderBrowserDialog
-                   {
-                       Description = Text.Get("World.AddFolderTitle"),
-                       ShowNewFolderButton = false,
-                   })
-            {
-                var owner = new Win32Owner(new WindowInteropHelper(Window.GetWindow(this)).Handle);
-                if (dialog.ShowDialog(owner) != System.Windows.Forms.DialogResult.OK)
-                    return;
-                picked = dialog.SelectedPath;
-            }
+            string picked = FolderPicker.Pick(new WindowInteropHelper(Window.GetWindow(this)).Handle, Text.Get("World.AddFolderTitle"));
+            if (picked == null)
+                return;
 
             string folder = GameFolders.Resolve(picked);
             if (folder == null)
@@ -738,16 +729,6 @@ namespace Campfire.Pages
             }
             HintStatus.Style = (Style)FindResource(styleKey);
             LabStatus.Text = text();
-        }
-
-        private sealed class Win32Owner : System.Windows.Forms.IWin32Window
-        {
-            public Win32Owner(IntPtr handle)
-            {
-                Handle = handle;
-            }
-
-            public IntPtr Handle { get; }
         }
     }
 }

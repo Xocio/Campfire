@@ -12,8 +12,7 @@ using System.Threading.Tasks;
 namespace Campfire.Link.Runtime
 {
     /// <summary>
-    /// Reads single files out of a zip archive on a web server with HTTP range requests, so only the needed
-    /// entries are transferred instead of the whole archive.
+    /// Reads single files out of a zip archive on a web server with HTTP range requests.
     /// </summary>
     internal sealed class RemoteZip
     {

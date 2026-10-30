@@ -17,7 +17,7 @@
         </Style>
     </UserControl.Resources>
 
-    <!-- The same height as the other pages, so the window does not change size. -->
+    <!-- The same height as the other pages. -->
     <Grid Height="503">
         <DockPanel Margin="22,20,22,18">
             <Grid DockPanel.Dock="Bottom" Margin="0,18,0,0">
@@ -71,6 +71,8 @@
                                 <TextBlock x:Name="LabOpened" Style="{StaticResource StatValue}" />
                             </StackPanel>
                         </UniformGrid>
+                        <!-- What the host wrote about the room; hidden when nothing was written. -->
+                        <TextBlock x:Name="LabDescription" Margin="0,16,0,0" TextWrapping="Wrap" Foreground="{DynamicResource Brush1}" />
                     </StackPanel>
                 </HeaderedContentControl>
 

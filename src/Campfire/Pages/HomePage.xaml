@@ -34,6 +34,13 @@
             <Setter Property="HorizontalAlignment" Value="Left" />
             <Setter Property="Background" Value="{DynamicResource Brush7}" />
         </Style>
+        <Thickness x:Key="SmallTilePadding">12,10,10,10</Thickness>
+        <Style x:Key="SmallTileIcon" TargetType="Border" BasedOn="{StaticResource TileIcon}">
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="CornerRadius" Value="17" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
         <Style x:Key="TileGlyph" TargetType="Path">
             <Setter Property="Width" Value="16" />
             <Setter Property="Height" Value="16" />
@@ -66,6 +73,10 @@
                 <Grid>
                     <!-- No room yet: the three ways to play together, side by side. -->
                     <Grid x:Name="PanStart">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="10" />
@@ -105,6 +116,52 @@
                                 <TextBlock Style="{StaticResource TileText}" Text="{loc:Text Home.LobbyDescription}" />
                             </StackPanel>
                         </Button>
+                        <!-- Second row: shorter tiles for the recent rooms and the multiplayer settings. -->
+                        <Grid Grid.Row="1" Grid.ColumnSpan="5" Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="TileRecent" Style="{StaticResource PclTile}" Padding="{StaticResource SmallTilePadding}"
+                                    Click="TileRecent_Click">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Style="{StaticResource SmallTileIcon}">
+                                        <!-- A clock. -->
+                                        <Path Style="{StaticResource TileGlyph}" StrokeThickness="1.7"
+                                              Data="M14,8 A6,6 0 1 1 2,8 A6,6 0 1 1 14,8 Z M8,4.6 L8,8 L10.4,9.4" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock FontSize="14" FontWeight="Bold" TextTrimming="CharacterEllipsis" Text="{loc:Text Home.Recent}" />
+                                        <TextBlock Style="{StaticResource TileText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                                   Text="{loc:Text Home.RecentDescription}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Button>
+                            <Button x:Name="TileSettings" Grid.Column="2" Style="{StaticResource PclTile}" Padding="{StaticResource SmallTilePadding}"
+                                    Click="BtnSettings_Click">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Style="{StaticResource SmallTileIcon}">
+                                        <!-- Three sliders. -->
+                                        <Path Style="{StaticResource TileGlyph}" StrokeThickness="1.7"
+                                              Data="M2.5,4 L13.5,4 M2.5,8 L13.5,8 M2.5,12 L13.5,12 M9,2 L9,6 M5,6 L5,10 M10.5,10 L10.5,14" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock FontSize="14" FontWeight="Bold" TextTrimming="CharacterEllipsis" Text="{loc:Text Home.LinkSettings}" />
+                                        <TextBlock Style="{StaticResource TileText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                                   Text="{loc:Text Home.LinkSettingsDescription}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Button>
+                        </Grid>
                     </Grid>
 
                     <!-- A room is being set up or is open: its state and the way back to it. -->
@@ -130,12 +187,9 @@
                 </Grid>
             </HeaderedContentControl>
 
-            <!-- Sits in the card's title line, on the right. -->
-            <Button Margin="0,11,15,0" HorizontalAlignment="Right" VerticalAlignment="Top" FontSize="12"
-                    Style="{StaticResource PclTextButton}" Content="{loc:Text Home.LinkSettings}" Click="BtnSettings_Click" />
         </Grid>
 
-        <!-- Shown when the clipboard holds an invite code, so joining takes one click. -->
+        <!-- Shown when the clipboard holds an invite code. -->
         <ContentControl x:Name="HintQuickJoin" Margin="0,15,0,0" Style="{StaticResource PclHint}" Visibility="Collapsed">
             <Grid>
                 <Grid.ColumnDefinitions>

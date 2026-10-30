@@ -3,9 +3,8 @@ using System;
 namespace Campfire.Controls
 {
     /// <summary>
-    /// A damped spring that pulls <see cref="Value"/> towards <see cref="Target"/>. Unlike a timed animation it keeps
-    /// its speed when the target changes in mid-flight, so a movement can be redirected without a visible seam.
-    /// Damping below the critical value lets the value overshoot a little before it settles.
+    /// A damped spring that pulls <see cref="Value"/> towards <see cref="Target"/>. It keeps its speed when the
+    /// target changes. Damping below the critical value lets the value overshoot a little before it settles.
     /// </summary>
     internal sealed class Spring
     {
@@ -30,7 +29,7 @@ namespace Campfire.Controls
             Velocity = 0;
         }
 
-        /// <summary>Advances the spring by <paramref name="seconds"/>, in small steps so a slow frame cannot blow it up.</summary>
+        /// <summary>Advances the spring by <paramref name="seconds"/>, in small steps.</summary>
         public void Step(double seconds)
         {
             int steps = Math.Max(1, (int)Math.Ceiling(seconds / 0.004));

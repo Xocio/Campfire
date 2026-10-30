@@ -38,8 +38,7 @@ namespace Campfire.Link.Minecraft
         /// <summary>
         /// Loads the agent into <paramref name="processId"/> and waits until it shows the overlay. Returns
         /// <c>false</c> when no Java on this computer can attach to the game, the agent cannot be loaded or
-        /// the game is not a version it knows; the room itself keeps working. An <see cref="AgentState"/>
-        /// for the process must already exist, since the hook only runs while that state is fresh.
+        /// the game is not a version it knows. An <see cref="AgentState"/> for the process must already exist.
         /// </summary>
         public static async Task<bool> AttachAsync(int processId, CancellationToken cancellation)
         {
@@ -183,9 +182,7 @@ namespace Campfire.Link.Minecraft
         private static readonly Dictionary<string, bool> AttachSupport = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
-        /// A Java that can attach to the game: its own, which every runtime since Java 9 can do. The Java 8
-        /// runtime of releases up to 1.16 cannot, so another one on this computer does it instead, such as a
-        /// newer runtime the launcher installed next to it.
+        /// A Java that can attach to the game: its own since Java 9, otherwise another one on this computer.
         /// </summary>
         private static string FindAttachJava(int processId)
         {
@@ -407,7 +404,7 @@ namespace Campfire.Link.Minecraft
                 try
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(_path));
-                    // Written aside and swapped in, so the hook never reads half a file.
+                    // Written aside and swapped in.
                     string temporary = _path + ".tmp";
                     File.WriteAllText(temporary, string.Join("\n", lines) + "\n", Utf8);
                     if (File.Exists(_path))

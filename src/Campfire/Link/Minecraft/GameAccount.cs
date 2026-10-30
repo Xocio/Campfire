@@ -9,7 +9,7 @@ namespace Campfire.Link.Minecraft
 {
     /// <summary>
     /// The account of a Minecraft game running on this computer, read from the game's command line. Every
-    /// launcher passes the player name, UUID and account type there, so this works whichever launcher is used.
+    /// launcher passes the player name, UUID and account type there.
     /// </summary>
     /// <remarks>
     /// Only these three values are read. The command line also carries the access token, which is never kept,
@@ -33,7 +33,7 @@ namespace Campfire.Link.Minecraft
         /// <summary>Whether the game was started with a Microsoft (premium) account.</summary>
         public bool IsPremium { get; }
 
-        /// <summary>Process id of the running game, used to attach the in-game overlay agent.</summary>
+        /// <summary>Process id of the running game.</summary>
         public int ProcessId { get; }
 
         /// <summary>The account of the running game, or <c>null</c> when no game is running.</summary>

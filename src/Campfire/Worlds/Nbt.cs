@@ -12,8 +12,7 @@ namespace Campfire.Worlds
     /// <remarks>
     /// Compounds become <see cref="Dictionary{TKey,TValue}"/> of string to object and lists become <c>object[]</c>.
     /// Numbers keep their own type (sbyte, short, int, long, float, double); byte, int and long arrays become
-    /// <c>byte[]</c>, <c>int[]</c> and <c>long[]</c>. Maps are downloaded from anywhere, so every length is checked
-    /// against a budget instead of trusted.
+    /// <c>byte[]</c>, <c>int[]</c> and <c>long[]</c>. Every length is checked against a budget.
     /// </remarks>
     internal static class Nbt
     {

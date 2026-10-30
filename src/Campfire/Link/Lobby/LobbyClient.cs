@@ -45,6 +45,9 @@ namespace Campfire.Link.Lobby
 
         /// <summary>The room picture as PNG or JPEG bytes, or <c>null</c>.</summary>
         public byte[] Icon { get; set; }
+
+        /// <summary>What the host wrote about the room; may be empty.</summary>
+        public string Description { get; set; }
     }
 
     internal sealed class LobbyList
@@ -91,6 +94,9 @@ namespace Campfire.Link.Lobby
 
         /// <summary>A small PNG or JPEG shown with the room, or <c>null</c>.</summary>
         public byte[] Icon { get; set; }
+
+        /// <summary>A few words about the room, typed by the host; empty for none.</summary>
+        public string Description { get; set; }
     }
 
     /// <summary>A listed room as its host holds it: the token proves the listing is theirs.</summary>
@@ -179,6 +185,7 @@ namespace Campfire.Link.Lobby
                     Region = Str(r, "region"),
                     Locked = Value(r, "locked") is bool locked && locked,
                     Icon = Base64(Str(r, "icon")),
+                    Description = Str(r, "description"),
                     CreatedAt = Value(r, "createdAt") is double ms ? DateTimeOffset.FromUnixTimeMilliseconds((long)ms).UtcDateTime : DateTime.UtcNow,
                 }).Where(r => r.Id.Length > 0 && r.Title.Length > 0).ToList(),
             };
@@ -200,6 +207,7 @@ namespace Campfire.Link.Lobby
                 ["players"] = players,
                 ["maxPlayers"] = listing.MaxPlayers,
                 ["showRegion"] = listing.ShowRegion,
+                ["description"] = listing.Description ?? "",
             };
             if (!string.IsNullOrEmpty(listing.Password))
                 body["password"] = listing.Password;
@@ -242,6 +250,38 @@ namespace Campfire.Link.Lobby
                 body["password"] = password;
             var json = await SendAsync(HttpMethod.Post, "/v1/lobby/rooms/" + roomId + "/join", body, null, cancellation).ConfigureAwait(false);
             return RoomCode.Find(Str(json, "code")) ?? throw new LobbyException(LobbyError.Unexpected, "The service sent no invite code.");
+        }
+
+        private static readonly HashSet<string> AllowedNames = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Asks the service whether a player name passes its word filter. When the service cannot be reached, or
+        /// this build has none, the name is let through; the answer for a name is remembered until Campfire closes.
+        /// </summary>
+        public static async Task<bool> IsNameAllowedAsync(string name, CancellationToken cancellation = default)
+        {
+            if (!IsAvailable || string.IsNullOrEmpty(name))
+                return true;
+            lock (AllowedNames)
+            {
+                if (AllowedNames.Contains(name))
+                    return true;
+            }
+
+            try
+            {
+                var json = await SendAsync(HttpMethod.Post, "/v1/lobby/check",
+                    new Dictionary<string, object> { ["text"] = name }, null, cancellation).ConfigureAwait(false);
+                if (Value(json, "ok") is bool ok && !ok)
+                    return false;
+            }
+            catch (LobbyException)
+            {
+                return true;
+            }
+            lock (AllowedNames)
+                AllowedNames.Add(name);
+            return true;
         }
 
         /// <summary>Reports a room: "content" when it is not fit to show, "unreachable" when it could not be joined.</summary>

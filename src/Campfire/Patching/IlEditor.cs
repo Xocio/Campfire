@@ -13,8 +13,7 @@ namespace Campfire.Patching
         /// Replaces the inclusive range [<paramref name="start"/>, <paramref name="end"/>] with <paramref name="replacement"/>.
         /// </summary>
         /// <remarks>
-        /// The first instruction object of the range is reused, so branches and exception handlers
-        /// that point at the start of the range stay valid. Any other reference into the range is rejected.
+        /// The first instruction object of the range is reused. Any other reference into the range is rejected.
         /// </remarks>
         public static void ReplaceRange(CilBody body, int start, int end, IList<Instruction> replacement)
         {

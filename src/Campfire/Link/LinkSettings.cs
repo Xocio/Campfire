@@ -84,6 +84,13 @@ namespace Campfire.Link
             set => SetFlag("link.autolan", value);
         }
 
+        /// <summary>Whether the world the host plays is copied to a zip file when the room opens.</summary>
+        public static bool BackupWorld
+        {
+            get => GetFlag("link.backup", true);
+            set => SetFlag("link.backup", value);
+        }
+
         /// <summary>Whether an invite code on the clipboard is offered for joining.</summary>
         public static bool DetectClipboard
         {
@@ -152,8 +159,7 @@ namespace Campfire.Link
         // ======================== Privacy ========================
 
         /// <summary>
-        /// Never connect directly to other players, so they cannot learn this computer's IP address. All
-        /// traffic then goes through a relay node.
+        /// Never connect directly to other players. All traffic goes through a relay node.
         /// </summary>
         public static bool HideAddress
         {
@@ -191,6 +197,13 @@ namespace Campfire.Link
             set => AppSettings.Set("lobby.title", (value ?? "").Trim());
         }
 
+        /// <summary>The room description last used in the lobby, offered again next time.</summary>
+        public static string LobbyDescription
+        {
+            get => GetText("lobby.description");
+            set => AppSettings.Set("lobby.description", (value ?? "").Trim());
+        }
+
         /// <summary>The tags last picked for the lobby.</summary>
         public static IReadOnlyList<string> LobbyTags
         {
@@ -206,8 +219,7 @@ namespace Campfire.Link
         }
 
         /// <summary>
-        /// A random identifier used only by the lobby, so the service can keep one listing per computer. It is
-        /// unrelated to <see cref="MachineId"/> and to the statistics identifier.
+        /// A random identifier used only by the lobby. It is unrelated to <see cref="MachineId"/> and to the statistics identifier.
         /// </summary>
         public static string LobbyId
         {
@@ -293,7 +305,7 @@ namespace Campfire.Link
             }
         }
 
-        /// <summary>Replaces the identifier, so other players see this computer as a new one.</summary>
+        /// <summary>Replaces the identifier.</summary>
         public static void ResetMachineId()
         {
             _machineId = LoadOrCreateMachineId(true);

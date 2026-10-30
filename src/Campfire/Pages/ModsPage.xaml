@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:loc="clr-namespace:Campfire.Localization">
 
-    <!-- The same height as the other pages, so the window does not change size. -->
+    <!-- The same height as the other pages. -->
     <Grid Height="503">
         <DockPanel Margin="22,20,22,18">
             <Grid DockPanel.Dock="Bottom" Margin="0,18,0,0">

@@ -18,8 +18,7 @@ namespace Campfire.Worlds
     /// </summary>
     /// <remarks>
     /// A file is checked against the SHA-1 the service lists for it. CurseForge serves the same files from two
-    /// hosts, so a failed download is tried once more on the other. Downloads are kept for a week, so importing
-    /// the same map again needs no second download.
+    /// hosts; a failed download is tried once more on the other. Downloads are kept for a week.
     /// </remarks>
     internal static class MapDownloader
     {

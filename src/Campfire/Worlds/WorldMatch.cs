@@ -91,7 +91,7 @@ namespace Campfire.Worlds
                 }
             }
 
-            // A world without a data version predates 1.9, so a game that writes one is newer than it.
+            // A world without a data version predates 1.9.
             if (world.DataVersion == null && version.DataVersion != null)
                 return version.DataVersion >= WorldInfo.FlatteningDataVersion ? WorldFit.MajorUpgrade : WorldFit.Upgrade;
             return WorldFit.Unknown;

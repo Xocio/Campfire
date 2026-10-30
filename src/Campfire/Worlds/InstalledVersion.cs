@@ -22,7 +22,7 @@ namespace Campfire.Worlds
     /// <summary>How sure Campfire is about <see cref="InstalledVersion.SavesDirectory"/>.</summary>
     internal enum SavesCertainty
     {
-        /// <summary>The version has already run in its own folder, so its saves are there.</summary>
+        /// <summary>The version has already run in its own folder.</summary>
         Found,
 
         /// <summary>The launcher's per-version setting says so.</summary>

@@ -11,7 +11,7 @@ import org.objectweb.asm.tree.*;
 /**
  * Dev tool: finds the names the Campfire agent needs in an obfuscated client jar Mojang published no mappings
  * for, from the bytecode alone, and writes them as a ProGuard-style table keyed by today's official names.
- * Every lookup must match exactly one candidate; otherwise the tool stops instead of guessing.
+ * Every lookup must match exactly one candidate; otherwise the tool stops.
  *
  * args: <client.jar> <version> <client sha1> <output table>
  */

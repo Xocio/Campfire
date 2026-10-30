@@ -31,8 +31,7 @@ namespace Campfire.Controls
 
     /// <summary>
     /// A guided tour over the window. A dimmed layer leaves a hole around the element being introduced; the hole and
-    /// the card beside it are moved by springs, so each step glides, overshoots a little and settles instead of
-    /// jumping. Position and size of the hole follow slightly different curves, which makes it stretch as it travels.
+    /// the card beside it are moved by springs. Position and size of the hole follow slightly different curves.
     /// </summary>
     public partial class TourOverlay : UserControl
     {
@@ -47,7 +46,7 @@ namespace Campfire.Controls
         private static readonly IEasingFunction Overshoot = Frozen(new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.6 });
         private static readonly IEasingFunction Bounce = Frozen(new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.9 });
 
-        // The hole: position follows a firmer spring than size, so it stretches while travelling.
+        // The hole: position follows a firmer spring than size.
         private readonly Spring _holeX = new Spring(230, 24);
         private readonly Spring _holeY = new Spring(230, 24);
         private readonly Spring _holeW = new Spring(175, 19);
@@ -572,7 +571,7 @@ namespace Campfire.Controls
             return easing;
         }
 
-        /// <summary>The words of one step. Two of them alternate, so the old text can leave while the new one arrives.</summary>
+        /// <summary>The words of one step. Two of them alternate.</summary>
         private sealed class StepView : StackPanel
         {
             public readonly TextBlock Title = new TextBlock

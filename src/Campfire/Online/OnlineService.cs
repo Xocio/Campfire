@@ -77,7 +77,7 @@ namespace Campfire.Online
 
     /// <summary>
     /// The update, notice and statistics service. Only official builds know its address: it is passed to the
-    /// build as the ServiceUrl property, so builds made from the source code never contact it.
+    /// build as the ServiceUrl property.
     /// </summary>
     internal static class OnlineService
     {
@@ -207,7 +207,7 @@ namespace Campfire.Online
             return manifest;
         }
 
-        /// <summary>Reads "a.b.c" as a three-part version, so it compares equal to the assembly's own version.</summary>
+        /// <summary>Reads "a.b.c" as a three-part version.</summary>
         internal static Version ParseVersion(object value)
         {
             if (!(value is string text) || text.Length == 0)

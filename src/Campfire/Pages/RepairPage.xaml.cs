@@ -29,7 +29,7 @@ namespace Campfire.Pages
         private bool _busy;
         private bool _fixing;
 
-        // The hint text is produced on demand so it follows language changes.
+        // The hint text is produced on demand.
         private HintKind _hintKind;
         private Func<string> _hintText;
 
@@ -264,7 +264,7 @@ namespace Campfire.Pages
                 BtnFix.Content = Text.Get("Main.Fix");
         }
 
-        /// <summary>Shows a failure in the status bar and as an alert, so it cannot be missed.</summary>
+        /// <summary>Shows a failure in the status bar and as an alert.</summary>
         private void ReportError(string titleKey, Func<string> text)
         {
             ShowHint(HintKind.Error, text);

@@ -308,7 +308,7 @@ namespace Campfire
 
         /// <summary>
         /// Puts the menu next to the pointer: above it when the taskbar is at the bottom, below it otherwise, and
-        /// always inside the work area. Works in physical pixels, since the screen may differ in scale.
+        /// always inside the work area. Works in physical pixels.
         /// </summary>
         private void Place()
         {

@@ -9,7 +9,7 @@ namespace Campfire.Worlds
 {
     internal enum GameFolderSource
     {
-        /// <summary>%AppData%\.minecraft, which most launchers use unless told otherwise.</summary>
+        /// <summary>%AppData%\.minecraft.</summary>
         Default,
 
         /// <summary>The .minecraft folder next to a launcher.</summary>
@@ -39,8 +39,7 @@ namespace Campfire.Worlds
     }
 
     /// <summary>
-    /// Finds the .minecraft folders on this computer while no game is running, so a map can be imported before
-    /// the game starts.
+    /// Finds the .minecraft folders on this computer while no game is running.
     /// </summary>
     internal static class GameFolders
     {

@@ -19,8 +19,7 @@ namespace Campfire
         /// </summary>
         public static void Open(string url)
         {
-            // A browser that is already running opens the page in its existing window. Without this permission
-            // Windows keeps that window behind Campfire, so the click looks as if nothing happened.
+            // Lets the browser bring its window to the front.
             AllowSetForegroundWindow(AnyProcess);
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
         }

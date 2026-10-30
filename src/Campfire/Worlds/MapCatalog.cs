@@ -53,7 +53,7 @@ namespace Campfire.Worlds
 
         public string Website { get; set; }
 
-        /// <summary>Whether the author lets other programs download the files; otherwise only the website can.</summary>
+        /// <summary>Whether the author lets other programs download the files.</summary>
         public bool Distribution { get; set; }
     }
 

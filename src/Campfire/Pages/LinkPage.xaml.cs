@@ -42,6 +42,8 @@ namespace Campfire.Pages
         private LinkStage _lastStage;
         private string _playersSignature;
         private bool _enteringCode;
+        private bool _open;
+        private bool _preparing;
         private bool? _hasIPv6;
 
         /// <summary>Tags offered when listing a room, as the service accepts them by default.</summary>
@@ -60,7 +62,7 @@ namespace Campfire.Pages
         private byte[] _lobbyIcon;
         private byte[] _mapIcon;
 
-        /// <summary>The lobby room being joined, so a room that cannot be reached is reported once.</summary>
+        /// <summary>The lobby room being joined, and the rooms already reported.</summary>
         private string _lobbyRoomId;
         private readonly HashSet<string> _reportedRooms = new HashSet<string>();
 
@@ -68,6 +70,9 @@ namespace Campfire.Pages
         private LinkRole _lastRole;
         private RoomCode _lastCode;
         private int? _lastManualPort;
+
+        /// <summary>The invite code of an earlier room that the current room runs with again, if any.</summary>
+        private RoomCode _lastHostCode;
 
         // Comparing the host's mods with this computer's, as a guest.
         private Campfire.Mods.ModCheck _modCheck;
@@ -83,13 +88,14 @@ namespace Campfire.Pages
 
             _session = new LinkSession(new DispatcherSynchronizationContext(Dispatcher));
             _session.Changed += (sender, e) => Render();
-            // Player rows carry their colors, so they are rebuilt with a new theme.
+            // Player rows are rebuilt with a new theme.
             Themes.ThemeManager.Changed += (sender, e) =>
             {
                 _playersSignature = null;
                 Render();
             };
-            _shownPanel = PanSelect;
+            _shownPanel = PanJoin;
+            RoomHistory.Changed += (sender, e) => Dispatcher.BeginInvoke(new Action(Render));
 
             _feedbackTimer = new DispatcherTimer { Interval = CopiedFeedback };
             _feedbackTimer.Tick += (sender, e) =>
@@ -98,19 +104,22 @@ namespace Campfire.Pages
                 Render();
             };
 
-            TxtPlayerName.Text = LinkSettings.PlayerName;
-
             Text.LanguageChanged += OnLanguageChanged;
             Loaded += OnFirstLoaded;
-            IsVisibleChanged += OnVisibleChanged;
             Render();
         }
 
         /// <summary>Raised whenever the room changes, for status shown outside this page.</summary>
         public event EventHandler StatusChanged;
 
-        /// <summary>Raised when the user asks for the full settings.</summary>
-        public event EventHandler SettingsRequested;
+        /// <summary>
+        /// Raised when the page has nothing left to show: the room ended, or the user left the invite code entry.
+        /// The window then goes back to where the page was opened from.
+        /// </summary>
+        public event EventHandler Left;
+
+        /// <summary>Raised when the user asks for the connection diagnostics.</summary>
+        public event EventHandler DiagnosticsRequested;
 
         /// <summary>Raised when the user wants to browse the public lobby.</summary>
         public event EventHandler LobbyRequested;
@@ -134,7 +143,7 @@ namespace Campfire.Pages
 
         internal RoomCode Code => _session.Code;
 
-        /// <summary>Whether the room has other players who would be disconnected.</summary>
+        /// <summary>Whether the room has other players.</summary>
         public bool HasOtherPlayers => _session.Stage == LinkStage.Ready && _session.Players.Count > 1;
 
         internal IReadOnlyList<PlayerProfile> Players => _session.Players;
@@ -195,26 +204,99 @@ namespace Campfire.Pages
             return TryCopy(AddressText());
         }
 
-        /// <summary>Joins <paramref name="code"/> right away, unless a room is already active.</summary>
-        /// <param name="lobbyRoomId">The lobby room the code came from, or <c>null</c>.</param>
-        internal async void JoinWithCode(RoomCode code, string lobbyRoomId = null)
+        // ======================== Entry ========================
+        // The window opens this page once one of these returns true.
+
+        /// <summary>
+        /// Starts opening a room, reusing the invite code of an earlier one when <paramref name="code"/> is given.
+        /// Returns whether the page has something to show: the new room, or the one already active.
+        /// </summary>
+        internal async Task<bool> CreateAsync(RoomCode code = null)
+        {
+            if (_session.IsActive)
+                return true;
+            if (_preparing || !await PrepareAsync())
+                return false;
+            _enteringCode = false;
+            _lastRole = LinkRole.Host;
+            _lastManualPort = null;
+            _lastHostCode = code;
+            ResetManualPort();
+            _session.StartHost(null, code);
+            return true;
+        }
+
+        /// <summary>Shows the invite code entry, or the room already active.</summary>
+        internal void ShowJoin()
         {
             if (_session.IsActive)
                 return;
+            _enteringCode = true;
+
+            // A code copied from a chat is filled in right away.
+            if (LinkSettings.DetectClipboard)
+            {
+                var copied = RoomCode.Find(TryReadClipboard());
+                if (copied != null && RoomCode.Find(TxtCode.Text)?.Code != copied.Code)
+                    TxtCode.Text = copied.Code;
+            }
+
+            Render();
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                TxtCode.Focus();
+                TxtCode.CaretIndex = TxtCode.Text.Length;
+            }), DispatcherPriority.Input);
+        }
+
+        /// <summary>Joins <paramref name="code"/> right away. Returns whether the page has something to show.</summary>
+        /// <param name="lobbyRoomId">The lobby room the code came from, or <c>null</c>.</param>
+        internal async Task<bool> JoinAsync(RoomCode code, string lobbyRoomId = null)
+        {
+            if (_session.IsActive)
+                return true;
+            if (_preparing || !await PrepareAsync())
+                return false;
             TxtCode.Text = code.Code;
             _lobbyRoomId = lobbyRoomId;
-            await StartJoinAsync(code);
+            StartJoin(code);
+            return true;
+        }
+
+        /// <summary>The page was closed by the user; a half-typed invite code is not kept open.</summary>
+        internal void Dismiss()
+        {
+            if (_session.Stage == LinkStage.Idle)
+                _enteringCode = false;
+            _open = _session.Stage != LinkStage.Idle || _enteringCode;
+        }
+
+        /// <summary>The questions asked before entering any room. Returns whether to go on.</summary>
+        private async Task<bool> PrepareAsync()
+        {
+            _preparing = true;
+            try
+            {
+                return await RequirePlayerNameAsync() && await CheckGameNameAsync();
+            }
+            finally
+            {
+                _preparing = false;
+            }
         }
 
         /// <summary>Reloads values that may have been changed on the settings page.</summary>
         internal void ReloadSettings()
         {
-            TxtPlayerName.Text = LinkSettings.PlayerName;
-            UpdatePlaceholders();
-            UpdateSelfHead();
-            UpdateNetworkLabel();
+            WarmUpNameCheck();
             _playersSignature = null;
             Render();
+        }
+
+        /// <summary>Checks the player name in the background.</summary>
+        private static void WarmUpNameCheck()
+        {
+            _ = LobbyClient.IsNameAllowedAsync(LinkSettings.PlayerName);
         }
 
         /// <summary>Ends the room immediately; called when Campfire exits.</summary>
@@ -233,7 +315,9 @@ namespace Campfire.Pages
             switch (_session.Stage)
             {
                 case LinkStage.Idle:
-                    panel = _enteringCode ? PanJoin : PanSelect;
+                    // Without a room the page keeps its last look while the window leaves it.
+                    if (_enteringCode)
+                        panel = PanJoin;
                     break;
                 case LinkStage.Working:
                     RenderWorking();
@@ -268,6 +352,11 @@ namespace Campfire.Pages
             _lastStage = _session.Stage;
             ShowPanel(panel);
             StatusChanged?.Invoke(this, EventArgs.Empty);
+
+            bool wasOpen = _open;
+            _open = _session.Stage != LinkStage.Idle || _enteringCode;
+            if (wasOpen && !_open)
+                Left?.Invoke(this, EventArgs.Empty);
         }
 
         private void RenderWorking()
@@ -350,11 +439,66 @@ namespace Campfire.Pages
             LabHostLinks.Text = ConnectionsText;
             LabHostNat.Text = LocalNatText;
             Motion.Show(HintHostNodes, _session.ConnectedNodes == 0);
+            RenderBackup();
+            RenderFavorite();
             RenderLobby();
             RenderModSync();
 
             CardHostPlayers.Header = Text.Format("Link.Players", _session.Players.Count);
             RenderPlayers(ListHostPlayers);
+        }
+
+        /// <summary>The history entry of the room that is open now; it exists once the room is ready.</summary>
+        private RoomRecord CurrentRecord()
+        {
+            string code = _session.Code?.Code;
+            bool host = _session.Role == LinkRole.Host;
+            return code == null ? null : RoomHistory.GetAll().FirstOrDefault(r => r.Code == code && r.IsHost == host);
+        }
+
+        private void RenderFavorite()
+        {
+            var record = CurrentRecord();
+            var button = _session.Role == LinkRole.Host ? BtnFavoriteHost : BtnFavoriteGuest;
+            button.IsEnabled = record != null;
+            button.Content = Text.Get(record != null && record.IsFavorite ? "Recent.Favorited" : "Recent.FavoriteRoom");
+            button.Style = (Style)FindResource(record != null && record.IsFavorite ? "PclButtonHighlight" : "PclButton");
+        }
+
+        private void BtnFavorite_Click(object sender, RoutedEventArgs e)
+        {
+            var record = CurrentRecord();
+            if (record != null)
+                RoomHistory.SetFavorite(record, !record.IsFavorite);
+        }
+
+        private void RenderBackup()
+        {
+            var backup = _session.Backup;
+            bool shown = backup.State == BackupState.Working || backup.State == BackupState.Done || backup.State == BackupState.Failed;
+            PanBackup.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+            if (!shown)
+                return;
+            LabBackup.Text = backup.State == BackupState.Working ? Text.Get("Backup.Working")
+                : backup.State == BackupState.Done ? Text.Format("Backup.Done", backup.WorldName)
+                : Text.Get("Backup.Failed");
+            BtnOpenBackup.Visibility = backup.State == BackupState.Done ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private async void BtnOpenBackup_Click(object sender, RoutedEventArgs e)
+        {
+            string path = _session.Backup.Path;
+            try
+            {
+                if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path))
+                    System.Diagnostics.Process.Start("explorer.exe", "/select,\"" + path + "\"");
+                else
+                    System.Diagnostics.Process.Start("explorer.exe", "\"" + WorldBackup.Directory + "\"");
+            }
+            catch (Exception ex) when (ex is System.IO.IOException || ex is System.ComponentModel.Win32Exception)
+            {
+                await Dialogs.Of(this).ErrorAsync(Text.Get("Backup.Open"), Text.Format("Settings.ActionFailed", ex.Message));
+            }
         }
 
         private void RenderGuest()
@@ -369,6 +513,7 @@ namespace Campfire.Pages
 
             CardGuestPlayers.Header = Text.Format("Link.Players", _session.Players.Count);
             RenderPlayers(ListGuestPlayers);
+            RenderFavorite();
             RenderMods();
         }
 
@@ -399,7 +544,7 @@ namespace Campfire.Pages
             BtnMods.ToolTip = check.Version == null ? Text.Get("Mods.State.NoVersion")
                 : check.Comparison.IsMatch ? Text.Get("Mods.State.Match")
                 : Text.Format("Mods.State.Differs", check.Comparison.Changes.Count);
-            // Syncing is the step to take while the mods differ, so it stands out like the lobby button does.
+            // The button is highlighted while the mods differ.
             BtnMods.Style = (Style)FindResource(differs ? "PclButtonHighlight" : "PclButton");
             BtnMods.FontWeight = differs ? FontWeights.Bold : FontWeights.Normal;
         }
@@ -438,7 +583,7 @@ namespace Campfire.Pages
             Render();
         }
 
-        /// <summary>Takes the comparison made on the sync page, so both pages agree.</summary>
+        /// <summary>Takes the comparison made on the sync page.</summary>
         internal void SetModCheck(Campfire.Mods.ModCheck check)
         {
             if (check == null || check.Host != _session.HostMods)
@@ -504,7 +649,6 @@ namespace Campfire.Pages
                     {
                         _playersSignature = null;
                         Render();
-                        UpdateSelfHead();
                     }));
             }, TaskScheduler.Default);
         }
@@ -514,18 +658,18 @@ namespace Campfire.Pages
             if (panel == _shownPanel)
                 return;
 
-            // Moving on through the steps slides forward; going back to the start slides back.
+            // Moving on through the steps slides forward; going back slides back. Out of sight, the part changes at once.
             int direction = Math.Sign(PanelOrder(panel) - PanelOrder(_shownPanel));
-            Motion.Swap((FrameworkElement)_shownPanel, (FrameworkElement)panel, direction == 0 ? 1 : direction);
+            Motion.Swap((FrameworkElement)_shownPanel, (FrameworkElement)panel, direction == 0 ? 1 : direction, IsVisible);
             _shownPanel = panel;
         }
 
         private int PanelOrder(UIElement panel)
         {
-            return panel == PanSelect ? 0 : panel == PanJoin ? 1 : panel == PanWorking ? 2 : panel == PanPublish ? 4 : 3;
+            return panel == PanJoin ? 0 : panel == PanWorking ? 1 : panel == PanPublish ? 3 : 2;
         }
 
-        /// <summary>Shows why the room failed, with the choice to try again.</summary>
+        /// <summary>Shows the failure, with the choice to try again.</summary>
         private async void ShowFailure()
         {
             var host = Dialogs.Of(this);
@@ -533,11 +677,14 @@ namespace Campfire.Pages
             if (host == null || error == null)
                 return;
 
-            // A lobby room nobody can reach is reported, so it leaves the lobby once several players fail.
+            // A lobby room nobody can reach is reported.
             if (_session.Role == LinkRole.Guest && _lobbyRoomId != null && _reportedRooms.Add(_lobbyRoomId)
                 && (error.TextKey == "Link.Error.RoomNotFound" || error.TextKey == "Link.Error.HostNoAnswer"))
                 _ = ReportUnreachableAsync(_lobbyRoomId);
 
+            // When nobody answered in time, the diagnostics take the place of the log link.
+            bool timedOut = error.TextKey == "Link.Error.RoomNotFound" || error.TextKey == "Link.Error.NoNodes"
+                            || error.TextKey == "Link.Error.NoDirectPath" || error.TextKey == "Link.Error.HostNoAnswer";
             string adviceKey = error.TextKey + ".Advice";
             var choice = await host.ShowDialogAsync(new DialogRequest
             {
@@ -546,8 +693,9 @@ namespace Campfire.Pages
                 Detail = Text.Has(adviceKey) ? Text.Get(adviceKey) : null,
                 PrimaryText = Text.Get("Link.Retry"),
                 SecondaryText = Text.Get("Dialog.Close"),
-                LinkText = Text.Get("Link.OpenLog"),
-                LinkAction = OpenLog,
+                LinkText = Text.Get(timedOut ? "Link.OpenDiagnostics" : "Link.OpenLog"),
+                LinkAction = timedOut ? null : (Action)OpenLog,
+                LinkCloses = timedOut,
                 IsError = true,
             });
 
@@ -555,80 +703,69 @@ namespace Campfire.Pages
             if (_session.Stage != LinkStage.Failed)
                 return;
             if (choice == DialogChoice.Primary)
-                Retry();
-            else
-                ReturnToStart();
-        }
-
-        // ======================== Choose ========================
-
-        /// <summary>Starts opening a room, as the "Create room" tile does; ignored while a room is active.</summary>
-        internal void StartCreate()
-        {
-            if (!IsRoomActive)
-                BtnCreate_Click(this, new RoutedEventArgs());
-        }
-
-        /// <summary>Shows the invite code entry, as the "Join room" tile does; ignored while a room is active.</summary>
-        internal void StartJoin()
-        {
-            if (!IsRoomActive)
-                BtnJoin_Click(this, new RoutedEventArgs());
-        }
-
-        private async void BtnCreate_Click(object sender, RoutedEventArgs e)
-        {
-            SaveSettings();
-            if (!await CheckGameNameAsync())
-                return;
-            _lastRole = LinkRole.Host;
-            _lastManualPort = null;
-            ResetManualPort();
-            _session.StartHost(null);
-        }
-
-        private void BtnJoin_Click(object sender, RoutedEventArgs e)
-        {
-            SaveSettings();
-            _enteringCode = true;
-
-            // A code copied from a chat is filled in right away.
-            if (LinkSettings.DetectClipboard)
             {
-                var copied = RoomCode.Find(TryReadClipboard());
-                if (copied != null && RoomCode.Find(TxtCode.Text)?.Code != copied.Code)
-                    TxtCode.Text = copied.Code;
+                Retry();
+            }
+            else
+            {
+                ReturnToStart();
+                if (choice == DialogChoice.Link)
+                    DiagnosticsRequested?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        // ======================== Checks ========================
+
+        /// <summary>Asks the user to type a player name before entering a room. Returns whether one is set.</summary>
+        private async Task<bool> RequirePlayerNameAsync()
+        {
+            string current = LinkSettings.PlayerName;
+            string message = Text.Get("Link.NameRequired");
+            bool problem = false;
+            if (current.Length > 0)
+            {
+                if (await LobbyClient.IsNameAllowedAsync(current))
+                    return true;
+                message = Text.Format("Link.NameBlocked", current);
+                problem = true;
             }
 
-            Render();
-            Dispatcher.BeginInvoke(new Action(() =>
+            var host = Dialogs.Of(this);
+            if (host == null)
+                return false;
+
+            // Asked again until an allowed name is typed or the user gives up.
+            while (true)
             {
-                TxtCode.Focus();
-                TxtCode.CaretIndex = TxtCode.Text.Length;
-            }), DispatcherPriority.Input);
-        }
+                var request = new DialogRequest
+                {
+                    Title = Text.Get("Link.NameRequiredTitle"),
+                    Message = message,
+                    IsError = problem,
+                    InputHint = Text.Get("Link.PlayerName"),
+                    InputMaxLength = 16,
+                    PrimaryText = Text.Get("Dialog.OK"),
+                    SecondaryText = Text.Get("Dialog.Cancel"),
+                };
+                if (await host.ShowDialogAsync(request) != DialogChoice.Primary)
+                    return false;
 
-        private void BtnMoreSettings_Click(object sender, RoutedEventArgs e)
-        {
-            SaveSettings();
-            SettingsRequested?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void Settings_LostFocus(object sender, KeyboardFocusChangedEventArgs e)
-        {
-            SaveSettings();
-        }
-
-        private void SaveSettings()
-        {
-            if (LinkSettings.PlayerName != TxtPlayerName.Text.Trim())
-                LinkSettings.PlayerName = TxtPlayerName.Text;
-            UpdatePlaceholders();
+                string name = (request.InputText ?? "").Trim();
+                if (name.Length == 0)
+                    continue;
+                if (!await LobbyClient.IsNameAllowedAsync(name))
+                {
+                    message = Text.Format("Link.NameBlocked", name);
+                    problem = true;
+                    continue;
+                }
+                LinkSettings.PlayerName = name;
+                return true;
+            }
         }
 
         /// <summary>
-        /// Warns when the running game uses a player name Minecraft rejects, which makes every world fail with
-        /// "Connection lost". Returns whether to go on.
+        /// Warns when the running game uses a player name Minecraft rejects. Returns whether to go on.
         /// </summary>
         private async Task<bool> CheckGameNameAsync()
         {
@@ -677,15 +814,14 @@ namespace Campfire.Pages
                 TxtCode.Focus();
                 return;
             }
+            if (_preparing || !await PrepareAsync())
+                return;
             _lobbyRoomId = null;
-            await StartJoinAsync(code);
+            StartJoin(code);
         }
 
-        private async Task StartJoinAsync(RoomCode code)
+        private void StartJoin(RoomCode code)
         {
-            SaveSettings();
-            if (!await CheckGameNameAsync())
-                return;
             _enteringCode = false;
             _lastRole = LinkRole.Guest;
             _lastCode = code;
@@ -740,7 +876,7 @@ namespace Campfire.Pages
             }
 
             _lastManualPort = port;
-            _session.StartHost(port);
+            _session.StartHost(port, _lastHostCode);
         }
 
         private void ResetManualPort()
@@ -805,7 +941,7 @@ namespace Campfire.Pages
             if (_lastRole == LinkRole.Host)
             {
                 ResetManualPort();
-                _session.StartHost(_lastManualPort);
+                _session.StartHost(_lastManualPort, _lastHostCode);
             }
             else if (_lastCode != null)
             {
@@ -864,7 +1000,7 @@ namespace Campfire.Pages
             if (brush != null)
                 DotLobby.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, brush);
 
-            // Listing is the step to take, so it stands out; taking it down is an ordinary button.
+            // The listing button is highlighted; taking it down is an ordinary button.
             bool listed = lobby != null && lobby.State != LobbyState.Stopped;
             BtnLobby.Content = Text.Get(listed ? "Lobby.Unpublish" : "Lobby.Publish");
             BtnLobby.Style = (Style)FindResource(listed ? "PclButton" : "PclButtonHighlight");
@@ -888,7 +1024,8 @@ namespace Campfire.Pages
             _publishOpen = true;
             string title = LinkSettings.LobbyTitle;
             TxtLobbyTitle.Text = title.Length > 0 ? title : Text.Format("Lobby.DefaultTitle", LinkSettings.EffectivePlayerName);
-            // A password is for this room only, so it is never kept for the next one.
+            // The password is not kept.
+            TxtLobbyDescription.Text = LinkSettings.LobbyDescription;
             TxtLobbyPassword.Text = "";
             _lobbyIcon = null;
             _mapIcon = null;
@@ -1062,10 +1199,12 @@ namespace Campfire.Pages
                 Tags = tags,
                 MaxPlayers = status?.MaxPlayers ?? 0,
                 ShowRegion = ChkLobbyRegion.IsChecked == true,
+                Description = TxtLobbyDescription.Text.Trim(),
                 Password = TxtLobbyPassword.Text.Trim(),
                 Icon = _lobbyIcon,
             };
             LinkSettings.LobbyTitle = title;
+            LinkSettings.LobbyDescription = listing.Description;
             LinkSettings.LobbyTags = tags;
             LinkSettings.LobbyShowRegion = listing.ShowRegion;
 
@@ -1087,8 +1226,9 @@ namespace Campfire.Pages
                 await dialogs.ErrorAsync(Text.Get("Lobby.PublishFailedTitle"), LobbyText.Problem(ex));
                 if (ex.Kind == LobbyError.Blocked && _publishOpen)
                 {
-                    TxtLobbyTitle.Focus();
-                    TxtLobbyTitle.SelectAll();
+                    var box = ex.Field == "description" ? TxtLobbyDescription : TxtLobbyTitle;
+                    box.Focus();
+                    box.SelectAll();
                 }
             }
             finally
@@ -1126,46 +1266,13 @@ namespace Campfire.Pages
         private async void OnFirstLoaded(object sender, RoutedEventArgs e)
         {
             Loaded -= OnFirstLoaded;
-            UpdatePlaceholders();
             BtnGoLobby.Visibility = LobbyClient.IsAvailable ? Visibility.Visible : Visibility.Collapsed;
-
+            WarmUpNameCheck();
             if (!EasyTierPackage.IsSupportedSystem)
-            {
-                BtnCreate.IsEnabled = false;
-                BtnJoin.IsEnabled = false;
-                UpdateNetworkLabel();
                 return;
-            }
 
             _hasIPv6 = await Task.Run(() => NetworkCheck.HasPublicIPv6());
-            UpdateNetworkLabel();
             Render();
-        }
-
-        /// <summary>Each time the page is shown, picks up the name and skin of a game started meanwhile.</summary>
-        private async void OnVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
-        {
-            if (!IsVisible)
-                return;
-            var account = await GameAccount.RefreshAsync();
-            UpdatePlaceholders();
-            UpdateSelfHead();
-            UpdateNetworkLabel();
-            if (LinkSettings.ShowSkins && account != null && account.IsPremium)
-                RequestHead(account.Uuid);
-        }
-
-        /// <summary>Shows the skin face inside the name box when the running game uses a premium account.</summary>
-        private void UpdateSelfHead()
-        {
-            var account = GameAccount.Current;
-            var head = LinkSettings.ShowSkins && account != null && account.IsPremium ? PlayerHeads.TryGetCached(account.Uuid) : null;
-            ImgSelfHead.Source = head;
-            ImgSelfHead.Visibility = head == null ? Visibility.Collapsed : Visibility.Visible;
-            if (head == null)
-                TxtPlayerName.ClearValue(PaddingProperty);
-            else
-                TxtPlayerName.Padding = new Thickness(32, 0, 8, 0);
         }
 
         private void OnLanguageChanged(object sender, EventArgs e)
@@ -1178,51 +1285,8 @@ namespace Campfire.Pages
                 SetPublishing(_publishing);
             }
             _playersSignature = null;
-            UpdatePlaceholders();
-            UpdateNetworkLabel();
             UpdateCodeState();
             Render();
-        }
-
-        private void UpdatePlaceholders()
-        {
-            string game = GameAccount.Current?.Name;
-            TxtPlayerName.Tag = string.IsNullOrEmpty(game)
-                ? Text.Format("Link.PlayerNamePlaceholder", LinkSettings.FallbackPlayerName)
-                : Text.Format("Link.PlayerNameFromGame", game);
-        }
-
-        private void UpdateNetworkLabel()
-        {
-            string key;
-            string brush;
-            if (!EasyTierPackage.IsSupportedSystem)
-            {
-                key = "Link.SystemTooOld";
-                brush = "BrushRed";
-            }
-            else if (LinkSettings.HideAddress)
-            {
-                key = "Link.NetworkHidden";
-                brush = "Brush3";
-            }
-            else if (_hasIPv6 == null)
-            {
-                key = "Link.NetworkChecking";
-                brush = "BrushGray5";
-            }
-            else if (_hasIPv6 == true)
-            {
-                key = "Link.NetworkIPv6";
-                brush = "BrushGreen";
-            }
-            else
-            {
-                key = "Link.NetworkNoIPv6";
-                brush = "BrushGray5";
-            }
-            LabNetwork.Text = Text.Get(key);
-            DotNetwork.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, brush);
         }
 
         private string NatText(NatKind nat)

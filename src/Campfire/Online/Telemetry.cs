@@ -18,8 +18,7 @@ namespace Campfire.Online
     /// Anonymous usage statistics, sent at most once a day and only after the user agreed.
     /// </summary>
     /// <remarks>
-    /// The statistics id is a random number of its own. It is deliberately not the machine id that multiplayer
-    /// shares with other players, so statistics can never be matched to a player in a room.
+    /// The statistics id is a random number of its own, not the machine id that multiplayer shares with other players.
     /// </remarks>
     internal static class Telemetry
     {
@@ -72,7 +71,7 @@ namespace Campfire.Online
             return counts;
         }
 
-        /// <summary>Replaces the statistics id, so earlier reports can no longer be linked to this computer.</summary>
+        /// <summary>Replaces the statistics id.</summary>
         public static void ResetId()
         {
             lock (Sync)

@@ -49,7 +49,7 @@ namespace Campfire.Mods
             const uint m = 0x5bd1e995;
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1 << 16))
             {
-                // The hash starts from the length of what it covers, so the file is read twice.
+                // The hash starts from the length of what it covers; the file is read twice.
                 uint length = 0;
                 var buffer = new byte[1 << 16];
                 int read;

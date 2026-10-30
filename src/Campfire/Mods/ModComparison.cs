@@ -51,7 +51,7 @@ namespace Campfire.Mods
         /// <summary>Missing mods first, then different versions, then extra ones, each by name.</summary>
         public IReadOnlyList<ModChange> Changes { get; }
 
-        /// <summary>How many mods on either side were left out because only one side needs them.</summary>
+        /// <summary>How many mods on either side were left out; only one side needs them.</summary>
         public int Ignored { get; }
 
         public bool IsMatch => Changes.Count == 0;

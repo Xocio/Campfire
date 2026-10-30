@@ -94,7 +94,7 @@ namespace Campfire.Pages
 
         // ======================== Loading ========================
 
-        /// <summary>Loads the list the first time the tab is shown, so starting Campfire asks the service nothing.</summary>
+        /// <summary>Loads the list the first time the tab is shown.</summary>
         private void Start()
         {
             if (_started)

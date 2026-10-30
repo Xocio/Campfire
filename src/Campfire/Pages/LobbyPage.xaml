@@ -4,7 +4,7 @@
              xmlns:loc="clr-namespace:Campfire.Localization">
 
     <UserControl.Resources>
-        <!-- The list always keeps room for its scroll bar, so the cards line up whether it scrolls or not. -->
+        <!-- The list always keeps room for its scroll bar. -->
         <Style TargetType="ScrollBar" BasedOn="{StaticResource {x:Type ScrollBar}}">
             <Style.Triggers>
                 <Trigger Property="IsEnabled" Value="False">

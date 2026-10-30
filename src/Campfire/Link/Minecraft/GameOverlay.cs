@@ -52,7 +52,7 @@ namespace Campfire.Link.Minecraft
     /// </summary>
     internal static class GameMessage
     {
-        /// <summary>Kept in Latin letters and without a scheme so it fits the game's fonts and is easy to read.</summary>
+        /// <summary>The website shown in the game, in Latin letters and without a scheme.</summary>
         public const string Website = "McCampfire.top";
 
         /// <summary>Three lines in the chat box: the room, the host and the live numbers, then the website.</summary>

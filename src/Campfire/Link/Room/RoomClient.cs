@@ -160,7 +160,7 @@ namespace Campfire.Link.Room
             await _lock.WaitAsync(cancellation).ConfigureAwait(false);
             try
             {
-                // Socket reads ignore tokens on .NET Framework, so closing the socket is what ends a stuck request.
+                // Closing the socket ends a stuck request.
                 using (var expiry = CancellationTokenSource.CreateLinkedTokenSource(cancellation))
                 using (expiry.Token.Register(_client.Close))
                 {

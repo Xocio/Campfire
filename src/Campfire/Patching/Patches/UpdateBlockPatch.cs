@@ -22,7 +22,7 @@ namespace Campfire.Patching.Patches
         private const string MethodName = "UpdateStart";
         private const int HintTypeBlue = 0;
 
-        /// <summary>Shown inside PCL, whose interface is Chinese, so it is not localized.</summary>
+        /// <summary>Shown inside PCL; not localized.</summary>
         internal const string Message = "Campfire 已停用启动器自动更新。如需更新，请手动下载新版本后重新运行 Campfire。";
 
         /// <summary>Notices from earlier builds; launchers carrying one count as repaired.</summary>

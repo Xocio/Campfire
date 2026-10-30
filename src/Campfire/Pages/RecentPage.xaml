@@ -1,0 +1,68 @@
+<UserControl x:Class="Campfire.Pages.RecentPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Campfire.Localization">
+
+    <UserControl.Resources>
+        <!-- A round button with only a symbol, for the actions on a room. -->
+        <Style x:Key="RoomIconButton" TargetType="Button">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Background="Transparent">
+                            <Border x:Name="PanHover" Background="{DynamicResource Brush7}" CornerRadius="15" Opacity="0" />
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard Storyboard="{StaticResource HoverIn}" />
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard Storyboard="{StaticResource HoverOut}" />
+                                </Trigger.ExitActions>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush1}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Resources>
+
+    <!-- The scroll area reaches past the page margin so shadows are not cut off. -->
+    <ScrollViewer Margin="12,12,12,10" Height="481" VerticalScrollBarVisibility="Auto" Focusable="False">
+        <StackPanel Margin="10,8,10,8">
+
+            <StackPanel Orientation="Horizontal" Margin="2,0,0,10">
+                <TextBlock Style="{StaticResource SectionTitle}" Text="{loc:Text Recent.Favorites}" />
+                <TextBlock x:Name="LabFavoriteCount" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="12"
+                           Foreground="{DynamicResource BrushGray4}" />
+            </StackPanel>
+            <StackPanel x:Name="PanFavorites" />
+
+            <Grid Margin="2,24,0,10">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource SectionTitle}" Text="{loc:Text Recent.Recent}" />
+                    <TextBlock x:Name="LabRecentCount" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="12"
+                               Foreground="{DynamicResource BrushGray4}" />
+                </StackPanel>
+                <Button x:Name="BtnClear" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12"
+                        Style="{StaticResource PclTextButton}" Content="{loc:Text Recent.Clear}" Click="BtnClear_Click" />
+            </Grid>
+            <StackPanel x:Name="PanRecent" />
+
+            <TextBlock Margin="2,20,0,0" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource BrushGray4}"
+                       Text="{loc:Text Recent.Note}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

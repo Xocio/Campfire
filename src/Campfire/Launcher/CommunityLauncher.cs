@@ -11,8 +11,7 @@ namespace Campfire.Launcher
     /// </summary>
     /// <remarks>
     /// The community edition keeps its download code; version 2.15.1 gates it behind a region check
-    /// in the bundled <c>PCL.Core</c> assembly. The fix rewrites that method body in place, so the
-    /// file keeps its size and layout.
+    /// in the bundled <c>PCL.Core</c> assembly. The fix rewrites that method body in place.
     /// </remarks>
     internal static class CommunityLauncher
     {
@@ -69,7 +68,7 @@ namespace Campfire.Launcher
                 patched = ApplyRegionPatch(data, image, patch);
             }
 
-            // Re-read the patched bytes before touching the file, so a failed patch never replaces the launcher.
+            // Inspects the patched bytes before the file is replaced.
             LauncherReport verified;
             if (!TryInspect(path, patched, out verified) || verified.Status != LauncherStatus.Patched)
                 throw new LauncherException("Fix.VerifyFailed");
@@ -91,10 +90,7 @@ namespace Campfire.Launcher
             var patched = (byte[])data.Clone();
             int bodySize = body.HeaderSize + body.CodeSize;
 
-            // Rewrite the body as a tiny header + "ldc.i4.0; ret". The original fat header declared
-            // locals that the new code no longer uses, and the runtime rejects that mismatch, so the
-            // header has to shrink as well. The bytes left over from the old body stay as padding and
-            // are no longer part of any method; every other metadata offset is unaffected.
+            // The body becomes a tiny header + "ldc.i4.0; ret". The bytes left over from the old body stay as padding.
             patched[bodyOffset] = (byte)((il.Length << 2) | 0x02);
             Buffer.BlockCopy(il, 0, patched, bodyOffset + 1, il.Length);
             for (int i = 1 + il.Length; i < bodySize; i++)
@@ -134,7 +130,7 @@ namespace Campfire.Launcher
                     messageKey = "Inspect.CommunityBlocked";
                     break;
                 default:
-                    // Releases before 2.15.1 never added the region gate, so their downloads already work.
+                    // Releases before 2.15.1 have no region gate.
                     bool hasRegionGate = image.Module.Find("PCL.Core.App.Region.RegionAssessment", false) != null;
                     status = hasRegionGate ? LauncherStatus.Unsupported : LauncherStatus.NotBlocked;
                     messageKey = hasRegionGate ? "Inspect.Unsupported" : "Inspect.NotBlocked";

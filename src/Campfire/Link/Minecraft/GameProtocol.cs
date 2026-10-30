@@ -340,7 +340,7 @@ namespace Campfire.Link.Minecraft
 
         /// <summary>
         /// NBT strings are an unsigned 16-bit length followed by modified UTF-8, which encodes each UTF-16 unit on
-        /// its own, so an emoji becomes two three-byte sequences, and writes the null character as two bytes.
+        /// its own and writes the null character as two bytes.
         /// </summary>
         private static void WriteNbtName(Stream stream, string value)
         {

@@ -17,9 +17,7 @@ namespace Campfire
     /// <see cref="TrayMenu"/> draws.
     /// </summary>
     /// <remarks>
-    /// Explorer may refuse an icon while it is busy, forgets every icon when it restarts, and has been seen to drop
-    /// one for no clear reason. While the icon should be shown it is therefore checked every few seconds and added
-    /// again whenever it is missing.
+    /// While the icon should be shown it is checked every few seconds and added again whenever it is missing.
     /// </remarks>
     internal sealed class TrayIcon : IDisposable
     {

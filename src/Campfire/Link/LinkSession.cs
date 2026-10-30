@@ -98,7 +98,7 @@ namespace Campfire.Link
         /// <summary>Guest: local port forwarded to the host's room service.</summary>
         private int _serviceLocalPort;
 
-        /// <summary>Guest: the host answers mod list requests, so the list is checked again now and then.</summary>
+        /// <summary>Guest: whether the host answers mod list requests.</summary>
         private bool _hostSharesMods;
 
         /// <param name="ui">Context of the UI thread; background events are posted to it.</param>
@@ -113,7 +113,7 @@ namespace Campfire.Link
 
         public LinkStage Stage { get; private set; }
 
-        /// <summary>Whether a room is being set up or is open; closing Campfire would end it.</summary>
+        /// <summary>Whether a room is being set up or is open.</summary>
         public bool IsActive => Stage == LinkStage.Working || Stage == LinkStage.Ready;
 
         public IReadOnlyList<LinkStep> Steps => Role == LinkRole.Host
@@ -164,6 +164,9 @@ namespace Campfire.Link
 
         public HostModsState ModsState { get; private set; }
 
+        /// <summary>Host: the copy of the world made when the room opened.</summary>
+        public BackupResult Backup { get; private set; } = new BackupResult(BackupState.None);
+
         public StepState GetStepState(LinkStep step)
         {
             return _steps.TryGetValue(step, out var state) ? state : StepState.Pending;
@@ -173,7 +176,8 @@ namespace Campfire.Link
 
         /// <summary>Opens a room for the LAN world on this computer.</summary>
         /// <param name="manualPort">The game port typed by the user, or <c>null</c> to detect it.</param>
-        public async void StartHost(int? manualPort)
+        /// <param name="reuseCode">The invite code of an earlier room to open again, or <c>null</c> for a new one.</param>
+        public async void StartHost(int? manualPort, RoomCode reuseCode = null)
         {
             var run = Begin(LinkRole.Host);
             var token = run.Token;
@@ -201,7 +205,8 @@ namespace Campfire.Link
                 LinkLog.Info($"Hosting the LAN world on port {port}.");
 
                 SetStep(LinkStep.Network, StepState.Active);
-                Code = RoomCode.Create();
+                Code = reuseCode ?? RoomCode.Create();
+                _ = BackupWorldAsync(run, port);
                 await GameAccount.RefreshAsync();
                 _self = PlayerProfile.CreateLocal(PlayerKind.Host);
                 // Guests reach the world through a gate on this computer, which can turn removed players away and
@@ -215,7 +220,7 @@ namespace Campfire.Link
                 int gameProcess = GameAccount.Current?.ProcessId ?? 0;
                 if (gameProcess > 0)
                 {
-                    // The hook only speaks while this state is kept fresh, so it goes quiet with the room.
+                    // The hook only speaks while this state is kept fresh.
                     _agentState = new AgentState(gameProcess);
                     _ = AttachGameOverlayAsync(run, gameProcess);
                 }
@@ -228,7 +233,7 @@ namespace Campfire.Link
                 config.UdpWhitelist.Add(_gate.Port.ToString());
                 await StartNetworkAsync(config, run);
 
-                // Give the nodes a moment so the code works as soon as it is shared.
+                // Waits up to a few seconds for a node connection.
                 for (int i = 0; i < 10 && ConnectedNodes <= 0; i++)
                 {
                     ConnectedNodes = await _network.CountConnectedNodesAsync(token);
@@ -240,6 +245,7 @@ namespace Campfire.Link
                 SetStep(LinkStep.Network, StepState.Done);
                 Stage = LinkStage.Ready;
                 LinkLog.Info($"Room {Mask(Code)} is open ({ConnectedNodes} nodes connected).");
+                RoomHistory.Record(true, Code, _self.Name);
                 Online.Telemetry.Count("link.host");
                 OnChanged();
 
@@ -318,8 +324,7 @@ namespace Campfire.Link
 
                 _client = await ConnectRoomAsync(_serviceLocalPort, token);
                 int hostPort = await _client.GetServerPortAsync(token);
-                // Shared with the LAN, the port listens on every interface so the LAN entry (sent from the LAN
-                // address) works; otherwise only this computer can reach it.
+                // Shared with the LAN, the port listens on every interface; otherwise only on this computer.
                 IsSharedWithLan = LinkSettings.ShareWithLan;
                 var bindAddress = IsSharedWithLan ? IPAddress.Any : IPAddress.Loopback;
                 int localPort = ChooseLocalPort(hostPort, bindAddress);
@@ -353,6 +358,8 @@ namespace Campfire.Link
                 SetStep(LinkStep.Enter, StepState.Done);
                 Stage = LinkStage.Ready;
                 LinkLog.Info($"Joined room {Mask(Code)}.");
+                var hostPlayer = Players.FirstOrDefault(p => p.Kind == PlayerKind.Host);
+                RoomHistory.Record(false, Code, hostPlayer?.Name);
                 Online.Telemetry.Count("link.join");
                 OnChanged();
                 _ = FetchHostModsAsync(run);
@@ -380,8 +387,7 @@ namespace Campfire.Link
                 {
                     HostPeer = host;
                     firstSeen = firstSeen ?? DateTime.UtcNow;
-                    // Prefer a direct path: hole punching usually needs a few seconds after the host shows up.
-                    // With a hidden address there is never a direct path, so the relay is taken at once.
+                    // A direct path is preferred; a hidden address takes the relay at once.
                     if (host.IsDirect || hideAddress || (!directOnly && DateTime.UtcNow - firstSeen > DirectGracePeriod))
                     {
                         LinkLog.Info($"Found host {host.Hostname} ({(host.IsDirect ? "direct" : "relayed")}, {host.Tunnel}).");
@@ -548,9 +554,39 @@ namespace Campfire.Link
         }
 
 
+        // ======================== Backup ========================
+
+        /// <summary>Host: copies the world in the background; the room does not wait for it.</summary>
+        private async Task BackupWorldAsync(CancellationTokenSource run, int gamePort)
+        {
+            if (!LinkSettings.BackupWorld)
+                return;
+
+            Backup = new BackupResult(BackupState.Working);
+            OnChanged();
+            BackupResult result;
+            try
+            {
+                result = await Task.Run(() => WorldBackup.Run(gamePort, run.Token));
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                LinkLog.Warn("The world could not be backed up: " + ex.Message);
+                result = new BackupResult(BackupState.Failed);
+            }
+            if (run != _run)
+                return;
+            Backup = result;
+            OnChanged();
+        }
+
         // ======================== Mods ========================
 
-        /// <summary>Host: reads the mods of the game running the world, so players can compare theirs.</summary>
+        /// <summary>Host: reads the mods of the game running the world.</summary>
         private async Task PrepareModsAsync(CancellationTokenSource run, int gamePort)
         {
             Mods.ModHost mods = null;
@@ -605,7 +641,7 @@ namespace Campfire.Link
                 {
                     if (await ReadHostModsAsync(token))
                     {
-                        // From now on the list is checked again now and then, as the host may turn sync on or off.
+                        // From now on the list is checked again now and then.
                         _hostSharesMods = run == _run;
                         return;
                     }
@@ -646,7 +682,7 @@ namespace Campfire.Link
             bool changed = ModsState != HostModsState.Ready;
             if (HostMods == null || HostMods.Signature != list.Signature)
             {
-                // A new list object makes the pages compare again, so it is only replaced when something differs.
+                // The list object is only replaced when something differs.
                 HostMods = list;
                 changed = true;
                 LinkLog.Info($"The host plays {list.GameVersion ?? "?"} {list.Loader?.ToString() ?? "?"} with {list.Mods.Count} mod(s).");
@@ -658,8 +694,7 @@ namespace Campfire.Link
         }
 
         /// <summary>
-        /// Guest: a separate connection to the host's room service for downloading mods, so a long transfer never
-        /// holds up the heartbeat. Returns <c>null</c> when the room is gone.
+        /// Guest: a separate connection to the host's room service for downloading mods. Returns <c>null</c> when the room is gone.
         /// </summary>
         public Task<RoomClient> ConnectForModsAsync(CancellationToken cancellation)
         {
@@ -713,7 +748,7 @@ namespace Campfire.Link
         /// <summary>Ends everything immediately; used when Campfire exits.</summary>
         public void Shutdown()
         {
-            // The lobby listing would drop out by itself within minutes; a short wait takes it down at once.
+            // Closes the lobby listing, waiting up to two seconds.
             var closing = _lobby?.CloseAsync();
             Release();
             closing?.Wait(TimeSpan.FromSeconds(2));
@@ -744,6 +779,7 @@ namespace Campfire.Link
             SearchTime = TimeSpan.Zero;
             HostMods = null;
             ModsState = HostModsState.None;
+            Backup = new BackupResult(BackupState.None);
             _hostSharesMods = false;
             _serviceLocalPort = 0;
             OnChanged();
@@ -792,8 +828,7 @@ namespace Campfire.Link
         }
 
         /// <summary>
-        /// Adds the room status from inside the host's server, which also works when the LAN login is
-        /// encrypted. Once the hook confirms it runs, the proxy overlay is turned off so no message is sent twice.
+        /// Adds the room status from inside the host's server. Once the hook confirms it runs, the proxy overlay is turned off.
         /// </summary>
         private async Task AttachGameOverlayAsync(CancellationTokenSource run, int processId)
         {
@@ -909,7 +944,7 @@ namespace Campfire.Link
             opener.Dispose();
         }
 
-        /// <summary>Withdraws every request, so a world the host opens or closes later is left alone.</summary>
+        /// <summary>Withdraws every request to open a world to LAN.</summary>
         private void StopOpeningLan()
         {
             foreach (var opener in Openers())
@@ -975,8 +1010,7 @@ namespace Campfire.Link
         }
 
         /// <summary>
-        /// Uses the port set by the user if any. Otherwise prefers the host's port number, so mods that open their
-        /// own UDP port next to the game (voice chat, for example) keep working, and falls back to any free port.
+        /// Uses the port set by the user if any. Otherwise prefers the host's port number, and falls back to any free port.
         /// </summary>
         private static int ChooseLocalPort(int hostPort, IPAddress bindAddress)
         {
@@ -1000,8 +1034,7 @@ namespace Campfire.Link
         }
 
         /// <summary>
-        /// Checks the system's listener tables rather than binding a test socket, which on every interface could
-        /// make Windows Firewall ask for permission.
+        /// Checks the system's listener tables.
         /// </summary>
         private static bool IsPortFree(int port, IPAddress bindAddress)
         {

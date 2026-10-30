@@ -14,21 +14,18 @@ namespace Campfire.Online
     /// Downloads, verifies and installs a new Campfire.exe.
     /// </summary>
     /// <remarks>
-    /// A file is only installed when its ECDSA P-256 signature matches one of <see cref="PublicKeys"/>, so neither
-    /// the service nor a download mirror can hand out a modified program. Windows lets a running program be renamed,
-    /// so installing renames the running file to ".old", puts the new one in its place and starts it.
+    /// A file is only installed when its ECDSA P-256 signature matches one of <see cref="PublicKeys"/>.
+    /// Installing renames the running file to ".old", puts the new one in its place and starts it.
     /// </remarks>
     internal static class Updater
     {
         /// <summary>
-        /// Public halves of the release signing keys, X and Y in base64. See tools/new-signing-key.ps1. A backup key
-        /// made in advance and kept offline can be added here, so releases can move to it if the current private
-        /// key ever leaks; the next release then drops the leaked key.
+        /// Public halves of the release signing keys, X and Y in base64. See tools/new-signing-key.ps1.
         /// </summary>
         private static readonly string[] PublicKeys =
         {
             "MKs7EnkhMauplagoZmgoOqkNRbQiwlTDVIT1zHitN7KsJL7uG8/WPZAG+Lisj/k0wCbHGcRpxMlPqr1y/DkYlw==",
-            // Backup key, kept offline; not used to sign releases unless the key above leaks.
+            // Backup key, kept offline.
             "B8IxfxtwY7dwuOMz5/KwEjASpjTHFc5/DXF0eMiejDnOXq9FZ2VWo/OS14lPXShAoik6C5fS8AcLFaNc9oFPwg==",
         };
 
@@ -56,7 +53,7 @@ namespace Campfire.Online
             return manifest?.MinVersion != null && OnlineService.ShortVersion < manifest.MinVersion && IsNewer(manifest.Update);
         }
 
-        /// <summary>Whether Campfire may replace its own file; otherwise updates are downloaded by hand.</summary>
+        /// <summary>Whether Campfire may replace its own file.</summary>
         public static bool CanInstall()
         {
             try
@@ -154,8 +151,7 @@ namespace Campfire.Online
         }
 
         /// <summary>
-        /// Checks the signature, and that the file really is the promised version, so an older signed release cannot
-        /// be passed off as a newer one.
+        /// Checks the signature and that the file is the promised version.
         /// </summary>
         internal static bool Verify(byte[] data, string signature, Version expected)
         {

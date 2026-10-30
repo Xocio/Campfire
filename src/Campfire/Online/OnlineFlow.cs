@@ -101,9 +101,7 @@ namespace Campfire.Online
             _offering = true;
             try
             {
-                // The download is small; fetching it first means the update applies at once when the user agrees.
-                // It also proves the update is real: the manifest is not signed, so a required update only keeps
-                // Campfire closed once a correctly signed file exists. Without one, Campfire stays usable.
+                // The file is downloaded first; a required update only blocks once a correctly signed file exists.
                 string staged = await Updater.DownloadAsync(update);
                 if (staged == null)
                 {
@@ -159,7 +157,7 @@ namespace Campfire.Online
             }
         }
 
-        /// <summary>Campfire sits in a folder it may not write to, so the user downloads the update.</summary>
+        /// <summary>Offers the download page for a Campfire that cannot replace its own file.</summary>
         private async Task OfferDownloadPageAsync(UpdateInfo update, bool required)
         {
             var choice = await _host.ShowDialogAsync(new DialogRequest
