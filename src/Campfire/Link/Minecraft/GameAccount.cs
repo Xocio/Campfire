@@ -56,7 +56,16 @@ namespace Campfire.Link.Minecraft
                     if (!process.ProcessName.StartsWith("java", StringComparison.OrdinalIgnoreCase))
                         continue;
 
-                    string commandLine = ReadCommandLine(process.Id);
+                    string commandLine;
+                    try
+                    {
+                        commandLine = ReadCommandLine(process.Id);
+                    }
+                    catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException || ex is System.ComponentModel.Win32Exception)
+                    {
+                        // One unreadable process must not stop the search or fail the room.
+                        continue;
+                    }
                     if (commandLine == null || commandLine.IndexOf("--username", StringComparison.Ordinal) < 0)
                         continue;
 
@@ -143,9 +152,18 @@ namespace Campfire.Link.Minecraft
                         return null;
 
                     // The buffer starts with a UNICODE_STRING that points into the same buffer.
-                    int length = Marshal.ReadInt16(buffer);
+                    // Length is an unsigned 16-bit byte count; reading it signed goes negative for command lines
+                    // over 32 KB (a modded game with a long classpath), which made PtrToStringUni throw.
+                    int length = (ushort)Marshal.ReadInt16(buffer);
                     IntPtr text = Marshal.ReadIntPtr(buffer, IntPtr.Size);
-                    return text == IntPtr.Zero ? null : Marshal.PtrToStringUni(text, length / 2);
+                    if (text == IntPtr.Zero || length < 2)
+                        return null;
+                    // Never read past the buffer we allocated.
+                    long available = size - (text.ToInt64() - buffer.ToInt64());
+                    if (available < 2)
+                        return null;
+                    int chars = (int)Math.Min(length, available) / 2;
+                    return Marshal.PtrToStringUni(text, chars);
                 }
                 finally
                 {
