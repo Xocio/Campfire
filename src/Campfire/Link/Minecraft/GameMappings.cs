@@ -197,7 +197,7 @@ namespace Campfire.Link.Minecraft
                     data = memory.ToArray();
                 }
 
-                // Named by content, so a newer table from a newer Campfire never meets an old copy.
+                // Named by content.
                 string path = Path.Combine(Directory, Path.GetFileNameWithoutExtension(resource) + "-" + Sha1(data).Substring(0, 12) + ".txt");
                 if (!File.Exists(path))
                 {

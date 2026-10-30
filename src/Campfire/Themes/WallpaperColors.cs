@@ -65,7 +65,7 @@ namespace Campfire.Themes
             {
                 if (string.IsNullOrEmpty(path) || !File.Exists(path))
                     continue;
-                // Read through a copy in memory so the file is never locked.
+                // Read through a copy in memory.
                 var bytes = File.ReadAllBytes(path);
                 using (var stream = new MemoryStream(bytes))
                 using (var image = Image.FromStream(stream, false, false))

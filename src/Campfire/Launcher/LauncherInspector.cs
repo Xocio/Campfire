@@ -52,7 +52,7 @@ namespace Campfire.Launcher
             var required = patches.Where(p => p.IsRequired).ToList();
             bool hasMarker = module.Resources.Any(r => r.Name == LauncherSignature.PatchMarkerResource);
 
-            // Older releases differ in layout, so a patch point that is missing only matters when something is disabled.
+            // A missing patch point only counts when something is disabled.
             LauncherStatus status;
             string messageKey;
             if (required.All(p => p.State != PatchState.Pending))

@@ -153,22 +153,23 @@
                 </Grid>
             </Border>
 
-            <!-- Pages share one cell; inactive ones are Hidden, so the window keeps a stable height. -->
+            <!-- Pages share one cell; inactive ones are Hidden. -->
             <Grid Grid.Row="1" ClipToBounds="True">
                 <pages:HomePage x:Name="PageHome" LinkRequested="PageHome_LinkRequested" CreateRequested="PageHome_CreateRequested"
                                 JoinRequested="PageHome_JoinRequested" SettingsRequested="Page_SettingsRequested"
-                                LobbyRequested="Page_LobbyRequested" />
+                                LobbyRequested="Page_LobbyRequested" RecentRequested="Page_RecentRequested" />
                 <pages:MapsPage x:Name="PageMaps" Visibility="Hidden" ImportRequested="Page_WorldRequested" />
                 <pages:ToolsPage x:Name="PageTools" Visibility="Hidden" RepairRequested="PageTools_RepairRequested"
                                 JreRequested="PageTools_JreRequested" />
                 <pages:PreferencesPage x:Name="PagePreferences" Visibility="Hidden"
                                        TraySettingsChanged="PagePreferences_TraySettingsChanged" />
-                <pages:LinkPage x:Name="PageLink" Visibility="Hidden" StatusChanged="PageLink_StatusChanged"
-                                SettingsRequested="Page_SettingsRequested" LobbyRequested="Page_LobbyRequested"
-                                ModsRequested="PageLink_ModsRequested" />
+                <pages:LinkPage x:Name="PageLink" Visibility="Hidden" StatusChanged="PageLink_StatusChanged" Left="PageLink_Left"
+                                LobbyRequested="Page_LobbyRequested"
+                                DiagnosticsRequested="Page_DiagnosticsRequested" ModsRequested="PageLink_ModsRequested" />
+                <pages:RecentPage x:Name="PageRecent" Visibility="Hidden" />
+                <pages:DiagnosticsPage x:Name="PageDiagnostics" Visibility="Hidden" />
                 <pages:LobbyPage x:Name="PageLobby" Visibility="Hidden" />
                 <pages:LobbyRoomPage x:Name="PageLobbyRoom" Visibility="Hidden" />
-                <pages:SettingsPage x:Name="PageSettings" Visibility="Hidden" SettingsChanged="PageSettings_SettingsChanged" />
                 <pages:RepairPage x:Name="PageRepair" Visibility="Hidden" StatusChanged="PageRepair_StatusChanged" />
                 <pages:JrePage x:Name="PageJre" Visibility="Hidden" />
                 <pages:WorldPage x:Name="PageWorld" Visibility="Hidden" CreateRoomRequested="PageWorld_CreateRoomRequested" />

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -41,12 +41,12 @@ namespace Campfire.Pages
             Unloaded += (sender, e) => Text.LanguageChanged -= OnLanguageChanged;
         }
 
-        /// <summary>Raised after every comparison, so the multiplayer page shows the same result.</summary>
+        /// <summary>Raised after every comparison.</summary>
         internal event EventHandler<ModCheck> CheckChanged;
 
         public bool IsBusy => _syncing;
 
-        /// <summary>Shows the host's mods of <paramref name="session"/> and compares them again, as the folder may have changed.</summary>
+        /// <summary>Shows the host's mods of <paramref name="session"/> and compares them again.</summary>
         /// <param name="launcherDirectories">Folders that hold a launcher, searched for game folders as well.</param>
         internal async Task ShowAsync(LinkSession session, IEnumerable<string> launcherDirectories)
         {
@@ -303,18 +303,9 @@ namespace Campfire.Pages
 
         private async void BtnAddFolder_Click(object sender, RoutedEventArgs e)
         {
-            string picked;
-            using (var dialog = new System.Windows.Forms.FolderBrowserDialog
-                   {
-                       Description = Text.Get("World.AddFolderTitle"),
-                       ShowNewFolderButton = false,
-                   })
-            {
-                var owner = new Win32Owner(new WindowInteropHelper(Window.GetWindow(this)).Handle);
-                if (dialog.ShowDialog(owner) != System.Windows.Forms.DialogResult.OK)
-                    return;
-                picked = dialog.SelectedPath;
-            }
+            string picked = FolderPicker.Pick(new WindowInteropHelper(Window.GetWindow(this)).Handle, Text.Get("World.AddFolderTitle"));
+            if (picked == null)
+                return;
 
             string folder = GameFolders.Resolve(picked);
             if (folder == null)
@@ -420,16 +411,6 @@ namespace Campfire.Pages
             if (!_syncing)
                 BtnSync.Content = Text.Get("Mods.Sync");
             Render();
-        }
-
-        private sealed class Win32Owner : System.Windows.Forms.IWin32Window
-        {
-            public Win32Owner(IntPtr handle)
-            {
-                Handle = handle;
-            }
-
-            public IntPtr Handle { get; }
         }
     }
 }

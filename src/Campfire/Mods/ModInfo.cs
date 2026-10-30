@@ -118,7 +118,7 @@ namespace Campfire.Mods
             return new ModInfo(file, sha1, (long)size, ids, Text(json, "name"), Text(json, "version"), side, fingerprint);
         }
 
-        /// <summary>A plain jar name with no folder part, so a file from the host can only land in the mods folder.</summary>
+        /// <summary>Whether this is a plain jar name with no folder part.</summary>
         public static bool IsSafeFileName(string name)
         {
             return !string.IsNullOrEmpty(name) && name.Length <= 160

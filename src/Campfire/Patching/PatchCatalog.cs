@@ -10,6 +10,7 @@ namespace Campfire.Patching
     {
         public static IReadOnlyList<Patch> All { get; } = new Patch[]
         {
+            new DownloadEntryPatch(),
             new VersionListPatch(),
             new ModpackPickerPatch(),
             new ModpackDispatchPatch(),

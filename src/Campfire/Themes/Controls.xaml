@@ -349,7 +349,7 @@
 
     <!-- ======================== Title bar tabs ======================== -->
 
-    <!-- Selected: a white pill fades and grows in behind the text; otherwise white text on the title bar. -->
+    <!-- Selected: a white pill fades and grows in behind the text. -->
     <Style x:Key="PclTabButton" TargetType="RadioButton">
         <Setter Property="Height" Value="28" />
         <Setter Property="Padding" Value="8,0,10,0" />
@@ -441,7 +441,7 @@
                                        VerticalAlignment="Center" Foreground="{DynamicResource BrushGray5}"
                                        Text="{TemplateBinding Tag}" TextTrimming="CharacterEllipsis" Visibility="Collapsed"
                                        IsHitTestVisible="False" />
-                            <!-- The text box applies Padding inside the host itself, so the host gets no margin. -->
+                            <!-- The host has no margin; the text box applies Padding. -->
                             <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Focusable="False"
                                           HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
                         </Grid>
@@ -1156,7 +1156,7 @@
 
     <!-- ======================== Help mark ======================== -->
 
-    <!-- A small "?" beside an option; its tooltip carries the explanation that would otherwise take a line of text. -->
+    <!-- A small "?" beside an option; its tooltip carries the explanation. -->
     <Style x:Key="PclHelp" TargetType="ContentControl">
         <Setter Property="Content" Value="?" />
         <Setter Property="Width" Value="16" />

@@ -4,8 +4,7 @@ using Campfire.Localization;
 namespace Campfire.Link
 {
     /// <summary>
-    /// A multiplayer failure with a message for the user. The text is looked up on demand so it follows the
-    /// display language.
+    /// A multiplayer failure with a message for the user. The text is looked up on demand.
     /// </summary>
     internal sealed class LinkException : Exception
     {

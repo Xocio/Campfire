@@ -22,7 +22,7 @@ namespace Campfire.Launcher
                 using (process)
                 {
                     string imagePath = TryGetImagePath(process);
-                    // When the image path cannot be read, assume the worst so the file is never replaced while in use.
+                    // An unreadable image path counts as in use.
                     if (imagePath == null || string.Equals(imagePath, fullPath, StringComparison.OrdinalIgnoreCase))
                         return true;
                 }

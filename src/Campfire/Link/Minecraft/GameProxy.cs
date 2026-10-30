@@ -53,8 +53,8 @@ namespace Campfire.Link.Minecraft
         private volatile bool _overlayEnabled = true;
 
         /// <summary>
-        /// Whether this proxy should add the room overlay for unencrypted connections. Turned off when
-        /// the in-game Java agent is attached, so players do not receive the message twice.
+        /// Whether this proxy adds the room overlay for unencrypted connections. Turned off when
+        /// the in-game Java agent is attached.
         /// </summary>
         public bool OverlayEnabled
         {
@@ -165,7 +165,7 @@ namespace Campfire.Link.Minecraft
 
             /// <summary>
             /// Ends the connection with <paramref name="reason"/> shown in the game where the protocol allows it;
-            /// otherwise, as on encrypted connections, the connection is simply closed.
+            /// on encrypted connections it is simply closed.
             /// </summary>
             public async Task KickAsync(string reason)
             {
@@ -317,7 +317,7 @@ namespace Campfire.Link.Minecraft
                     await _writeLock.WaitAsync(cancellation).ConfigureAwait(false);
                     if (_phase == Phase.PassThrough)
                     {
-                        // The lock is kept, so no message can be written into the plain pipe.
+                        // The lock is kept.
                         await _toClient.WriteAsync(frame, 0, frame.Length, cancellation).ConfigureAwait(false);
                         await fromServer.CopyToAsync(_toClient, cancellation).ConfigureAwait(false);
                         return;
@@ -342,7 +342,7 @@ namespace Campfire.Link.Minecraft
                 Buffer.BlockCopy(frame, offset, payload, 0, payload.Length);
 
                 // The join game packet carries the world and is far larger than the packets followed afterwards.
-                // Only inflate packets that big until it has been seen.
+                // Packets above this size are only inflated once seen.
                 int maxSize = _phase == Phase.Play ? (_joined ? 64 : MaxFrame) : 8 * 1024;
                 byte[] body = GameProtocol.Unwrap(payload, _threshold, maxSize);
                 if (body == null || body.Length == 0)
@@ -356,9 +356,8 @@ namespace Campfire.Link.Minecraft
                         if (id == GameProtocol.LoginEncryptionRequest)
                         {
                             _phase = Phase.PassThrough;
-                            // A vanilla LAN world enables authentication even when the host uses an offline
-                            // account, so this is the normal case. The Java agent covers it; the LAN entry
-                            // remains the fallback when the agent cannot be attached.
+                            // A vanilla LAN world enables authentication. The Java agent covers it; the LAN entry
+                            // is the fallback when the agent cannot be attached.
                             LinkLog.Info("Game connection is encrypted; the proxy passes it through. " +
                                          "The in-game overlay is provided by the Java agent when available.");
                         }
@@ -523,8 +522,7 @@ namespace Campfire.Link.Minecraft
 
         /// <summary>
         /// A read buffer that hands over whatever it holds as soon as asked. Unlike <see cref="BufferedStream"/>, a
-        /// partly filled buffer never waits for more data, which would stall a game that sends its next packet
-        /// together with the handshake.
+        /// partly filled buffer never waits for more data.
         /// </summary>
         private sealed class InputBuffer
         {

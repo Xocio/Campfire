@@ -78,8 +78,7 @@ jobs:
       - name: Build
         shell: pwsh
         env:
-          # Repository variable with the update service address. Only release builds get it, so test builds
-          # never check for updates or send statistics.
+          # Repository variable with the update service address. Only release builds get it.
           SERVICE_URL: ${{ vars.SERVICE_URL }}
         run: |
           $properties = @()
@@ -115,7 +114,7 @@ jobs:
           $hash = (Get-FileHash src/Campfire/bin/Release/Campfire.exe -Algorithm SHA256).Hash.ToLowerInvariant()
           Add-Content release-notes.md -Encoding utf8 -Value @("", "### 文件校验", "", "``Campfire.exe`` SHA256：``$hash``")
 
-      # Runs before the release is published, so a failed upload leaves nothing public behind.
+      # Runs before the release is published.
       - name: Upload to R2
         if: inputs.release && inputs.mirror
         shell: pwsh
@@ -132,9 +131,9 @@ jobs:
             exit 1
           }
 
-          # Every version gets its own folder, so the files keep their names and can be cached forever.
+          # Every version gets its own folder.
           foreach ($name in 'Campfire.exe', 'Campfire.exe.sig') {
-            # --remote is required: without it wrangler writes to a local emulator and still reports success.
+            # --remote writes to the real bucket.
             npx --yes wrangler@4 r2 object put "$env:R2_BUCKET/$env:VERSION/$name" `
               --file "src/Campfire/bin/Release/$name" --remote `
               --content-type application/octet-stream `
@@ -188,6 +187,6 @@ jobs:
           gh api @request --jq .commit.html_url
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-          # A commit made with GITHUB_TOKEN does not trigger the docs push workflow, so start it explicitly.
+          # Starts the docs workflow explicitly.
           gh workflow run deploy-docs.yml --ref $env:BRANCH
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

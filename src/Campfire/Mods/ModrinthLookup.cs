@@ -24,8 +24,7 @@ namespace Campfire.Mods
     }
 
     /// <summary>
-    /// Finds the host's jars on Modrinth by their SHA-1, so most files come from the publisher rather than from
-    /// another player. Only the exact file counts: a different build of the same mod is not used.
+    /// Finds the host's jars on Modrinth by their SHA-1. Only the exact file counts.
     /// </summary>
     internal static class ModrinthLookup
     {
@@ -43,7 +42,7 @@ namespace Campfire.Mods
 
         /// <summary>
         /// The files Modrinth has for <paramref name="hashes"/>, by hash. Hashes it does not know are left out;
-        /// when Modrinth cannot be reached the result is empty, so the host is asked instead.
+        /// when Modrinth cannot be reached the result is empty.
         /// </summary>
         public static async Task<Dictionary<string, OfficialFile>> FindAsync(IEnumerable<string> hashes, CancellationToken cancellation)
         {

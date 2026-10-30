@@ -9,8 +9,7 @@ namespace Campfire.Link.Runtime
     /// Read-only wrapper around a download stream that reports progress and gives up when the server stalls.
     /// </summary>
     /// <remarks>
-    /// Network reads on .NET Framework ignore cancellation tokens, so a stalled read is ended by disposing
-    /// <paramref name="owner"/> (usually the HTTP response), which aborts the connection.
+    /// A stalled read is ended by disposing <paramref name="owner"/> (usually the HTTP response).
     /// </remarks>
     internal sealed class ProgressStream : Stream
     {

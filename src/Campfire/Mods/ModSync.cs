@@ -60,8 +60,7 @@ namespace Campfire.Mods
 
     /// <summary>
     /// Makes a version's mods folder match the host: fetches the host's jars, moves the differing ones aside and
-    /// copies the new ones in. Every file is fetched and checked before the folder is touched, so a failed
-    /// download leaves it as it was. Nothing is deleted: replaced jars go to a backup folder.
+    /// copies the new ones in. Every file is fetched and checked before the folder is touched. Replaced jars go to a backup folder.
     /// </summary>
     internal static class ModSync
     {
@@ -145,7 +144,7 @@ namespace Campfire.Mods
             return await Task.Run(() => Apply(comparison, version, fetched, removeExtra, unavailable), cancellation).ConfigureAwait(false);
         }
 
-        /// <summary>Whether a game started from <paramref name="version"/> is running and would hold its jars open.</summary>
+        /// <summary>Whether a game started from <paramref name="version"/> is running.</summary>
         public static bool IsRunning(InstalledVersion version)
         {
             string folder = Path.GetDirectoryName(version.ModsDirectory);

@@ -16,7 +16,7 @@ namespace Campfire.Link.Room
     }
 
     /// <summary>
-    /// A player in a room. The machine id tells computers apart, so two players may share a name.
+    /// A player in a room. The machine id tells computers apart.
     /// </summary>
     internal sealed class PlayerProfile
     {
@@ -45,8 +45,7 @@ namespace Campfire.Link.Room
         public PlayerKind Kind { get; }
 
         /// <summary>
-        /// The premium account's UUID when the player's game runs with one, used to show their skin face.
-        /// An optional field that other programs ignore.
+        /// The premium account's UUID when the player's game runs with one. An optional field.
         /// </summary>
         public string Uuid { get; }
 
@@ -57,15 +56,14 @@ namespace Campfire.Link.Room
         public string GameName { get; }
 
         /// <summary>
-        /// The player's round-trip time to the host, reported with the heartbeat so the host can show it in the
-        /// game. An optional field that other programs ignore.
+        /// The player's round-trip time to the host, reported with the heartbeat. An optional field.
         /// </summary>
         public double? LatencyMs { get; }
 
         /// <summary>The profile of the player on this computer.</summary>
         public static PlayerProfile CreateLocal(PlayerKind kind)
         {
-            // The account id is only shared when skin faces are enabled, since that is all it is used for.
+            // The account id is only shared when skin faces are enabled.
             var account = GameAccount.Current;
             string uuid = LinkSettings.ShowSkins && account != null && account.IsPremium ? account.Uuid : null;
             return new PlayerProfile(LinkSettings.EffectivePlayerName, LinkSettings.MachineId, LocalVendor, kind, uuid, account?.Name);

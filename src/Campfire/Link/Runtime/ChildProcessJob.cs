@@ -5,8 +5,7 @@ using System.Runtime.InteropServices;
 namespace Campfire.Link.Runtime
 {
     /// <summary>
-    /// A Windows job object that ends every assigned process when Campfire exits, even after a crash, so no
-    /// networking process is ever left running in the background.
+    /// A Windows job object that ends every assigned process when Campfire exits, even after a crash.
     /// </summary>
     internal static class ChildProcessJob
     {

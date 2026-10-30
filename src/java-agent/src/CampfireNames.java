@@ -23,9 +23,7 @@ import java.util.Set;
  * of them, which Campfire downloads and passes on. Newer releases, and loaders that run the game
  * with the official names, need no mapping: every lookup first tries the name as it is.</p>
  *
- * <p>Members are matched by name and parameter types, walking up the class hierarchy, so a method
- * inherited from a superclass (such as {@code send} on the 1.20.2 common packet listener) is found
- * through the subclass as well.</p>
+ * <p>Members are matched by name and parameter types, walking up the class hierarchy.</p>
  */
 public final class CampfireNames {
     /** Official class name to runtime name, and back. */
@@ -47,7 +45,7 @@ public final class CampfireNames {
 
     /**
      * Reads a ProGuard mapping file as Mojang publishes it. Only the members whose official name
-     * is in {@code memberNames} are kept, which keeps the tables small.
+     * is in {@code memberNames} are kept.
      */
     public static synchronized void load(String path, Set<String> memberNames) throws IOException {
         if (loaded || path == null || path.isEmpty()) {

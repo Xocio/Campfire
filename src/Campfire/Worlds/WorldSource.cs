@@ -19,7 +19,7 @@ namespace Campfire.Worlds
         /// <summary>There is no level.dat anywhere inside.</summary>
         NoWorld,
 
-        /// <summary>Region files are there but level.dat is missing; the game would start a new world instead.</summary>
+        /// <summary>Region files are there but level.dat is missing.</summary>
         Incomplete,
 
         /// <summary>A Bedrock Edition world, which Java Edition cannot open.</summary>
@@ -109,7 +109,7 @@ namespace Campfire.Worlds
             }
             catch (InvalidDataException)
             {
-                // Not a zip; a Bedrock .mcworld is a zip too, so this is something else entirely.
+                // Not a zip.
                 source.Problem = WorldSourceProblem.NotSupported;
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is NotSupportedException)
@@ -260,7 +260,7 @@ namespace Campfire.Worlds
                         pending.Push((child.FullName, depth + 1));
                 }
 
-                // A db folder marks a Bedrock world; record it so the check above can see it.
+                // A db folder marks a Bedrock world.
                 if (Directory.Exists(System.IO.Path.Combine(directory, "db")))
                     files.Add((Relative(root, System.IO.Path.Combine(directory, "db", "CURRENT")), 0));
             }

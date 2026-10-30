@@ -9,8 +9,7 @@ namespace Campfire.Link.Runtime
     /// Measures one public node by joining it with a throwaway network, the same way a room connects.
     /// </summary>
     /// <remarks>
-    /// The test network has a random name, accepts no incoming connections and never connects to other members,
-    /// so the node only learns that this computer reached it.
+    /// The test network has a random name, accepts no incoming connections and never connects to other members.
     /// </remarks>
     internal static class NodeProbe
     {

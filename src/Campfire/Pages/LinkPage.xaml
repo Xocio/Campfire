@@ -128,101 +128,11 @@
         </Style>
     </UserControl.Resources>
 
-    <!-- All states share one cell; inactive ones are Hidden so the window keeps a stable height. -->
+    <!-- All states share one cell; inactive ones are Hidden. -->
     <Grid Margin="22,20,22,18">
 
-        <!-- ======================== Choose ======================== -->
-        <DockPanel x:Name="PanSelect">
-            <StackPanel>
-                <HeaderedContentControl Header="{loc:Text Link.Start}" Style="{StaticResource PclCard}">
-                    <StackPanel>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="12" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Button x:Name="BtnCreate" Style="{StaticResource PclTile}" Click="BtnCreate_Click">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Border Width="42" Height="42" CornerRadius="21" Background="{DynamicResource Brush7}">
-                                        <Path Data="M8,2.5 L8,13.5 M2.5,8 L13.5,8" Stroke="{DynamicResource Brush3}"
-                                              StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                              Stretch="None" Width="16" Height="16" />
-                                    </Border>
-                                    <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock FontSize="15" FontWeight="Bold" Text="{loc:Text Link.Create}" />
-                                        <TextBlock Margin="0,3,0,0" FontSize="12" Foreground="{DynamicResource BrushGray4}"
-                                                   TextWrapping="Wrap" Text="{loc:Text Link.CreateDescription}" />
-                                    </StackPanel>
-                                </Grid>
-                            </Button>
-                            <Button x:Name="BtnJoin" Grid.Column="2" Style="{StaticResource PclTile}" Click="BtnJoin_Click">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Border Width="42" Height="42" CornerRadius="21" Background="{DynamicResource Brush7}">
-                                        <Path Data="M2.5,8 L9.5,8 M6.5,5 L9.5,8 L6.5,11 M9.5,2.5 L13.5,2.5 L13.5,13.5 L9.5,13.5"
-                                              Stroke="{DynamicResource Brush3}" StrokeThickness="2" StrokeStartLineCap="Round"
-                                              StrokeEndLineCap="Round" StrokeLineJoin="Round" Stretch="None" Width="16" Height="16" />
-                                    </Border>
-                                    <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock FontSize="15" FontWeight="Bold" Text="{loc:Text Link.Join}" />
-                                        <TextBlock Margin="0,3,0,0" FontSize="12" Foreground="{DynamicResource BrushGray4}"
-                                                   TextWrapping="Wrap" Text="{loc:Text Link.JoinDescription}" />
-                                    </StackPanel>
-                                </Grid>
-                            </Button>
-                        </Grid>
-                    </StackPanel>
-                </HeaderedContentControl>
-
-                <HeaderedContentControl Margin="0,15,0,0" Header="{loc:Text Link.Settings}" Style="{StaticResource PclCard}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <TextBlock VerticalAlignment="Center" Text="{loc:Text Link.PlayerName}" />
-                        <Grid Grid.Column="1" Margin="14,0,0,0">
-                            <TextBox x:Name="TxtPlayerName" MaxLength="16" Style="{StaticResource PclTextBox}"
-                                     LostKeyboardFocus="Settings_LostFocus" />
-                            <!-- The skin face of a premium player, shown inside the box. -->
-                            <Image x:Name="ImgSelfHead" Width="20" Height="20" Margin="7,0,0,0" HorizontalAlignment="Left"
-                                   RenderOptions.BitmapScalingMode="NearestNeighbor" IsHitTestVisible="False"
-                                   Visibility="Collapsed" />
-                        </Grid>
-
-                        <Grid Grid.Row="1" Grid.ColumnSpan="2" Margin="0,12,0,0">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Ellipse x:Name="DotNetwork" Width="7" Height="7" VerticalAlignment="Center"
-                                         Fill="{DynamicResource BrushGray5}" />
-                                <TextBlock x:Name="LabNetwork" Margin="8,0,0,0" FontSize="12" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource BrushGray4}" Text="{loc:Text Link.NetworkChecking}" />
-                            </StackPanel>
-                            <Button x:Name="BtnMoreSettings" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                    Style="{StaticResource PclTextButton}" Content="{loc:Text Link.MoreSettings}"
-                                    Click="BtnMoreSettings_Click" />
-                        </Grid>
-                    </Grid>
-                </HeaderedContentControl>
-            </StackPanel>
-        </DockPanel>
-
         <!-- ======================== Enter a code ======================== -->
-        <DockPanel x:Name="PanJoin" Visibility="Hidden">
+        <DockPanel x:Name="PanJoin">
             <Grid DockPanel.Dock="Bottom" Margin="0,18,0,0">
                 <Button x:Name="BtnGoLobby" HorizontalAlignment="Left" VerticalAlignment="Center" Style="{StaticResource PclTextButton}"
                         Content="{loc:Text Lobby.GoToLobby}" Click="BtnGoLobby_Click" />
@@ -316,6 +226,8 @@
                 </Grid>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <!-- Lets players sync mods with this computer, or stops them. Shown once the host's mods are read. -->
+                    <Button x:Name="BtnFavoriteHost" Margin="12,0,0,0" MinWidth="92" Style="{StaticResource PclButton}"
+                            Click="BtnFavorite_Click" />
                     <Button x:Name="BtnModSync" Margin="12,0,0,0" Style="{StaticResource PclButton}" Visibility="Collapsed"
                             Click="BtnModSync_Click" />
                     <Button x:Name="BtnLobby" Margin="12,0,0,0" MinWidth="140" Click="BtnLobby_Click" />
@@ -342,6 +254,13 @@
                         </Grid>
                         <TextBlock x:Name="LabHostTip" Margin="0,8,0,0" FontSize="12" TextWrapping="Wrap"
                                    Foreground="{DynamicResource BrushGray4}" />
+                        <!-- The copy of the world made when the room opened. -->
+                        <StackPanel x:Name="PanBackup" Margin="0,6,0,0" Orientation="Horizontal" Visibility="Collapsed">
+                            <TextBlock x:Name="LabBackup" VerticalAlignment="Center" FontSize="12"
+                                       Foreground="{DynamicResource BrushGray4}" />
+                            <Button x:Name="BtnOpenBackup" Margin="10,0,0,0" FontSize="12" Style="{StaticResource PclTextButton}"
+                                    Content="{loc:Text Backup.Open}" Click="BtnOpenBackup_Click" />
+                        </StackPanel>
                         <UniformGrid Margin="0,14,0,0" Columns="3">
                             <StackPanel>
                                 <TextBlock Style="{StaticResource StatLabel}" Text="{loc:Text Link.GamePort}" />
@@ -395,6 +314,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <TextBlock VerticalAlignment="Center" Text="{loc:Text Lobby.Title}" />
@@ -435,15 +355,20 @@
                                         Content="{loc:Text Lobby.IconRemove}" Click="BtnLobbyIconRemove_Click" />
                             </StackPanel>
                         </Grid>
+                        <TextBlock Grid.Row="2" Margin="0,12,0,0" VerticalAlignment="Top" Padding="0,6,0,0" Text="{loc:Text Lobby.Description}" />
+                        <TextBox x:Name="TxtLobbyDescription" Grid.Row="2" Grid.Column="1" Margin="14,12,0,0" Height="56" MaxLength="100"
+                                 TextWrapping="Wrap" AcceptsReturn="False" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"
+                                 Style="{StaticResource PclTextBox}" Tag="{loc:Text Lobby.DescriptionHint}" />
 
-                        <TextBlock Grid.Row="2" Margin="0,12,0,0" VerticalAlignment="Center" Text="{loc:Text Lobby.Password}" />
-                        <TextBox x:Name="TxtLobbyPassword" Grid.Row="2" Grid.Column="1" Margin="14,12,0,0" MaxLength="32"
+
+                        <TextBlock Grid.Row="3" Margin="0,12,0,0" VerticalAlignment="Center" Text="{loc:Text Lobby.Password}" />
+                        <TextBox x:Name="TxtLobbyPassword" Grid.Row="3" Grid.Column="1" Margin="14,12,0,0" MaxLength="32"
                                  Style="{StaticResource PclTextBox}" Tag="{loc:Text Lobby.PasswordOptional}" KeyDown="TxtLobbyTitle_KeyDown" />
 
-                        <TextBlock Grid.Row="3" Margin="0,19,0,0" VerticalAlignment="Top" Text="{loc:Text Lobby.Tags}" />
-                        <WrapPanel x:Name="PanLobbyTags" Grid.Row="3" Grid.Column="1" Margin="14,14,0,0" />
+                        <TextBlock Grid.Row="4" Margin="0,19,0,0" VerticalAlignment="Top" Text="{loc:Text Lobby.Tags}" />
+                        <WrapPanel x:Name="PanLobbyTags" Grid.Row="4" Grid.Column="1" Margin="14,14,0,0" />
 
-                        <CheckBox x:Name="ChkLobbyRegion" Grid.Row="4" Grid.Column="1" Margin="14,4,0,0"
+                        <CheckBox x:Name="ChkLobbyRegion" Grid.Row="5" Grid.Column="1" Margin="14,4,0,0"
                                   Style="{StaticResource PclCheckBox}" Content="{loc:Text Lobby.ShowRegion}" />
                     </Grid>
                 </HeaderedContentControl>
@@ -459,6 +384,8 @@
             <Grid DockPanel.Dock="Bottom" Margin="0,18,0,0">
                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                     <!-- Shown when the host shares its mods; it stands out while they differ from this computer's. -->
+                    <Button x:Name="BtnFavoriteGuest" Margin="0,0,12,0" MinWidth="92" Style="{StaticResource PclButton}"
+                            Click="BtnFavorite_Click" />
                     <Button x:Name="BtnMods" MinWidth="140" Content="{loc:Text Mods.Sync}" Style="{StaticResource PclButton}"
                             Visibility="Collapsed" Click="BtnMods_Click" />
                     <Button x:Name="BtnLeaveRoom" Margin="12,0,0,0" Content="{loc:Text Link.LeaveRoom}"

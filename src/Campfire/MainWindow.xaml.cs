@@ -44,7 +44,7 @@ namespace Campfire
 
         public MainWindow()
         {
-            // Window resources, unlike application resources, stay changeable, so the theme can recolor them.
+            // The theme colors live in the window resources.
             Themes.ThemeManager.Initialize(Resources);
             InitializeComponent();
             _shownPage = PageHome;
@@ -52,7 +52,20 @@ namespace Campfire
             PageHome.QuickJoinRequested += PageHome_QuickJoinRequested;
             PageMaps.MapRequested += PageMaps_MapRequested;
             PageMap.ImportRequested += PageMap_ImportRequested;
-            PageSettings.IsRoomActive = () => PageLink.IsRoomActive;
+            PagePreferences.LinkSettingsPage.IsRoomActive = () => PageLink.IsRoomActive;
+            PagePreferences.LinkSettingsPage.SettingsChanged += PageSettings_SettingsChanged;
+            PagePreferences.LinkSettingsPage.DiagnosticsRequested += Page_DiagnosticsRequested;
+            PageRecent.IsRoomActive = () => PageLink.IsRoomActive;
+            PageRecent.JoinRequested += async (sender, code) =>
+            {
+                if (await PageLink.JoinAsync(code))
+                    OpenLinkPage();
+            };
+            PageRecent.HostRequested += async (sender, code) =>
+            {
+                if (await PageLink.CreateAsync(code))
+                    OpenLinkPage();
+            };
             PageLobby.RoomRequested += PageLobby_RoomRequested;
             PageLobby.CreateRequested += PageHome_CreateRequested;
             PageLobbyRoom.IsRoomActive = () => PageLink.IsRoomActive;
@@ -82,7 +95,7 @@ namespace Campfire
 
         /// <summary>
         /// The first time Campfire runs, walks the user through it once the window has settled. The tour stays pending
-        /// until it is finished or skipped, so closing Campfire halfway offers it again next time.
+        /// until it is finished or skipped.
         /// </summary>
         private async void OfferTour()
         {
@@ -160,8 +173,7 @@ namespace Campfire
         /// <summary>Opens a feature page; the title bar shows a back button and the page name instead of the tabs.</summary>
         private void OpenSubPage(FrameworkElement page, string titleKey)
         {
-            // Decided by the trail rather than by what is visible: right after going back, the page title is still
-            // fading out and would hide once the fade ends.
+            // Decided by the trail rather than by what is visible.
             bool fromTab = _subPages.Count == 0;
             // Opening a page that is already in the trail goes back to it instead of adding it again.
             while (_subPages.Count > 0 && _subPages.Any(p => p.Page == page))
@@ -187,7 +199,8 @@ namespace Campfire
         {
             if (_subPages.Count == 0)
                 return;
-            _subPages.Pop();
+            if (_subPages.Pop().Page == PageLink)
+                PageLink.Dismiss();
             if (_subPages.Count > 0)
             {
                 var previous = _subPages.Peek();
@@ -219,32 +232,62 @@ namespace Campfire
             CloseSubPage();
         }
 
-        private void PageHome_LinkRequested(object sender, EventArgs e)
+        /// <summary>
+        /// The multiplayer page is opened only with something to show; the questions asked before entering a room
+        /// appear over the page the user is on.
+        /// </summary>
+        private void OpenLinkPage()
         {
             OpenSubPage(PageLink, "Page.Link");
         }
 
-        private void PageHome_CreateRequested(object sender, EventArgs e)
+        /// <summary>The room ended or the code entry was left: the window returns to where the page was opened from.</summary>
+        private void PageLink_Left(object sender, EventArgs e)
         {
-            OpenSubPage(PageLink, "Page.Link");
-            PageLink.StartCreate();
+            if (!_subPages.Any(p => p.Page == PageLink))
+                return;
+            if (_subPages.Peek().Page == PageLink)
+            {
+                CloseSubPage();
+                return;
+            }
+
+            // Another page sits on top, such as mod sync: going back from it skips the empty multiplayer page.
+            var kept = _subPages.Where(p => p.Page != PageLink).Reverse().ToList();
+            _subPages.Clear();
+            foreach (var entry in kept)
+                _subPages.Push(entry);
+            PageLink.Dismiss();
+        }
+
+        private void PageHome_LinkRequested(object sender, EventArgs e)
+        {
+            if (PageLink.IsRoomActive)
+                OpenLinkPage();
+        }
+
+        private async void PageHome_CreateRequested(object sender, EventArgs e)
+        {
+            if (await PageLink.CreateAsync())
+                OpenLinkPage();
         }
 
         private void PageHome_JoinRequested(object sender, EventArgs e)
         {
-            OpenSubPage(PageLink, "Page.Link");
-            PageLink.StartJoin();
+            PageLink.ShowJoin();
+            OpenLinkPage();
         }
 
-        private void PageHome_QuickJoinRequested(object sender, RoomCode code)
+        private async void PageHome_QuickJoinRequested(object sender, RoomCode code)
         {
-            OpenSubPage(PageLink, "Page.Link");
-            PageLink.JoinWithCode(code);
+            if (await PageLink.JoinAsync(code))
+                OpenLinkPage();
         }
 
         private void Page_SettingsRequested(object sender, EventArgs e)
         {
-            OpenSubPage(PageSettings, "Page.Settings");
+            OpenSubPage(PagePreferences, "Page.Settings");
+            PagePreferences.ShowLinkSettings(false);
         }
 
         /// <summary>The joined room's mod sync; going back returns to the room.</summary>
@@ -261,6 +304,16 @@ namespace Campfire
             return new[] { AppDomain.CurrentDomain.BaseDirectory, string.IsNullOrEmpty(launcher) ? null : Path.GetDirectoryName(launcher) };
         }
 
+        private void Page_RecentRequested(object sender, EventArgs e)
+        {
+            OpenSubPage(PageRecent, "Page.Recent");
+        }
+
+        private void Page_DiagnosticsRequested(object sender, EventArgs e)
+        {
+            OpenSubPage(PageDiagnostics, "Page.Diagnostics");
+        }
+
         private void Page_LobbyRequested(object sender, EventArgs e)
         {
             OpenSubPage(PageLobby, "Page.Lobby");
@@ -273,10 +326,10 @@ namespace Campfire
         }
 
         /// <summary>A room was picked in the lobby: the multiplayer page joins it, and going back returns to the room.</summary>
-        private void PageLobby_JoinRequested(object sender, Pages.LobbyJoinEventArgs e)
+        private async void PageLobby_JoinRequested(object sender, Pages.LobbyJoinEventArgs e)
         {
-            OpenSubPage(PageLink, "Page.Link");
-            PageLink.JoinWithCode(e.Code, e.RoomId);
+            if (await PageLink.JoinAsync(e.Code, e.RoomId))
+                OpenLinkPage();
         }
 
         private void PageSettings_SettingsChanged(object sender, EventArgs e)
@@ -305,8 +358,7 @@ namespace Campfire
 
         private void PageWorld_CreateRoomRequested(object sender, EventArgs e)
         {
-            OpenSubPage(PageLink, "Page.Link");
-            PageLink.StartCreate();
+            PageHome_CreateRequested(sender, e);
         }
 
         private async void PageMaps_MapRequested(object sender, Worlds.MapSummary map)
@@ -539,12 +591,11 @@ namespace Campfire
         }
 
         /// <summary>
-        /// Draws every page once, almost invisibly, while Campfire is idle after starting. The first visit to a page
-        /// then animates as smoothly as later ones instead of stalling to prepare its text and pictures.
+        /// Draws every page once, almost invisibly, while Campfire is idle after starting.
         /// </summary>
         private async void WarmUpPages()
         {
-            var pages = new FrameworkElement[] { PageMaps, PageTools, PagePreferences, PageLink, PageLobby, PageLobbyRoom, PageSettings, PageRepair, PageJre, PageWorld, PageMap, PageMods };
+            var pages = new FrameworkElement[] { PageMaps, PageTools, PagePreferences, PageLink, PageRecent, PageDiagnostics, PageLobby, PageLobbyRoom, PageRepair, PageJre, PageWorld, PageMap, PageMods };
             foreach (var page in pages)
             {
                 await Task.Delay(120);
@@ -786,7 +837,7 @@ namespace Campfire
             base.OnPreviewKeyDown(e);
         }
 
-        /// <summary>Campfire was opened again: bring this one back and say why no second window appeared.</summary>
+        /// <summary>Campfire was opened again: brings this one back and shows a notice.</summary>
         private async void ShowAlreadyRunning()
         {
             if (_exitRequested || _closeConfirmed)
@@ -866,8 +917,8 @@ namespace Campfire
 
         private void BtnRelayLamp_Click(object sender, RoutedEventArgs e)
         {
-            OpenSubPage(PageSettings, "Page.Settings");
-            PageSettings.ShowServers();
+            OpenSubPage(PagePreferences, "Page.Settings");
+            PagePreferences.ShowLinkSettings(true);
         }
 
         /// <summary>Closes Campfire without asking again, then starts <paramref name="path"/> when given.</summary>
@@ -920,8 +971,8 @@ namespace Campfire
         }
 
         /// <summary>
-        /// The close button may only hide the window to the notification area. Really closing ends the room,
-        /// so an open room asks first.
+        /// The close button may only hide the window to the notification area. Closing for real asks first
+        /// while a room is open.
         /// </summary>
         private async void Window_Closing(object sender, CancelEventArgs e)
         {

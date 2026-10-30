@@ -14,7 +14,7 @@ import org.objectweb.asm.Opcodes;
  * cannot find the classes it needs; it never changes authentication, encryption or world state.
  */
 public final class CampfireTransformer implements ClassFileTransformer {
-    // The integrated server of a LAN world inherits this method, so one hook covers both kinds of server.
+    // The integrated server of a LAN world inherits this method.
     // The class keeps its name even in obfuscated releases; only the method is renamed there.
     private static final String MINECRAFT_SERVER = "net/minecraft/server/MinecraftServer";
     private static final String TICK_NAME = "tickServer";

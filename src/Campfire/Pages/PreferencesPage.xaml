@@ -45,7 +45,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- ======================== Navigation ======================== -->
-        <Border Background="{DynamicResource BrushCard}" CornerRadius="0,0,0,6" />
+        <Border x:Name="NavBackground" Background="{DynamicResource BrushCard}" CornerRadius="0,0,0,6" />
         <StackPanel x:Name="PanNav" Margin="0,12,0,0">
             <RadioButton x:Name="NavPersonalize" GroupName="Nav" IsChecked="True" Style="{StaticResource PclNavItem}"
                          Checked="Nav_Checked">
@@ -60,6 +60,13 @@
                     <Path Style="{StaticResource NavIcon}"
                           Data="M2.5,4.5 L13.5,4.5 M2.5,11.5 L13.5,11.5 M5.5,2.5 L5.5,6.5 M10.5,9.5 L10.5,13.5" />
                     <TextBlock Style="{StaticResource NavText}" Text="{loc:Text Prefs.NavGeneral}" />
+                </StackPanel>
+            </RadioButton>
+            <RadioButton x:Name="NavLink" GroupName="Nav" Style="{StaticResource PclNavItem}" Checked="Nav_Checked">
+                <StackPanel Orientation="Horizontal">
+                    <Path Style="{StaticResource NavIcon}"
+                          Data="M2.5,8 L9.5,8 M6.5,5 L9.5,8 L6.5,11 M9.5,2.5 L13.5,2.5 L13.5,13.5 L9.5,13.5" />
+                    <TextBlock Style="{StaticResource NavText}" Text="{loc:Text Prefs.NavLink}" />
                 </StackPanel>
             </RadioButton>
             <RadioButton x:Name="NavAbout" GroupName="Nav" Style="{StaticResource PclNavItem}" Checked="Nav_Checked">
@@ -227,6 +234,10 @@
                     </HeaderedContentControl>
                 </StackPanel>
             </ScrollViewer>
+
+            <!-- ======================== Multiplayer ======================== -->
+            <!-- The page brings its own scroll area; the shift keeps its cards in line with the other sections. -->
+            <pages:SettingsPage x:Name="PanLink" Margin="-8,0,0,0" Visibility="Hidden" />
 
             <!-- ======================== About ======================== -->
             <ScrollViewer x:Name="PanAbout" Style="{StaticResource SectionScroll}" Visibility="Hidden">

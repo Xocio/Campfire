@@ -61,6 +61,14 @@ namespace Campfire.Pages
         /// <summary>Raised after a setting changed.</summary>
         public event EventHandler SettingsChanged;
 
+        /// <summary>Raised when the user asks for the multiplayer diagnostics.</summary>
+        public event EventHandler DiagnosticsRequested;
+
+        private void BtnDiagnostics_Click(object sender, RoutedEventArgs e)
+        {
+            DiagnosticsRequested?.Invoke(this, EventArgs.Empty);
+        }
+
         /// <summary>Tells whether a room is running, which some actions must not interrupt.</summary>
         internal Func<bool> IsRoomActive { get; set; }
 
@@ -85,6 +93,7 @@ namespace Campfire.Pages
                 ChkAutoCopy.IsChecked = LinkSettings.AutoCopyCode;
                 ChkClipboard.IsChecked = LinkSettings.DetectClipboard;
                 ChkAutoLan.IsChecked = LinkSettings.AutoOpenLan;
+                ChkBackup.IsChecked = LinkSettings.BackupWorld;
                 ChkShareMods.IsChecked = LinkSettings.ShareMods;
                 ChkServeMods.IsChecked = LinkSettings.ServeMods;
                 ChkServeMods.IsEnabled = LinkSettings.ShareMods;
@@ -136,11 +145,18 @@ namespace Campfire.Pages
 
         // ======================== Room ========================
 
-        private void TxtPlayerName_LostFocus(object sender, KeyboardFocusChangedEventArgs e)
+        private async void TxtPlayerName_LostFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
-            if (LinkSettings.PlayerName == TxtPlayerName.Text.Trim())
+            string name = TxtPlayerName.Text.Trim();
+            if (LinkSettings.PlayerName == name)
                 return;
-            LinkSettings.PlayerName = TxtPlayerName.Text;
+            if (name.Length > 0 && !await Campfire.Link.Lobby.LobbyClient.IsNameAllowedAsync(name))
+            {
+                TxtPlayerName.Text = LinkSettings.PlayerName;
+                await Dialogs.Of(this).ErrorAsync(Text.Get("Settings.PlayerName"), Text.Format("Link.NameBlocked", name));
+                return;
+            }
+            LinkSettings.PlayerName = name;
             Changed();
         }
 
@@ -187,6 +203,7 @@ namespace Campfire.Pages
             LinkSettings.AutoCopyCode = ChkAutoCopy.IsChecked == true;
             LinkSettings.DetectClipboard = ChkClipboard.IsChecked == true;
             LinkSettings.AutoOpenLan = ChkAutoLan.IsChecked == true;
+            LinkSettings.BackupWorld = ChkBackup.IsChecked == true;
             LinkSettings.ShareMods = ChkShareMods.IsChecked == true;
             LinkSettings.ServeMods = ChkServeMods.IsChecked == true;
             ChkServeMods.IsEnabled = LinkSettings.ShareMods;
@@ -291,7 +308,7 @@ namespace Campfire.Pages
                 || PublicNodes.TestedAt.HasValue && DateTime.Now - PublicNodes.TestedAt.Value < PublicNodes.Freshness)
                 return;
 
-            // The first test downloads the component, so that only happens when asked for.
+            // Only tests when the component is installed.
             _componentMissing = !await Task.Run(() => EasyTierPackage.IsInstalled());
             if (_componentMissing)
                 UpdateServers();
@@ -409,6 +426,19 @@ namespace Campfire.Pages
         }
 
         // ======================== General ========================
+
+        private async void BtnOpenBackups_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Directory.CreateDirectory(WorldBackup.Directory);
+                Process.Start("explorer.exe", "\"" + WorldBackup.Directory + "\"");
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is System.ComponentModel.Win32Exception)
+            {
+                await Dialogs.Of(this).ErrorAsync(Text.Get("Settings.OpenBackups"), Text.Format("Settings.ActionFailed", ex.Message));
+            }
+        }
 
         private async void BtnOpenData_Click(object sender, RoutedEventArgs e)
         {

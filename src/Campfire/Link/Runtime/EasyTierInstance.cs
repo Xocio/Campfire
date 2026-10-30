@@ -22,7 +22,7 @@ namespace Campfire.Link.Runtime
         private const int OutputLines = 300;
         private static readonly TimeSpan CliTimeout = TimeSpan.FromSeconds(10);
 
-        // Starts one at a time: the leftover sweep would otherwise remove the file of an instance that is just starting.
+        // Starts one at a time.
         private static readonly object StartSync = new object();
 
         private readonly Process _process;
@@ -296,8 +296,7 @@ namespace Campfire.Link.Runtime
         }
 
         /// <summary>
-        /// Ends network processes whose Campfire is gone, in case one did not shut down cleanly. Processes whose
-        /// parent still runs belong to a room in another Campfire window and are left alone.
+        /// Ends network processes whose Campfire is gone. Processes whose parent still runs are left alone.
         /// </summary>
         private static void StopLeftovers()
         {
@@ -328,8 +327,7 @@ namespace Campfire.Link.Runtime
                 }
             }
 
-            // Configuration files of rooms that ended with a crash still hold their network secret. Running rooms
-            // still use theirs, so the folder is only cleared when no other room is alive.
+            // Clears the configuration files of rooms that ended with a crash; only when no other room is alive.
             string runtimeDirectory = Path.Combine(LinkSettings.DataDirectory, "runtime");
             if (othersAlive || !Directory.Exists(runtimeDirectory))
                 return;

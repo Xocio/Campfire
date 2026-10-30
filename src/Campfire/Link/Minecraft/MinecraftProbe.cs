@@ -43,7 +43,7 @@ namespace Campfire.Link.Minecraft
 
         /// <summary>
         /// Asks a local world for its version name, message and player limit with the 1.4 form of the legacy
-        /// ping (0xFE 0x01), which servers since 1.4 answer. Returns <c>null</c> when it gives no such answer.
+        /// ping (0xFE 0x01), answered by servers since 1.4. Returns <c>null</c> when it gives no such answer.
         /// </summary>
         public static async Task<ServerStatus> GetStatusAsync(int port, TimeSpan timeout)
         {

@@ -20,7 +20,7 @@ namespace Campfire.Pages
 
         /// <summary>
         /// The picture of a room that has none: a 16 by 16 grass block side drawn here in code, in the blocky style
-        /// of the game. It is shown without smoothing so the pixels stay sharp.
+        /// of the game. It is shown without smoothing.
         /// </summary>
         public static BitmapSource Default => _default ?? (_default = BuildDefault());
 
@@ -58,7 +58,7 @@ namespace Campfire.Pages
             return image;
         }
 
-        /// <summary>A fixed scatter of small numbers, so the picture looks the same on every computer.</summary>
+        /// <summary>A fixed scatter of small numbers.</summary>
         private static int Hash(int x, int y)
         {
             unchecked

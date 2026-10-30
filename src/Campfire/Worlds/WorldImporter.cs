@@ -11,9 +11,8 @@ namespace Campfire.Worlds
     /// Copies a world from a <see cref="WorldSource"/> into a game's saves folder.
     /// </summary>
     /// <remarks>
-    /// The world is written to a temporary folder first and renamed when complete, so the game's world list never
-    /// shows half a world, and an existing world is never overwritten: a free name is picked instead. Another
-    /// world nested inside the world, usually an old copy the map maker forgot, is left out; the game never reads it.
+    /// The world is written to a temporary folder first and renamed when complete. An existing world is never
+    /// overwritten: a free name is picked instead. A world nested inside the world is left out.
     /// </remarks>
     internal static class WorldImporter
     {
@@ -63,7 +62,7 @@ namespace Campfire.Worlds
 
         /// <summary>
         /// Moves an imported world into another saves folder, keeping its name when free, and returns the new
-        /// folder. Used when the running game turns out to keep its worlds elsewhere than assumed.
+        /// folder.
         /// </summary>
         public static string Move(string worldDirectory, string savesDirectory)
         {
@@ -151,7 +150,7 @@ namespace Campfire.Worlds
                     if (Skip(relative) || nested.Any(n => relative.StartsWith(n, StringComparison.OrdinalIgnoreCase)))
                         continue;
 
-                    // Entry names come from the archive; refuse any that would land outside the world folder.
+                    // Entries that would land outside the world folder are refused.
                     string path;
                     try
                     {
@@ -229,7 +228,7 @@ namespace Campfire.Worlds
             }
         }
 
-        /// <summary>Refuses to start a copy that would fill the drive; the game needs room to save the world as well.</summary>
+        /// <summary>Refuses to start a copy that would fill the drive.</summary>
         private static void EnsureSpace(string target, long needed)
         {
             const long Reserve = 256L * 1024 * 1024;

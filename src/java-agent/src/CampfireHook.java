@@ -27,17 +27,14 @@ import java.util.UUID;
  * each only while Campfire asks for it through a small state file:
  *
  * <ul>
- * <li>Room overlay: writes the room status straight into the server's outgoing packets, which is
- * why it works in an authenticated LAN world, where Campfire cannot read the encrypted connection.
- * The player list header and footer are cleared once the room ends or Campfire stops.</li>
+ * <li>Room overlay: writes the room status into the server's outgoing packets. The player list header
+ * and footer are cleared once the room ends or Campfire stops.</li>
  * <li>Open to LAN: once the host is in the world Campfire imported, opens it to LAN the same way
- * the game's own button does, so a room can start without the host looking for that button.</li>
+ * the game's own button does.</li>
  * </ul>
  *
- * <p>Everything is reflective so the agent compiles without Minecraft and runs on every release
- * from 1.14.4 on, Java 8 included. Names go through {@link CampfireNames}, which also handles the
- * obfuscated releases. If something a feature needs is missing, that feature disables itself and
- * the game is left untouched.</p>
+ * <p>Everything is reflective. Names go through {@link CampfireNames}, which also handles the
+ * obfuscated releases. If something a feature needs is missing, that feature disables itself.</p>
  */
 public final class CampfireHook {
     private static final long UPDATE_INTERVAL_MS = 5000L;
@@ -81,8 +78,7 @@ public final class CampfireHook {
     private static long lastLanCheck;
     private static long lanPlayersSince;
     /**
-     * The server and request the LAN step already ran for. A new world load is a new server object, and
-     * each request from Campfire carries its own id, so a room created later in the same world is served too.
+     * The server and request the LAN step already ran for.
      */
     private static WeakReference<Object> lanHandled = new WeakReference<>(null);
     private static String lanHandledRequest = "";
@@ -173,7 +169,7 @@ public final class CampfireHook {
     private static void initialize(Object server) throws Exception {
         initialized = true;
         // The hook is loaded by the bootstrap class loader so every game class loader can find it.
-        // Minecraft itself is not visible there, so resolve its classes through the server's loader.
+        // Minecraft's classes are resolved through the server's loader.
         ClassLoader loader = server.getClass().getClassLoader();
         initialize(loader != null ? loader : Thread.currentThread().getContextClassLoader());
     }
@@ -224,7 +220,7 @@ public final class CampfireHook {
             getHostName = CampfireNames.method(minecraftServer, "getSingleplayerName");
         }
 
-        // The player list header and footer only exist since 1.8; before, the room shows in chat alone.
+        // The player list header and footer exist since 1.8; before, the room shows in chat alone.
         if (send == null || chatConstructor == null) {
             overlayDisabled = true;
         }
@@ -403,8 +399,7 @@ public final class CampfireHook {
     }
 
     /**
-     * Answers a pending request with a failure once this game cannot open worlds to LAN, so Campfire
-     * tells the host to use the game's own button instead of waiting.
+     * Answers a pending request with a failure once this game cannot open worlds to LAN.
      */
     private static void refuseLan() {
         long nowMs = System.currentTimeMillis();
@@ -692,7 +687,7 @@ public final class CampfireHook {
             return null;
         }
         List<?> live = (List<?>) (getPlayers != null ? getPlayers.invoke(playerList) : playersField.get(playerList));
-        // The server's player list is live; take a snapshot so a join or leave cannot break the tick.
+        // A snapshot of the server's player list.
         return live == null ? null : new ArrayList<>(live);
     }
 

@@ -17,8 +17,7 @@ namespace Campfire.Link.Runtime
 {
     /// <summary>
     /// The networking component that multiplayer runs on. It is downloaded on first use into
-    /// %LocalAppData%\Campfire\EasyTier and every file is checked against a known SHA-256 hash, so a mirror
-    /// cannot slip in a modified program.
+    /// %LocalAppData%\Campfire\EasyTier and every file is checked against a known SHA-256 hash.
     /// </summary>
     internal static class EasyTierPackage
     {

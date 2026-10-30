@@ -5,9 +5,8 @@ using System.Threading;
 namespace Campfire
 {
     /// <summary>
-    /// Keeps one Campfire per Windows session, wherever its program file lies. Two of them would share and overwrite
-    /// each other's settings and fight over the network ports. Opening Campfire again brings the running one back,
-    /// which matters when its window is hidden and Windows has tucked the notification area icon away.
+    /// Keeps one Campfire per Windows session, wherever its program file lies. Opening Campfire again brings the
+    /// running one back.
     /// </summary>
     internal static class SingleInstance
     {
@@ -55,7 +54,7 @@ namespace Campfire
                 Timeout.Infinite, false);
         }
 
-        /// <summary>Gives up the claim, so a Campfire started right after this one exits runs normally.</summary>
+        /// <summary>Gives up the claim.</summary>
         public static void Release()
         {
             _listener?.Unregister(null);

@@ -18,8 +18,7 @@ namespace Campfire.Patching
         public const string DisabledLoaderName = "关闭下载";
 
         /// <summary>
-        /// Name of the resource Campfire embeds into a patched launcher. Launchers patched by earlier versions carry
-        /// this name, so it must stay as it is.
+        /// Name of the resource Campfire embeds into a patched launcher.
         /// </summary>
         public const string PatchMarkerResource = "PCLPlus.PatchInfo";
 

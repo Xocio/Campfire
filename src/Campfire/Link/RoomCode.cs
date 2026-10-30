@@ -9,8 +9,7 @@ namespace Campfire.Link
     /// </summary>
     /// <remarks>
     /// The 16 characters are the base-34 digits of a number that is a multiple of 7, least significant first.
-    /// The first eight digits name the virtual network and the last eight are its secret, so the code alone is
-    /// enough to join. The multiple-of-7 rule catches most typing mistakes.
+    /// The first eight digits name the virtual network and the last eight are its secret.
     /// </remarks>
     internal sealed class RoomCode
     {

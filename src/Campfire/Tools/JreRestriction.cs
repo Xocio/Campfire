@@ -11,10 +11,9 @@ namespace Campfire.Tools
     /// </summary>
     /// <remarks>
     /// <c>JavaManager._ShouldEnableByDefault</c> decides whether a discovered Java is switched on. It turns off
-    /// every JRE newer than Java 8, and a Java 8 JRE unless <c>lib\rt.jar</c> exists. Only enabled entries are
-    /// offered when a game version picks its Java, so such a JRE can never start the game. The edits keep the
+    /// every JRE newer than Java 8, and a Java 8 JRE unless <c>lib\rt.jar</c> exists. The edits keep the
     /// architecture check and remove both JRE conditions: the <c>rt.jar</c> probe becomes <c>true</c> and the
-    /// version gate becomes nops, so no instruction changes its size and the file keeps its layout.
+    /// version gate becomes nops. No instruction changes its size.
     /// </remarks>
     internal static class JreRestriction
     {

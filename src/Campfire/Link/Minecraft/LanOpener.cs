@@ -14,8 +14,7 @@ namespace Campfire.Link.Minecraft
     /// Like the overlay, the request is a state file the hook only obeys while it is fresh: "world" names the
     /// world folder, or is "*" for whichever world the host plays, "id" tells this request from earlier ones and
     /// "time" is rewritten every few seconds. The hook answers with a result file: the port the world was opened
-    /// on, "already" when the host opened it first, or 0 when it could not. Disposing removes both, so a world
-    /// opened later in the same game is left alone.
+    /// on, "already" when the host opened it first, or 0 when it could not. Disposing removes both.
     /// </remarks>
     internal sealed class LanOpener : IDisposable
     {
@@ -100,7 +99,7 @@ namespace Campfire.Link.Minecraft
                 try
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(_path));
-                    // Written aside and swapped in, so the hook never reads half a file.
+                    // Written aside and swapped in.
                     string temporary = _path + ".tmp";
                     File.WriteAllText(temporary, string.Join("\n", lines) + "\n", Utf8);
                     if (File.Exists(_path))

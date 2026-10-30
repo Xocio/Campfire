@@ -15,8 +15,7 @@ namespace Campfire.Mods
     /// and the files when the host allows it.
     /// </summary>
     /// <remarks>
-    /// A player can only ask for a file by the hash of a jar on that list. Paths never travel, so nothing outside
-    /// the game's mods folder can be read through this.
+    /// A player can only ask for a file by the hash of a jar on that list. Paths never travel.
     /// </remarks>
     internal sealed class ModHost
     {

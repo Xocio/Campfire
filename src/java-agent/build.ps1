@@ -2,8 +2,7 @@
 #
 #   powershell -File build.ps1
 #
-# Requires a JDK 21 or newer (javac and jar on PATH). ASM is kept in java-agent/lib so the
-# build does not need network access.
+# Requires a JDK 21 or newer (javac and jar on PATH). ASM is kept in java-agent/lib.
 
 param(
     [string]$AsmJar = (Join-Path $PSScriptRoot 'lib\asm-9.11.1.jar'),
@@ -42,8 +41,7 @@ try {
     & javac -encoding UTF-8 --release 9 --add-modules jdk.attach -d $attachClasses (Join-Path $source 'CampfireAttach.java')
     if ($LASTEXITCODE -ne 0) { throw 'CampfireAttach.java did not compile.' }
 
-    # Shade ASM into the agent jar; the hook jar stays free of third-party classes so it can
-    # safely sit on the bootstrap class path.
+    # Shade ASM into the agent jar; the hook jar holds no third-party classes.
     Push-Location $agentClasses
     try {
         & jar xf $AsmJar

@@ -42,7 +42,7 @@ namespace Campfire
             new MainWindow().Show();
         }
 
-        /// <summary>Keeps the last unexpected error in the data folder, so it can be attached to a bug report.</summary>
+        /// <summary>Writes the last unexpected error to the data folder.</summary>
         private static void WriteCrashLog(Exception exception)
         {
             try

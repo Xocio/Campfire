@@ -16,8 +16,7 @@ namespace Campfire.Link.Room
     /// learn the game port and keep the player list in sync.
     /// </summary>
     /// <remarks>
-    /// It only listens on the loopback address; the virtual network delivers players' connections there, so the
-    /// service is never exposed to the host's own local network.
+    /// It only listens on the loopback address; the virtual network delivers players' connections there.
     /// </remarks>
     internal sealed class RoomServer : IDisposable
     {
@@ -29,7 +28,7 @@ namespace Campfire.Link.Room
         /// <summary>How long a removed player is kept out before they may join again.</summary>
         public static readonly TimeSpan RemovalTime = TimeSpan.FromMinutes(1);
 
-        /// <summary>Error bodies that tell a joining Campfire why the host turned it away.</summary>
+        /// <summary>Error bodies that tell a joining Campfire the host turned it away.</summary>
         public const string RemovedReply = "campfire:removed";
         public const string BlockedReply = "campfire:blocked";
 
@@ -57,7 +56,7 @@ namespace Campfire.Link.Room
             _minecraftPort = minecraftPort;
             _listener = listener;
             _modsAllowed = LinkSettings.ShareMods;
-            // The mod kinds are always listed, so players keep asking and notice when the host turns sync on.
+            // The mod kinds are always listed.
             var kinds = new[]
             {
                 RoomProtocol.Ping, RoomProtocol.Protocols, RoomProtocol.ServerPort, RoomProtocol.PlayerPing, RoomProtocol.PlayerList,

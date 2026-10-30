@@ -37,13 +37,13 @@ namespace Campfire.Pages
             Unloaded += (sender, e) => Text.LanguageChanged -= OnLanguageChanged;
         }
 
-        /// <summary>Whether a room is open or being set up, which joining another one would end.</summary>
+        /// <summary>Whether a room is open or being set up.</summary>
         internal Func<bool> IsRoomActive { get; set; }
 
         /// <summary>Raised when the invite code of the room arrived.</summary>
         internal event EventHandler<LobbyJoinEventArgs> JoinRequested;
 
-        /// <summary>Raised when the room turned out to be gone, so the list should be loaded again.</summary>
+        /// <summary>Raised when the room turned out to be gone.</summary>
         internal event EventHandler RoomGone;
 
         internal void Show(LobbyRoom room)
@@ -74,6 +74,8 @@ namespace Campfire.Pages
             LabMap.Text = room.Map.Length > 0 ? room.Map : "—";
             LabPlace.Text = LobbyText.Place(room) ?? "—";
             LabOpened.Text = LobbyText.Ago(room.CreatedAt);
+            LabDescription.Text = room.Description ?? "";
+            LabDescription.Visibility = string.IsNullOrEmpty(room.Description) ? Visibility.Collapsed : Visibility.Visible;
             CardPassword.Visibility = room.Locked ? Visibility.Visible : Visibility.Collapsed;
             LabTip.Text = room.Version.Length > 0 ? Text.Format("LobbyRoom.Tip", room.Version) : Text.Get("LobbyRoom.TipNoVersion");
         }

@@ -63,6 +63,11 @@
                                   Content="{loc:Text Settings.AutoLan}" Click="Flag_Click" />
                         <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Settings.AutoLanNote}" />
                     </StackPanel>
+                    <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
+                        <CheckBox x:Name="ChkBackup" Style="{StaticResource PclCheckBox}"
+                                  Content="{loc:Text Settings.Backup}" Click="Flag_Click" />
+                        <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Settings.BackupNote}" />
+                    </StackPanel>
                 </StackPanel>
             </HeaderedContentControl>
 
@@ -96,6 +101,9 @@
                                   Content="{loc:Text Settings.LanShare}" Click="Flag_Click" />
                         <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Settings.LanShareNote}" />
                     </StackPanel>
+
+                    <Button Height="32" Margin="0,14,0,0" HorizontalAlignment="Left" Content="{loc:Text Settings.Diagnostics}"
+                            Style="{StaticResource PclButton}" Click="BtnDiagnostics_Click" />
 
                 </StackPanel>
             </HeaderedContentControl>
@@ -203,6 +211,8 @@
                     <StackPanel Orientation="Horizontal">
                         <Button Height="32" Content="{loc:Text Settings.OpenData}" Style="{StaticResource PclButton}"
                                 Click="BtnOpenData_Click" />
+                        <Button Height="32" Margin="10,0,0,0" Content="{loc:Text Settings.OpenBackups}"
+                                Style="{StaticResource PclButton}" Click="BtnOpenBackups_Click" />
                         <Button Height="32" Margin="10,0,0,0" Content="{loc:Text Settings.RemoveComponent}"
                                 Style="{StaticResource PclButton}" Click="BtnRemoveComponent_Click" />
                     </StackPanel>

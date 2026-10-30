@@ -17,7 +17,7 @@ namespace Campfire.Pages
     /// Settings of Campfire itself, with a side navigation: personalization, general options, about and the
     /// open source licenses. Every change applies at once.
     /// </summary>
-    public partial class PreferencesPage : UserControl
+    public partial class PreferencesPage : UserControl, IPageMotion
     {
         private static readonly (PaletteStyle Style, string Key)[] Styles =
         {
@@ -59,12 +59,22 @@ namespace Campfire.Pages
             };
             IsVisibleChanged += (sender, e) =>
             {
-                if (!IsVisible)
-                    return;
-                Load();
-                Motion.EnterNavigation(PanNav);
+                if (IsVisible)
+                    Load();
             };
             Load();
+        }
+
+        void IPageMotion.Entering(bool animate)
+        {
+            Motion.EnterSideBar(NavBackground, animate);
+            Motion.EnterNavigation(PanNav, animate);
+        }
+
+        void IPageMotion.Leaving()
+        {
+            Motion.LeaveSideBar(NavBackground);
+            Motion.LeaveNavigation(PanNav);
         }
 
         /// <summary>Raised when the notification area settings changed.</summary>
@@ -77,6 +87,7 @@ namespace Campfire.Pages
             if (PanPersonalize == null)
                 return;
             var target = sender == NavGeneral ? PanGeneral
+                : sender == NavLink ? PanLink
                 : sender == NavAbout ? PanAbout
                 : sender == NavLicenses ? PanLicenses
                 : (FrameworkElement)PanPersonalize;
@@ -89,7 +100,18 @@ namespace Campfire.Pages
 
         private int SectionOrder(FrameworkElement section)
         {
-            return section == PanGeneral ? 1 : section == PanAbout ? 2 : section == PanLicenses ? 3 : 0;
+            return section == PanGeneral ? 1 : section == PanLink ? 2 : section == PanAbout ? 3 : section == PanLicenses ? 4 : 0;
+        }
+
+        /// <summary>The multiplayer section, which raises <see cref="SettingsPage.SettingsChanged"/> after a change.</summary>
+        internal SettingsPage LinkSettingsPage => PanLink;
+
+        /// <summary>Switches to the multiplayer section; <paramref name="servers"/> scrolls to the relay servers.</summary>
+        internal void ShowLinkSettings(bool servers)
+        {
+            NavLink.IsChecked = true;
+            if (servers)
+                PanLink.ShowServers();
         }
 
         // ======================== Loading ========================

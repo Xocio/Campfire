@@ -20,7 +20,7 @@ namespace Campfire.Tools
         /// <summary>The community launcher switches off JREs and the tool can allow them.</summary>
         Locked,
 
-        /// <summary>JREs are allowed, either by this tool or because the release never had the rule.</summary>
+        /// <summary>JREs are allowed.</summary>
         Unlocked,
 
         /// <summary>The release has the rule, but its code is not recognized.</summary>
@@ -66,7 +66,7 @@ namespace Campfire.Tools
     /// </summary>
     /// <remarks>
     /// This is a tool of its own and does not take part in the launcher repair. Its backup lives next to the
-    /// launcher under a different name, so the two can be restored independently.
+    /// launcher under a different name.
     /// </remarks>
     internal static class JreUnlocker
     {
@@ -144,7 +144,7 @@ namespace Campfire.Tools
                 patched = Apply(data, image);
             }
 
-            // Read the patched bytes back before touching the file, so a failed edit never replaces the launcher.
+            // Inspects the patched bytes before the file is replaced.
             var verified = Inspect(path, patched);
             if (verified.State != JreState.Unlocked)
                 throw new LauncherException("Fix.VerifyFailed");
@@ -208,7 +208,7 @@ namespace Campfire.Tools
             var body = BundleScanner.LocateBody(data, bodyOffset);
             int codeStart = bodyOffset + body.HeaderSize;
 
-            // Every edit keeps the size of the instruction it replaces, so the header and all offsets stay valid.
+            // Every edit keeps the size of the instruction it replaces.
             var patched = (byte[])data.Clone();
             foreach (var edit in edits)
             {

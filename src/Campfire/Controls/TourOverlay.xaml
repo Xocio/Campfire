@@ -9,7 +9,7 @@
     <Grid x:Name="Root">
         <controls:TourSpotlight x:Name="Spot" Accent="{DynamicResource Brush4}" />
 
-        <!-- The card is placed with a render transform, so moving it never triggers a layout pass. -->
+        <!-- The card is placed with a render transform. -->
         <Canvas>
             <Grid x:Name="Card" Width="360" Opacity="0" RenderTransformOrigin="0.5,0.5">
                 <Grid.RenderTransform>

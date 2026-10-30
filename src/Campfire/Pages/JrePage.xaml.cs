@@ -30,7 +30,7 @@ namespace Campfire.Pages
         private bool _busy;
         private bool _working;
 
-        // The hint text is produced on demand so it follows language changes.
+        // The hint text is produced on demand.
         private HintKind _hintKind;
         private Func<string> _hintText;
 
@@ -270,7 +270,7 @@ namespace Campfire.Pages
                 BtnUnlock.Content = Text.Get("Jre.Unlock");
         }
 
-        /// <summary>Shows a failure in the status bar and as an alert, so it cannot be missed.</summary>
+        /// <summary>Shows a failure in the status bar and as an alert.</summary>
         private void ReportError(string titleKey, Func<string> text)
         {
             ShowHint(HintKind.Error, text);

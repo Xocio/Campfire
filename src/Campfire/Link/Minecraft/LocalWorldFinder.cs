@@ -10,12 +10,11 @@ using System.Threading.Tasks;
 namespace Campfire.Link.Minecraft
 {
     /// <summary>
-    /// Waits for "Open to LAN" on this computer, so the host never has to type a port.
+    /// Waits for "Open to LAN" on this computer.
     /// </summary>
     /// <remarks>
-    /// Rather than listening for Minecraft's LAN announcements, which would make Windows Firewall ask for
-    /// permission, it reads the system table of listening TCP ports, picks those owned by a Java process and
-    /// pings them locally. A dedicated server running on this computer is found the same way.
+    /// It reads the system table of listening TCP ports, picks those owned by a Java process and pings them
+    /// locally. A dedicated server running on this computer is found the same way.
     /// </remarks>
     internal static class LocalWorldFinder
     {

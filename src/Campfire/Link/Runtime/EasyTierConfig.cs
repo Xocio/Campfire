@@ -9,8 +9,7 @@ namespace Campfire.Link.Runtime
     /// Settings of one virtual network instance, written to a TOML file.
     /// </summary>
     /// <remarks>
-    /// The instance is started from a file rather than command-line flags because only file-based instances
-    /// accept port forwards added while running, which joining players need once the host is found.
+    /// The instance is started from a file; only file-based instances accept port forwards added while running.
     /// </remarks>
     internal sealed class EasyTierConfig
     {
@@ -72,7 +71,7 @@ namespace Campfire.Link.Runtime
             toml.AppendLine("enable_kcp_proxy = true");
             if (EasyTierPackage.IsWindows7)
             {
-                // QUIC does not work on Windows 7, so traffic stays on TCP and KCP there.
+                // On Windows 7 traffic uses TCP and KCP, not QUIC.
                 toml.AppendLine("enable_quic_proxy = false");
                 toml.AppendLine("disable_quic_input = true");
             }

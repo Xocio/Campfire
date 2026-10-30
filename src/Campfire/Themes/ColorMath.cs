@@ -5,7 +5,7 @@ namespace Campfire.Themes
 {
     /// <summary>
     /// A color in the OKLCH space: perceived lightness (0 to 1), chroma (0 to about 0.37) and hue in degrees.
-    /// Equal steps in lightness look equally far apart, which keeps generated palettes even.
+    /// Equal steps in lightness look equally far apart.
     /// </summary>
     internal struct Oklch
     {

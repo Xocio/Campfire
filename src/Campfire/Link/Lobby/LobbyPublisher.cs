@@ -9,7 +9,7 @@ namespace Campfire.Link.Lobby
         /// <summary>Being listed, or listed again after a network problem.</summary>
         Publishing,
         Listed,
-        /// <summary>No longer listed and not trying again; <see cref="LobbyPublisher.Error"/> says why.</summary>
+        /// <summary>No longer listed and not trying again; see <see cref="LobbyPublisher.Error"/>.</summary>
         Stopped,
     }
 
@@ -44,7 +44,7 @@ namespace Campfire.Link.Lobby
 
         public LobbyState State { get; private set; } = LobbyState.Publishing;
 
-        /// <summary>The last problem: why it stopped, or what is being retried. <c>null</c> when all is well.</summary>
+        /// <summary>The last problem, or <c>null</c> when all is well.</summary>
         public LobbyException Error { get; private set; }
 
         /// <summary>The title as it is listed.</summary>

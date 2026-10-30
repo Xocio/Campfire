@@ -7,7 +7,7 @@ using System.Reflection;
 namespace Campfire
 {
     /// <summary>
-    /// Loads dependencies from a compressed archive embedded in the executable, so Campfire ships as a single file.
+    /// Loads dependencies from a compressed archive embedded in the executable.
     /// </summary>
     internal static class EmbeddedAssemblyLoader
     {
