@@ -1,10 +1,10 @@
 {
-  "version": "v1.1.2",
-  "date": "2026-10-29",
+  "version": "v1.1.21",
+  "date": "2026-10-30",
   "mirror": "https://dl.mccampfire.top/",
   "app": {
-    "file": "v1.1.2/Campfire.exe",
+    "file": "v1.1.21/Campfire.exe",
     "size": 1832960,
-    "sha256": "dade8f931e04474c261a36636cce37198a8bac7da85ebe95b846306c5c08fa4e"
+    "sha256": "21f819f6584e7c97277511a9fffb65548c8a94c500c5815839086c98aa18a2f8"
   }
 }
