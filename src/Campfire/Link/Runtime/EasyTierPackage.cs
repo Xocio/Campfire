@@ -59,8 +59,8 @@ namespace Campfire.Link.Runtime
         /// <summary>"x86_64", "arm64" or "i686", matching the native processor of this computer.</summary>
         public static string Architecture { get; } = DetectArchitecture();
 
-        /// <summary>The real Windows version, even where compatibility settings report an older one.</summary>
-        public static Version WindowsVersion { get; } = GetRealWindowsVersion();
+        /// <summary>The Windows version reported to a program that declares support for Windows 10 in its manifest.</summary>
+        public static Version WindowsVersion { get; } = Environment.OSVersion.Version;
 
         /// <summary>The component runs on Windows 7 with Service Pack 1 and later.</summary>
         public static bool IsSupportedSystem { get; } = WindowsVersion >= new Version(6, 1, 7601);
@@ -76,8 +76,18 @@ namespace Campfire.Link.Runtime
         {
             get
             {
-                IntPtr kernel = GetModuleHandle("kernel32.dll");
-                return kernel != IntPtr.Zero && GetProcAddress(kernel, "AddDllDirectory") != IntPtr.Zero;
+                try
+                {
+                    IntPtr cookie = AddDllDirectory(Path.GetTempPath());
+                    if (cookie == IntPtr.Zero)
+                        return false;
+                    RemoveDllDirectory(cookie);
+                    return true;
+                }
+                catch (EntryPointNotFoundException)
+                {
+                    return false;
+                }
             }
         }
 
@@ -197,7 +207,7 @@ namespace Campfire.Link.Runtime
                         if (length == null || length < ProbeSize)
                             return null;
 
-                        // Read the probe window to measure real throughput, not just the connection time.
+                        // Reads the probe window to measure throughput.
                         using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                         {
                             var counted = new ProgressStream(stream, response, null);
@@ -400,21 +410,6 @@ namespace Campfire.Link.Runtime
             return Environment.Is64BitOperatingSystem ? "x86_64" : "i686";
         }
 
-        /// <summary>Unlike <see cref="Environment.OSVersion"/>, not affected by the compatibility manifest.</summary>
-        private static Version GetRealWindowsVersion()
-        {
-            var info = new OsVersionInfo { Size = Marshal.SizeOf(typeof(OsVersionInfo)) };
-            try
-            {
-                if (RtlGetVersion(ref info) == 0)
-                    return new Version(info.MajorVersion, info.MinorVersion, info.BuildNumber);
-            }
-            catch (EntryPointNotFoundException)
-            {
-            }
-            return Environment.OSVersion.Version;
-        }
-
         /// <summary>
         /// Starts the component once to see that Windows can run it. On Windows 7 without the required updates it
         /// stops at once with a missing system function.
@@ -438,7 +433,7 @@ namespace Campfire.Link.Runtime
                     if (!await exited.ConfigureAwait(false))
                     {
                         process.Kill();
-                        return true; // Slow but alive; the real start will tell.
+                        return true; // Still running.
                     }
                     await Task.WhenAll(output, errors).ConfigureAwait(false);
                     if (process.ExitCode != 0)
@@ -453,26 +448,11 @@ namespace Campfire.Link.Runtime
             }
         }
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        private struct OsVersionInfo
-        {
-            public int Size;
-            public int MajorVersion;
-            public int MinorVersion;
-            public int BuildNumber;
-            public int PlatformId;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
-            public string ServicePack;
-        }
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern IntPtr AddDllDirectory(string newDirectory);
 
-        [DllImport("ntdll.dll")]
-        private static extern int RtlGetVersion(ref OsVersionInfo info);
-
-        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-        private static extern IntPtr GetModuleHandle(string name);
-
-        [DllImport("kernel32.dll", CharSet = CharSet.Ansi)]
-        private static extern IntPtr GetProcAddress(IntPtr module, string name);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool RemoveDllDirectory(IntPtr cookie);
 
         private const ushort ImageFileMachineI386 = 0x014C;
         private const ushort ImageFileMachineAmd64 = 0x8664;

@@ -4,7 +4,7 @@ Campfire is a Windows toolbox for Minecraft: Java Edition players. It unites rem
 
 ## Principles
 
-**Focused and lightweight.** Campfire does a few things and does each of them thoroughly. The program needs no installer, and the networking component used for multiplayer is downloaded only on first use, with every file verified.
+**Focused.** Campfire does a few things and does each of them thoroughly. The program needs no installer, and the networking component used for multiplayer is downloaded only on first use, with every file verified.
 
 **Launcher independent.** Multiplayer works with the running game, not with a particular launcher. Whichever launcher and account type start the game, you can host or join a room. Other clients that speak the same multiplayer protocol can join the same rooms as Campfire users.
 
@@ -19,9 +19,12 @@ Once the host creates a room and enters a singleplayer world, Campfire opens it 
 - Players connect peer-to-peer whenever possible, and through relay nodes when networks are restrictive.
 - Rooms can be published to the lobby for more players to discover and join.
 - Inside the world, chat greets each player and the Tab list header and footer show the host, player count and latency live, on every release from 1.7.2 on.
-- The host can see members and remove or block guests; guests can hide their IP address.
+- The host can change the room name, player limit and announcement at any time, see members and remove or block guests; guests can hide their IP address.
+- After joining, mods can be synced to match the host's in one step; once the host turns on voice chat, players can talk in the game.
+- Worlds are backed up before a room opens, and any backup can be restored as a new world; recent and favorite rooms can be entered again with one click.
+- Diagnostics checks the multiplayer setup step by step and suggests fixes.
 
-See [Hosting and Joining](./multiplayer) and [Lobby](./lobby).
+See [Hosting and Joining](./multiplayer), [Lobby](./lobby), [Managing a Room](./room), [Mod Sync](./mods) and [Voice Chat](./voice).
 
 ### Maps
 
@@ -52,10 +55,10 @@ The window has four tabs:
 
 | Tab | Contents |
 | --- | --- |
-| Home | Create a room, join a room and the lobby, the current room status and a short how-to |
+| Home | Create a room, join a room, the lobby, recent rooms and the multiplayer settings, the current room status and a short how-to |
 | Maps | Browse and download CurseForge maps, import local maps |
 | Tools | Launcher Repair Tool and JRE Tool; a red dot appears when a repairable launcher is found |
-| Settings | Personalize, General, About and Licenses |
+| Settings | Personalize, General, Multiplayer, About and Licenses |
 
 On first start, a short tour introduces these areas. You can replay it from **Settings › About**.
 

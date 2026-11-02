@@ -36,7 +36,7 @@ namespace Campfire.Link.Minecraft
             _world = worldFolder ?? "*";
             _path = Path.Combine(LinkSettings.DataDirectory, "lan-" + processId + ".txt");
             _resultPath = Path.Combine(LinkSettings.DataDirectory, "lan-" + processId + ".done");
-            // A result from an earlier request must not count for this one.
+            // Clears the result of an earlier request.
             TryDelete(_resultPath);
             Write();
             _timer = new Timer(_ => Write(), null, Interval, Interval);
@@ -46,7 +46,7 @@ namespace Campfire.Link.Minecraft
 
         /// <summary>
         /// The outcome so far: <c>null</c> while waiting, the port once the world is open (0 when the port is
-        /// unknown because the host opened it first), or -1 when the game could not open it.
+        /// unknown, such as when the host opened it first), or -1 when the game could not open it.
         /// </summary>
         public int? ReadResult()
         {
@@ -64,7 +64,6 @@ namespace Campfire.Link.Minecraft
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
-                // The hook may be writing it right now.
                 return null;
             }
         }
@@ -109,7 +108,6 @@ namespace Campfire.Link.Minecraft
                 }
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
                 {
-                    // The hook keeps the last state for a while; the next write usually succeeds.
                 }
             }
         }

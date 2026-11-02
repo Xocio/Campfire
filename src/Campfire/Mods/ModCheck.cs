@@ -36,7 +36,7 @@ namespace Campfire.Mods
 
         public ModComparison Comparison => _selected < 0 ? null : _comparisons[_selected];
 
-        /// <summary>Whether the host plays with mods that players need too; without any there is nothing to check.</summary>
+        /// <summary>Whether the host plays with mods that players need too.</summary>
         public bool HostHasMods => Host.Mods.Any(m => m.IsShared) || (Host.Loader != null && Host.Loader != VersionLoader.Vanilla);
 
         public static Task<ModCheck> RunAsync(ModList host, IEnumerable<string> launcherDirectories)

@@ -9,8 +9,8 @@ namespace Campfire.Patching.Patches
     /// Restores modpack installation after the modpack format has been detected.
     /// </summary>
     /// <remarks>
-    /// <c>ModModpack.ModpackInstall(file, instanceName, logo)</c> still opens the archive and detects its format,
-    /// but then throws instead of dispatching to the format-specific installer. The patch replaces that throw with
+    /// <c>ModModpack.ModpackInstall(file, instanceName, logo)</c> opens the archive and detects its format, then
+    /// throws. The patch replaces the throw with
     /// a dispatch on the detected format.
     /// </remarks>
     internal sealed class ModpackDispatchPatch : Patch

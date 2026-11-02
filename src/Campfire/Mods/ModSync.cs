@@ -66,7 +66,7 @@ namespace Campfire.Mods
     {
         private static readonly TimeSpan KeepDownloads = TimeSpan.FromDays(14);
 
-        private static string DownloadRoot => Path.Combine(AppSettings.DataDirectory, "downloads", "mods");
+        internal static string DownloadRoot => Path.Combine(AppSettings.DataDirectory, "downloads", "mods");
 
         private static string BackupRoot => Path.Combine(AppSettings.DataDirectory, "backups", "mods");
 
@@ -265,9 +265,9 @@ namespace Campfire.Mods
             }
         }
 
-        private static string CachePath(ModInfo mod) => Path.Combine(DownloadRoot, mod.Sha1 + ".jar");
+        internal static string CachePath(ModInfo mod) => Path.Combine(DownloadRoot, mod.Sha1 + ".jar");
 
-        private static bool IsCached(string path, ModInfo mod)
+        internal static bool IsCached(string path, ModInfo mod)
         {
             try
             {

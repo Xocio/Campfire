@@ -41,7 +41,7 @@ public final class CampfireHook {
     private static final long JOIN_GRACE_MS = 2000L;
     private static final long STATE_CHECK_MS = 2000L;
     private static final long STATE_TIMEOUT_MS = 15000L;
-    /** How long the host must have been in the world before it is opened to LAN; loading must settle first. */
+    /** How long the host must have been in the world before it is opened to LAN. */
     private static final long LAN_DELAY_MS = 3000L;
     private static final String WEBSITE = "McCampfire.top";
 
@@ -59,7 +59,7 @@ public final class CampfireHook {
         "getLevelId", "getLevelIdName", "getDefaultGameType", "getWorldData", "getAllowCommands",
         "isAllowCommands", "LAN", "header", "footer", "getLevel", "getLevelData", "OVERWORLD", "players")));
 
-    // Only touched on the server thread. Keyed by player id: respawning creates a new player object.
+    // Only touched on the server thread. Keyed by player id.
     private static final Map<UUID, Long> FirstSeen = new HashMap<>();
     private static final Set<UUID> Welcomed = new HashSet<>();
 
@@ -72,6 +72,8 @@ public final class CampfireHook {
     private static long lastStateCheck;
     private static long lastUpdate;
     private static int lastCount = -1;
+    /** The announcement shown last, to tell when the host changes it. */
+    private static String lastNotice = "";
     private static Map<String, String> texts = Collections.emptyMap();
 
     private static Map<String, String> lanState;
@@ -168,7 +170,7 @@ public final class CampfireHook {
 
     private static void initialize(Object server) throws Exception {
         initialized = true;
-        // The hook is loaded by the bootstrap class loader so every game class loader can find it.
+        // The hook is loaded by the bootstrap class loader.
         // Minecraft's classes are resolved through the server's loader.
         ClassLoader loader = server.getClass().getClassLoader();
         initialize(loader != null ? loader : Thread.currentThread().getContextClassLoader());
@@ -192,7 +194,7 @@ public final class CampfireHook {
         try {
             initializeText(game);
         } catch (Throwable error) {
-            // Without text the overlay cannot work; opening to LAN still can, just without a message.
+            // Without text the overlay is off; opening to LAN still works, without a message.
             componentClass = null;
             overlayDisabled = true;
             log("Overlay unavailable: " + error);
@@ -212,7 +214,7 @@ public final class CampfireHook {
             try {
                 getProfileName = gameProfile.getMethod("getName");
             } catch (NoSuchMethodException newerAuthlib) {
-                // Authlib 10 made GameProfile a record with name() instead of getName().
+                // Authlib 10 and later: GameProfile.name(); before: getName().
                 getProfileName = gameProfile.getMethod("name");
             }
         } else {
@@ -228,7 +230,7 @@ public final class CampfireHook {
             + "; overlay " + (overlayDisabled ? "unavailable" : "ready") + ".");
     }
 
-    /** Text components and the two packets that carry them, which changed shape over the years. */
+    /** Text components and the two packets that carry them. */
     private static void initializeText(ClassLoader game) throws Exception {
         componentClass = CampfireNames.type(COMPONENT, game);
         formattingClass = CampfireNames.type(FORMATTING, game);
@@ -561,7 +563,10 @@ public final class CampfireHook {
         }
 
         String host = readHostName(server);
-        boolean periodic = countChanged || nowMs - lastUpdate >= UPDATE_INTERVAL_MS;
+        String notice = t("notice", "");
+        boolean noticeChanged = !notice.equals(lastNotice);
+        lastNotice = notice;
+        boolean periodic = countChanged || noticeChanged || nowMs - lastUpdate >= UPDATE_INTERVAL_MS;
         if (periodic) {
             lastUpdate = nowMs;
         }
@@ -589,6 +594,8 @@ public final class CampfireHook {
                     for (Object message : buildWelcome(host, count, ping)) {
                         send(connection, chatPacket(message));
                     }
+                } else if (noticeChanged && !notice.isEmpty()) {
+                    send(connection, chatPacket(buildNotice()));
                 }
                 if (first || periodic) {
                     if (tabConstructor != null) {
@@ -613,10 +620,10 @@ public final class CampfireHook {
         return Paths.get(local != null ? local : System.getProperty("user.home", "."), "Campfire", "Link");
     }
 
-    /** This process's id; the state files carry it, so two games never read each other's. */
+    /** This process's id, part of every state file name. */
     private static String pid() {
         if (pid == null) {
-            // "1234@host" on every Java release; ProcessHandle only exists since Java 9.
+            // "1234@host" on every Java release.
             String name = ManagementFactory.getRuntimeMXBean().getName();
             int at = name.indexOf('@');
             pid = at > 0 ? name.substring(0, at) : name;
@@ -644,14 +651,14 @@ public final class CampfireHook {
             long time = Long.parseLong(values.getOrDefault("time", "0"));
             return nowMs - time > STATE_TIMEOUT_MS ? null : values;
         } catch (IOException busy) {
-            // Campfire may be replacing the file right now; keep the last answer.
+            // Keeps the last answer while the file cannot be read.
             return "overlay-".equals(prefix) ? (active ? texts : null) : lanState;
         } catch (NumberFormatException broken) {
             return null;
         }
     }
 
-    /** Tells Campfire the overlay works, so its own fallback stays quiet. */
+    /** Tells Campfire the overlay works. */
     private static void markReady() {
         try {
             Files.write(stateDirectory().resolve("overlay-" + pid() + ".ready"), "ok".getBytes(StandardCharsets.UTF_8));
@@ -732,13 +739,26 @@ public final class CampfireHook {
 
     private static Object buildFooter() throws Exception {
         Object line = component();
+        String notice = t("notice", "");
+        if (!notice.isEmpty()) {
+            line = add(line, buildNotice());
+            line = add(line, text("\n", white));
+        }
         line = add(line, text(WEBSITE, aqua, bold, underline));
         return line;
     }
 
+    /** The room announcement as one line: its title in gold, then the text. */
+    private static Object buildNotice() throws Exception {
+        Object line = component();
+        line = add(line, text(t("noticeTitle", "公告") + " ", gold, bold));
+        line = add(line, text(t("notice", ""), white));
+        return line;
+    }
+
     /**
-     * The welcome as chat messages: one message of three lines, or three messages in 1.7, whose chat shows
-     * line breaks as boxes. 1.7 is the only release without the player list header, which tells it apart.
+     * The welcome as chat messages: one message of three lines, or three messages in 1.7. 1.7 is told
+     * apart by the missing player list header.
      */
     private static List<Object> buildWelcome(String host, int count, int ping) throws Exception {
         Object title = component();
@@ -747,11 +767,16 @@ public final class CampfireHook {
         title = add(title, text(t("welcome", "欢迎加入联机房间"), white));
         Object status = add(component(), status(host, count, ping));
         Object website = add(component(), text(WEBSITE, aqua, bold, underline));
+        boolean hasNotice = !t("notice", "").isEmpty();
         if (tabConstructor == null) {
-            return Arrays.asList(title, status, website);
+            return hasNotice ? Arrays.asList(title, status, buildNotice(), website) : Arrays.asList(title, status, website);
         }
         Object line = add(title, text("\n", white));
         line = add(line, status);
+        if (hasNotice) {
+            line = add(line, text("\n", white));
+            line = add(line, buildNotice());
+        }
         line = add(line, text("\n", white));
         line = add(line, website);
         return Collections.singletonList(line);
@@ -775,7 +800,7 @@ public final class CampfireHook {
         return line;
     }
 
-    /** A text from the state file, so it follows Campfire's display language. */
+    /** A text from the state file, in Campfire's display language. */
     private static String t(String key, String fallback) {
         String value = texts.get(key);
         return value == null || value.isEmpty() ? fallback : value;
@@ -788,7 +813,7 @@ public final class CampfireHook {
     private static Object text(String value, Object... styles) throws Exception {
         String content = value == null ? "" : value;
         if (withStyle == null) {
-            // 1.8.9: a formatting's text is its section-sign code; a reset first keeps earlier styles from leaking in.
+            // 1.8.9: a formatting's text is its section-sign code, after a reset.
             StringBuilder codes = new StringBuilder("§r");
             for (Object style : styles) {
                 codes.append(style);

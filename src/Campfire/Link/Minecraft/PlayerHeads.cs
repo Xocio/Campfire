@@ -81,7 +81,7 @@ namespace Campfire.Link.Minecraft
                                        || ex is FormatException || ex is ArgumentException || ex is InvalidOperationException)
             {
                 LinkLog.Info($"No skin for {uuid}: {ex.Message}");
-                // A stale copy is better than nothing when the service cannot be reached.
+                // The cached copy is used when the service cannot be reached.
                 return File.Exists(cacheFile) ? TryDecode(cacheFile) : null;
             }
         }

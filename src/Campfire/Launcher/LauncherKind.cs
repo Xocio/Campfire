@@ -5,10 +5,10 @@ namespace Campfire.Launcher
     /// </summary>
     internal enum LauncherKind
     {
-        /// <summary>Official PCL: one managed executable that dnlib can rewrite as a whole.</summary>
+        /// <summary>The official launcher: one managed executable that dnlib can rewrite as a whole.</summary>
         Official,
 
-        /// <summary>PCL Community Edition: a .NET single-file bundle whose assemblies are patched in place.</summary>
+        /// <summary>The community launcher: a .NET single-file bundle whose assemblies are patched in place.</summary>
         Community,
     }
 }

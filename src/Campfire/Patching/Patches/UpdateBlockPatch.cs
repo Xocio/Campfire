@@ -6,7 +6,7 @@ using Campfire.Localization;
 namespace Campfire.Patching.Patches
 {
     /// <summary>
-    /// Stops the launcher from replacing itself with an update that disables the download feature again.
+    /// Stops the launcher from replacing itself with an update.
     /// </summary>
     /// <remarks>
     /// Every update path, including updates pushed through server notices, ends in <c>ModSecret.UpdateStart</c>.
@@ -22,7 +22,7 @@ namespace Campfire.Patching.Patches
         private const string MethodName = "UpdateStart";
         private const int HintTypeBlue = 0;
 
-        /// <summary>Shown inside PCL; not localized.</summary>
+        /// <summary>Shown inside the launcher; not localized.</summary>
         internal const string Message = "Campfire 已停用启动器自动更新。如需更新，请手动下载新版本后重新运行 Campfire。";
 
         /// <summary>Notices from earlier builds; launchers carrying one count as repaired.</summary>

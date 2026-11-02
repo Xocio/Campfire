@@ -38,7 +38,7 @@ namespace Campfire.Mods
 
     /// <summary>
     /// Which shared mods differ between the host and a version on this computer. Mods that only one side needs,
-    /// such as minimaps or shader loaders, are left out: they never keep a player from entering.
+    /// such as minimaps or shader loaders, are left out.
     /// </summary>
     internal sealed class ModComparison
     {
@@ -51,7 +51,7 @@ namespace Campfire.Mods
         /// <summary>Missing mods first, then different versions, then extra ones, each by name.</summary>
         public IReadOnlyList<ModChange> Changes { get; }
 
-        /// <summary>How many mods on either side were left out; only one side needs them.</summary>
+        /// <summary>How many one-sided mods were left out.</summary>
         public int Ignored { get; }
 
         public bool IsMatch => Changes.Count == 0;
@@ -104,7 +104,7 @@ namespace Campfire.Mods
         }
 
         /// <summary>
-        /// Rebuilt jars of one release differ in their hash only; the version they declare is what the loaders compare.
+        /// Jars of the same mod with the same declared version count as the same release.
         /// </summary>
         private static bool SameVersion(ModInfo a, ModInfo b)
         {

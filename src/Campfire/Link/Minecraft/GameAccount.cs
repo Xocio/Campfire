@@ -63,7 +63,7 @@ namespace Campfire.Link.Minecraft
                     }
                     catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException || ex is System.ComponentModel.Win32Exception)
                     {
-                        // One unreadable process must not stop the search or fail the room.
+                        // An unreadable process is skipped.
                         continue;
                     }
                     if (commandLine == null || commandLine.IndexOf("--username", StringComparison.Ordinal) < 0)
@@ -127,7 +127,7 @@ namespace Campfire.Link.Minecraft
 
         internal static string ReadCommandLine(int processId)
         {
-            // Windows 7 has no direct way to ask for another process's command line; it goes through WMI there.
+            // Windows 7 reads the command line through WMI.
             if (!_commandLineQuerySupported)
                 return ReadCommandLineFromWmi(processId);
 
@@ -152,8 +152,7 @@ namespace Campfire.Link.Minecraft
                         return null;
 
                     // The buffer starts with a UNICODE_STRING that points into the same buffer.
-                    // Length is an unsigned 16-bit byte count; reading it signed goes negative for command lines
-                    // over 32 KB (a modded game with a long classpath), which made PtrToStringUni throw.
+                    // Length is an unsigned 16-bit byte count.
                     int length = (ushort)Marshal.ReadInt16(buffer);
                     IntPtr text = Marshal.ReadIntPtr(buffer, IntPtr.Size);
                     if (text == IntPtr.Zero || length < 2)

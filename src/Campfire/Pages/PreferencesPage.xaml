@@ -196,7 +196,7 @@
                         </StackPanel>
                     </HeaderedContentControl>
 
-                    <!-- Only official builds know the update service; the cards stay hidden in builds made from source. -->
+                    <!-- Shown only in official builds. -->
                     <HeaderedContentControl x:Name="CardUpdate" Margin="0,15,0,0" Header="{loc:Text Prefs.UpdateHeader}"
                                             Style="{StaticResource PclCard}">
                         <StackPanel Margin="10,0,0,0">
@@ -236,7 +236,7 @@
             </ScrollViewer>
 
             <!-- ======================== Multiplayer ======================== -->
-            <!-- The page brings its own scroll area; the shift keeps its cards in line with the other sections. -->
+            <!-- The negative margin lines its cards up with the other sections. -->
             <pages:SettingsPage x:Name="PanLink" Margin="-8,0,0,0" Visibility="Hidden" />
 
             <!-- ======================== About ======================== -->

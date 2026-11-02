@@ -14,7 +14,7 @@ using Campfire.Patching;
 namespace Campfire.Pages
 {
     /// <summary>
-    /// "Tools" tab: repairs the downloads of PCL 2.99 and restores the backup.
+    /// "Tools" tab: repairs the launcher's downloads and restores the backup.
     /// </summary>
     public partial class RepairPage : UserControl
     {
@@ -228,7 +228,7 @@ namespace Campfire.Pages
 
         // ======================== Helpers ========================
 
-        /// <summary>XAML texts update through bindings; texts set from code are refreshed here.</summary>
+        /// <summary>Refreshes the texts set from code.</summary>
         private void OnLanguageChanged(object sender, EventArgs e)
         {
             RenderPatches();

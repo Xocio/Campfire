@@ -14,7 +14,7 @@ namespace Campfire.Mods
     {
         private const int MaxMods = 1000;
 
-        /// <summary>Jars already hashed, by path, size and time written; a folder of a few hundred mods is read once.</summary>
+        /// <summary>Jars already hashed, by path, size and time written.</summary>
         private static readonly Dictionary<string, (long Size, DateTime Written, ModInfo Mod)> Cache =
             new Dictionary<string, (long, DateTime, ModInfo)>(StringComparer.OrdinalIgnoreCase);
 

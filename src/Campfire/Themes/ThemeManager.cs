@@ -202,7 +202,7 @@ namespace Campfire.Themes
             Application.Current?.Dispatcher.BeginInvoke(new Action(() => ScheduleSystemChange(wallpaper)));
         }
 
-        /// <summary>Windows sends several notices for one change; react once they settle.</summary>
+        /// <summary>Reacts once the change notices from Windows settle.</summary>
         private static void ScheduleSystemChange(bool wallpaper)
         {
             if (_systemChange == null)
@@ -228,7 +228,7 @@ namespace Campfire.Themes
         // ======================== Resources ========================
 
         // Every change hands out new brushes. A brush that fades starts its animation before it goes into the
-        // resources: the window may seal what it holds, but a brush that is still animating cannot be sealed.
+        // resources.
         private static readonly Duration TransitionTime = new Duration(TimeSpan.FromMilliseconds(400));
         private static readonly IEasingFunction TransitionEase = CreateEase();
 
@@ -319,7 +319,7 @@ namespace Campfire.Themes
                         neutral = 0.014;
                         break;
                 }
-                // A gray key color has no meaningful hue; keep it gray rather than inventing one.
+                // A gray key color stays gray.
                 if (seed.C < 0.02 && style != PaletteStyle.Vibrant && style != PaletteStyle.Expressive)
                 {
                     accent = Math.Min(accent, 0.02);

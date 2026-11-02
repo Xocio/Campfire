@@ -71,7 +71,7 @@ namespace Campfire.Mods
         /// <summary>What to show: the display name, else the id, else the file name.</summary>
         public string Title => Name ?? (Ids.Count > 0 ? Ids[0] : Path.GetFileNameWithoutExtension(FileName));
 
-        /// <summary>Whether players must agree on this mod: content mods must be on both sides.</summary>
+        /// <summary>Whether the mod must be on both sides.</summary>
         public bool IsShared => Side == ModSide.Both;
 
         public Dictionary<string, object> ToJson()
@@ -93,7 +93,7 @@ namespace Campfire.Mods
             return json;
         }
 
-        /// <summary>Reads an entry the host sent; anything malformed is dropped rather than trusted.</summary>
+        /// <summary>Reads an entry the host sent; returns <c>null</c> when it is malformed.</summary>
         public static ModInfo FromJson(object value)
         {
             if (!(value is Dictionary<string, object> json))

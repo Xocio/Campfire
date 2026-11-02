@@ -2,8 +2,8 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--
-        Starting values of the theme. At startup the theme manager replaces every color below with ones built from
-        the chosen key color (light or dark), so these only matter before that happens.
+        Starting values of the theme. The theme manager replaces every color below with ones built from the
+        chosen key color (light or dark).
         Brush1 is the main text color; Brush2 to Brush8 go from the strongest accent to the lightest tint.
     -->
     <Color x:Key="Color1">#4A3A30</Color>

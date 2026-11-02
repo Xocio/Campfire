@@ -35,6 +35,7 @@ The following principles are enforced in code and held as lasting design constra
 | Relay server latency test | The enabled built-in network nodes | Once the multiplayer component is downloaded: after start and every half hour thereafter; when the multiplayer settings are opened or a test is requested | Never performed if multiplayer is not used |
 | Skin faces | Mojang's official services | When a room has premium players | Yes, in Multiplayer settings › Privacy |
 | Mod sync | Modrinth, the Campfire service, CurseForge file servers and the host of the room | When a sync is started on the Mod Sync page | Not contacted unless used; the host can stop mod sync and mod downloads at any time |
+| Voice chat | Modrinth and the other players in the room | When the host turns on voice chat, or a player installs the voice chat mod | Off by default; the host can turn it off on the room page at any time |
 | Name mappings for the in-game component | Mojang's official services and a mirror in China | When the host runs a release that needs them | Not downloaded unless multiplayer is used |
 | Opening web pages | The system browser | Only when a link or button is clicked | — |
 
@@ -77,7 +78,7 @@ Reports contain no IP address, game account or UUID, player name, room or invite
 ### Lobby
 
 - **Browsing**: retrieves the room list only, and sends nothing.
-- **Listing a room**: sends the room name, tags, host name, game version, world name, player count, invite code, an optional password and picture, and a random ID used only by the lobby. That ID is unrelated to the device ID and the statistics ID. While the room is open, the player count is updated every few minutes; the listing is withdrawn when the room closes.
+- **Listing a room**: sends the room name, tags, host name, game version, world name, player count, whether voice chat is offered, invite code, an optional password and picture, and a random ID used only by the lobby. That ID is unrelated to the device ID and the statistics ID. While the room is open, the player count is updated every few minutes; the listing is withdrawn when the room closes.
 - **Joining**: requests the room's invite code from the server, submitting the entered password for protected rooms.
 - **Reporting**: sends only the room number and the reason.
 
@@ -102,7 +103,7 @@ Multiplayer is built on the open-source network component EasyTier 2.6.4. On fir
 
 The SHA-256 of all three files is fixed in Campfire's code and matches the official release exactly. Whatever the source, a file that does not match is neither kept nor run. An accelerator learns only your IP address and that you are downloading the component.
 
-The component runs as a standard user, installs no virtual network adapter and never relays traffic for other networks. A host exposes only the ports required by the game and the room; a joining player exposes none. Players in a room cannot use it to reach any other service on your computer.
+The component runs as a standard user, installs no virtual network adapter and never relays traffic for other networks. A host exposes only the ports required by the game and the room; with voice chat on, it also exposes the one UDP port the voice server of its game uses. A joining player exposes none. Players in a room cannot use it to reach any other service on your computer.
 
 ### Nodes and connections
 
@@ -139,6 +140,15 @@ After joining a room, Campfire asks the host for its mod list and compares it wi
 - **What is written**: only the mods folder of the chosen version, under file names that cannot contain a path. Replaced or removed mods are moved to a backup folder in Campfire's data folder and are never deleted. Downloaded files are cached for 14 days.
 
 Mods are programs that run with the game. Taking mods from the host is no different from accepting a modpack the host sends you, so use it only with hosts you trust.
+
+### Voice chat
+
+Voice chat is provided by the open-source mod Simple Voice Chat. Campfire installs the mod and carries its voice data over the multiplayer network.
+
+- **Host turns on voice chat**: when the mods folder of the host's game lacks the mod, Campfire asks `api.modrinth.com` for the newest release for that game version and mod loader, downloads it only from `cdn.modrinth.com` and checks its SHA-1. A disabled copy of the mod is enabled again. When the mod's client settings turn off voice chat in singleplayer and LAN worlds, Campfire turns it back on. A newly installed mod takes effect once the game is restarted.
+- **Port**: the host exposes the UDP port of its voice server only while that server runs. The port is taken from the game log and checked to belong to that game; it is closed as soon as voice chat is turned off.
+- **Players installing the mod**: after a player clicks **Install Voice Chat** and confirms, Campfire downloads the host's exact file first, and the newest release for that game version when Modrinth does not have it. The file is written only into the mods folder of a local version with the host's game version and loader.
+- **Voice data**: the mod carries voice data between players and the host, encrypted by the multiplayer network. Campfire neither reads nor keeps any voice content.
 
 ## Limits of exposure
 

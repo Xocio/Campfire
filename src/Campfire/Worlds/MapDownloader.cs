@@ -28,7 +28,7 @@ namespace Campfire.Worlds
 
         private static readonly Lazy<HttpClient> Client = new Lazy<HttpClient>(() =>
         {
-            // The whole download may take long; ProgressStream ends it when the server stops sending instead.
+            // No overall time limit; ProgressStream ends a download when the server stops sending.
             var client = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Campfire/" + OnlineService.CurrentVersion.ToString(3));
             return client;

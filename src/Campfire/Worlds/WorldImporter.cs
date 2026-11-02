@@ -18,7 +18,7 @@ namespace Campfire.Worlds
     {
         private const string TemporarySuffix = ".campfire.tmp";
 
-        /// <summary>Longest folder name to create; the game itself keeps world folder names short as well.</summary>
+        /// <summary>Longest folder name to create.</summary>
         private const int MaxNameLength = 64;
 
         private static readonly HashSet<string> ReservedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -181,7 +181,7 @@ namespace Campfire.Worlds
                         while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
                         {
                             cancellation.ThrowIfCancellationRequested();
-                            // The free space was checked against the sizes the archive declares; hold it to them.
+                            // Each entry is held to the size the archive declares.
                             written += read;
                             if (written > entry.Length)
                                 throw new InvalidDataException("An entry of the archive holds more than it declares.");

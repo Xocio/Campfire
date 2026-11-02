@@ -34,7 +34,7 @@ namespace Campfire.Launcher
         {
             LauncherFile.EnsureNotRunning(launcherPath);
 
-            // The community edition is a bundle of assemblies; it needs an in-place fix instead of a module rewrite.
+            // The community edition is patched in place inside its bundle.
             var initial = LauncherInspector.Inspect(launcherPath);
             if (initial.Kind == LauncherKind.Community)
             {

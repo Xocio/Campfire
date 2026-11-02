@@ -75,7 +75,7 @@ namespace Campfire.Link.Runtime
         }
     }
 
-    /// <summary>How open a network is to incoming connections; more open networks connect more easily.</summary>
+    /// <summary>How open a network is to incoming connections.</summary>
     internal enum NatKind
     {
         Unknown,

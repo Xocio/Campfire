@@ -8,12 +8,8 @@ namespace Campfire.Patching.Patches
     /// Restores the "Install" entry on the "Download" page's left navigation.
     /// </summary>
     /// <remarks>
-    /// <c>PageDownloadLeft..ctor</c> gained a tail block, added after 2.99.0.0, that hides the
-    /// "Install" item, forces the page to the Mod sub-page and checks the Mod item instead. The
-    /// version list and installer this uncovers still work once <see cref="VersionListPatch"/> is
-    /// applied, but the entry that leads to them is hidden, so downloads stay unreachable even on a
-    /// fully patched assembly. The patch truncates the constructor back to just the call to
-    /// <c>InitializeComponent</c> followed by <c>ret</c>, as it was before the tail block existed.
+    /// <c>PageDownloadLeft..ctor</c> ends with a block that hides the "Install" item and opens the Mod sub-page.
+    /// The patch cuts the constructor back to the <c>InitializeComponent</c> call followed by <c>ret</c>.
     /// </remarks>
     internal sealed class DownloadEntryPatch : Patch
     {

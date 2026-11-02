@@ -43,7 +43,7 @@ namespace Campfire.Link.Runtime
                     if (latency == null)
                         continue;
 
-                    // The first sample can still include the handshake; one more settles it.
+                    // A second sample is taken after the first.
                     if (first == null)
                     {
                         first = latency;

@@ -60,8 +60,12 @@ Settings, the networking component, logs and caches live in `%LocalAppData%\Camp
 | `Link\link.log` | Multiplayer log for troubleshooting |
 | `Link\blocked.json` | The host's blocklist |
 | `Link\heads\` | Skin faces of premium players, cached for a day |
+| `Link\rooms.txt` | Recent and favorite rooms |
+| `backups\worlds\` | World backups made before opening rooms, the latest 5 per world |
+| `backups\mods\` | Mods replaced or removed by mod sync |
+| `downloads\mods\` | Files downloaded by mod sync, cached for 14 days |
 | `agent.log` | Log of the in-game component |
 | `mappings\` | Mojang name mapping files used by the in-game component |
 | `downloads\maps\` | Downloaded map files, removed after a week unused |
 
-**Multiplayer settings › Data** opens this folder or removes the networking component so it is downloaded again next time.
+**Multiplayer settings › Data** opens this folder or the backup folder, or removes the networking component so it is downloaded again next time.

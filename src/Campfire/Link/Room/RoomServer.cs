@@ -38,10 +38,19 @@ namespace Campfire.Link.Room
         public const string ModsOffReply = "campfire:mods_off";
         public const string ModFileRefusedReply = "campfire:mod_file_refused";
 
+        /// <summary>Error body of the voice request while the host has voice chat off.</summary>
+        public const string VoiceOffReply = "campfire:voice_off";
+
+        /// <summary>Error body that tells a joining player the room is full.</summary>
+        public const string FullReply = "campfire:full";
+
         private readonly byte[] _protocolList;
         private volatile bool _modsAllowed;
         private volatile ModHost _mods;
         private volatile bool _modsUnavailable;
+        private volatile byte[] _voice;
+        private volatile RoomInfo _room = new RoomInfo(null, null, 0);
+        private volatile byte[] _roomJson = Encoding.UTF8.GetBytes(Json.Serialize(new RoomInfo(null, null, 0).ToJson()));
 
         private readonly PlayerProfile _host;
         private readonly int _minecraftPort;
@@ -60,7 +69,7 @@ namespace Campfire.Link.Room
             var kinds = new[]
             {
                 RoomProtocol.Ping, RoomProtocol.Protocols, RoomProtocol.ServerPort, RoomProtocol.PlayerPing, RoomProtocol.PlayerList,
-                RoomProtocol.ModList, RoomProtocol.ModFile,
+                RoomProtocol.ModList, RoomProtocol.ModFile, RoomProtocol.Voice, RoomProtocol.Room,
             };
             _protocolList = Encoding.UTF8.GetBytes(string.Join("\0", kinds));
         }
@@ -89,6 +98,23 @@ namespace Campfire.Link.Room
         {
             get => _modsAllowed;
             set => _modsAllowed = value;
+        }
+
+        /// <summary>The room's name, announcement and player limit as players receive them.</summary>
+        public RoomInfo Room
+        {
+            get => _room;
+            set
+            {
+                _room = value ?? new RoomInfo(null, null, 0);
+                _roomJson = Encoding.UTF8.GetBytes(Json.Serialize(_room.ToJson()));
+            }
+        }
+
+        /// <summary>The host's voice chat as players receive it, or <c>null</c> while it is off.</summary>
+        public VoiceOffer Voice
+        {
+            set => _voice = value == null ? null : Encoding.UTF8.GetBytes(Json.Serialize(value.ToJson()));
         }
 
         public static RoomServer Start(PlayerProfile host, int minecraftPort)
@@ -186,7 +212,7 @@ namespace Campfire.Link.Room
                 catch (Exception ex) when (ex is IOException || ex is SocketException || ex is ObjectDisposedException
                                            || ex is InvalidDataException || ex is OperationCanceledException)
                 {
-                    // The player left or the connection broke; the guest list times them out.
+                    // The player left or the connection broke.
                 }
             }
         }
@@ -218,6 +244,13 @@ namespace Campfire.Link.Room
                         return _modsAllowed
                             ? HandleModFile(request.Body)
                             : (RoomFraming.StatusError, Encoding.UTF8.GetBytes(ModFileRefusedReply));
+                    case RoomProtocol.Room:
+                        return (RoomFraming.StatusOk, _roomJson);
+                    case RoomProtocol.Voice:
+                        var voice = _voice;
+                        return voice != null
+                            ? (RoomFraming.StatusOk, voice)
+                            : (RoomFraming.StatusError, Encoding.UTF8.GetBytes(VoiceOffReply));
                     default:
                         return (RoomFraming.StatusError, Encoding.UTF8.GetBytes("Requested protocol hasn't been implemented."));
                 }
@@ -249,6 +282,9 @@ namespace Campfire.Link.Room
             lock (_guests)
             {
                 int index = _guests.FindIndex(g => g.Profile.MachineId == profile.MachineId);
+                int limit = _room.MaxPlayers;
+                if (index < 0 && limit > 0 && _guests.Count + 1 >= limit)
+                    return (RoomFraming.StatusError, Encoding.UTF8.GetBytes(FullReply));
                 if (index < 0)
                 {
                     _guests.Add(new Guest(profile));

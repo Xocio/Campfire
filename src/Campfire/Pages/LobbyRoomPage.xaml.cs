@@ -77,7 +77,8 @@ namespace Campfire.Pages
             LabDescription.Text = room.Description ?? "";
             LabDescription.Visibility = string.IsNullOrEmpty(room.Description) ? Visibility.Collapsed : Visibility.Visible;
             CardPassword.Visibility = room.Locked ? Visibility.Visible : Visibility.Collapsed;
-            LabTip.Text = room.Version.Length > 0 ? Text.Format("LobbyRoom.Tip", room.Version) : Text.Get("LobbyRoom.TipNoVersion");
+            LabTip.Text = (room.Version.Length > 0 ? Text.Format("LobbyRoom.Tip", room.Version) : Text.Get("LobbyRoom.TipNoVersion"))
+                          + (room.Voice ? Text.Get("LobbyRoom.VoiceTip") : "");
         }
 
         private async void BtnJoin_Click(object sender, RoutedEventArgs e)

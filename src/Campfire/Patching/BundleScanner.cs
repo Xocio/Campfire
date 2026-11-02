@@ -36,7 +36,7 @@ namespace Campfire.Patching
     }
 
     /// <summary>
-    /// Locates managed assemblies inside a .NET single-file launcher (PCL Community Edition).
+    /// Locates managed assemblies inside a .NET single-file launcher.
     /// </summary>
     /// <remarks>
     /// A bundled launcher is a native host with the assemblies appended as separate PE images.
@@ -52,7 +52,7 @@ namespace Campfire.Patching
             var nameBytes = Encoding.ASCII.GetBytes(assemblyName);
             foreach (var range in EnumerateImageRanges(file))
             {
-                // Cheap pre-filter: the assembly name only appears in metadata, which is plain text.
+                // Quick check: the assembly name appears as plain text in the metadata.
                 if (!Contains(file, range.Start, range.Length, nameBytes))
                     continue;
 

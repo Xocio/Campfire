@@ -62,7 +62,7 @@ namespace Campfire.Link.Minecraft
             {
                 try
                 {
-                    // Bound to its own address, a datagram to that address keeps it as the sender.
+                    // Bound to its own address.
                     socket.Bind(new IPEndPoint(lan, 0));
                     socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastInterface, lan.GetAddressBytes());
                     socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastTimeToLive, 1);
@@ -93,7 +93,7 @@ namespace Campfire.Link.Minecraft
                         }
                         catch (SocketException)
                         {
-                            // An adapter went down, or no game is listening yet; keep trying.
+                            // Sending failed; it is tried again on the next round.
                         }
                     }
 

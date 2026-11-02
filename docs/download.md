@@ -5,7 +5,6 @@ import rel from './.vitepress/release.json'
 const GH = 'https://github.com/Xocio/Campfire/releases'
 const app = rel.app || {}
 const mirror = rel.mirror && app.file ? rel.mirror.replace(/\/?$/, '/') + app.file : ''
-const size = app.size ? (app.size / 1024 / 1024).toFixed(1) + ' MB' : ''
 </script>
 
 ::: tip 国内直链
@@ -18,13 +17,12 @@ const size = app.size ? (app.size / 1024 / 1024).toFixed(1) + ' MB' : ''
 
 <table class="dl-table">
   <thead>
-    <tr><th>文件</th><th>版本</th><th>大小</th><th>下载</th></tr>
+    <tr><th>文件</th><th>版本</th><th>下载</th></tr>
   </thead>
   <tbody>
     <tr>
       <td><code>Campfire.exe</code></td>
       <td>{{ rel.version || '—' }}</td>
-      <td>{{ size || '—' }}</td>
       <td><template v-if="mirror"><a :href="mirror">国内直链</a> · </template><a :href="GH" target="_blank" rel="noopener">GitHub</a></td>
     </tr>
   </tbody>
@@ -53,7 +51,7 @@ certutil -hashfile Campfire.exe SHA256
 | 操作系统 | Windows 7 SP1、8、8.1、10、11 |
 | 运行库 | .NET Framework 4.8；Windows 10 与 11 已内置 |
 | 多人联机 | Windows 7 需另行安装 KB3063858 与 KB4474419 更新 |
-| 磁盘空间 | 程序约 1.7 MB；首次联机时另需约 14 MB 存放联机组件 |
+| 磁盘空间 | 首次联机时需约 14 MB 存放联机组件 |
 
 Windows 7 与 8 如尚未安装 .NET Framework 4.8，请从[微软官方网站](https://dotnet.microsoft.com/download/dotnet-framework/net48)下载。
 

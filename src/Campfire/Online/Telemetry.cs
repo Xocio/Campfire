@@ -136,7 +136,7 @@ namespace Campfire.Online
         /// <summary>The report as readable text, for the settings page.</summary>
         public static string Preview()
         {
-            // Looking must not create an id; one is only made for the first real report.
+            // Shows the report without creating an id.
             string id = File.Exists(IdPath) ? LoadOrCreateId() : Text.Get("Prefs.StatsIdPending");
             var report = BuildReport(id);
             var builder = new StringBuilder();

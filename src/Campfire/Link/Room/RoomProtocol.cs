@@ -29,6 +29,12 @@ namespace Campfire.Link.Room
         /// </summary>
         public const string ModFile = "campfire:mod_file";
 
+        /// <summary>Campfire only: the host's voice chat as JSON, with the UDP port of its voice server.</summary>
+        public const string Voice = "campfire:voice";
+
+        /// <summary>Campfire only: the room's name, announcement and player limit as JSON.</summary>
+        public const string Room = "campfire:room";
+
         /// <summary>Virtual host name prefix of a room's host; the room service port follows it.</summary>
         public const string HostNamePrefix = "scaffolding-mc-server-";
 

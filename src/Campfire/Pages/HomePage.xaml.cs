@@ -23,7 +23,7 @@ namespace Campfire.Pages
         {
             InitializeComponent();
             Text.LanguageChanged += (sender, e) => RenderQuickJoin();
-            // Without the service there is no lobby; the other two tiles share the row.
+            // Without the service the lobby tile is hidden and the other two share the row.
             if (!Link.Lobby.LobbyClient.IsAvailable)
             {
                 TileLobby.Visibility = Visibility.Collapsed;

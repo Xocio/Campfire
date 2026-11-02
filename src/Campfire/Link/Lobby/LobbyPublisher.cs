@@ -24,17 +24,20 @@ namespace Campfire.Link.Lobby
 
         private readonly LobbyListing _listing;
         private readonly Func<int> _players;
+        private readonly Func<bool> _voice;
         private readonly SynchronizationContext _ui;
         private readonly CancellationTokenSource _run = new CancellationTokenSource();
         private LobbyTicket _ticket;
 
         /// <param name="ticket">The listing when the room was just listed, or <c>null</c> to list it first.</param>
         /// <param name="players">Current number of players; read from a background thread.</param>
-        public LobbyPublisher(LobbyListing listing, LobbyTicket ticket, Func<int> players, SynchronizationContext ui)
+        /// <param name="voice">Whether the room offers voice chat now; read from a background thread.</param>
+        public LobbyPublisher(LobbyListing listing, LobbyTicket ticket, Func<int> players, Func<bool> voice, SynchronizationContext ui)
         {
             _listing = listing;
             _ticket = ticket;
             _players = players;
+            _voice = voice;
             _ui = ui;
             if (ticket != null)
                 State = LobbyState.Listed;
@@ -46,6 +49,9 @@ namespace Campfire.Link.Lobby
 
         /// <summary>The last problem, or <c>null</c> when all is well.</summary>
         public LobbyException Error { get; private set; }
+
+        /// <summary>What the room is listed with.</summary>
+        public LobbyListing Listing => _listing;
 
         /// <summary>The title as it is listed.</summary>
         public string Title => _ticket?.Title ?? _listing.Title;
@@ -79,6 +85,7 @@ namespace Campfire.Link.Lobby
                 {
                     if (_ticket == null)
                     {
+                        _listing.Voice = _voice();
                         var ticket = await LobbyClient.PublishAsync(_listing, _players(), token).ConfigureAwait(false);
                         if (token.IsCancellationRequested)
                         {
@@ -92,7 +99,7 @@ namespace Campfire.Link.Lobby
                     }
                     else
                     {
-                        wait = await LobbyClient.HeartbeatAsync(_ticket, _players(), _listing.MaxPlayers, token).ConfigureAwait(false);
+                        wait = await LobbyClient.HeartbeatAsync(_ticket, _players(), _listing.MaxPlayers, _voice(), token).ConfigureAwait(false);
                     }
                     Set(LobbyState.Listed, null);
                 }
@@ -102,7 +109,7 @@ namespace Campfire.Link.Lobby
                 }
                 catch (LobbyException ex) when (ex.Kind == LobbyError.NotFound && _ticket != null)
                 {
-                    // The service dropped the listing, for example after the computer slept; list it again.
+                    // The service dropped the listing; it is listed again.
                     LinkLog.Info("The lobby listing expired; listing the room again.");
                     _ticket = null;
                     continue;
@@ -121,14 +128,32 @@ namespace Campfire.Link.Lobby
                     return;
                 }
 
+                var wake = new CancellationTokenSource();
+                Interlocked.Exchange(ref _wake, wake)?.Dispose();
                 try
                 {
-                    await Task.Delay(wait, token).ConfigureAwait(false);
+                    using (var linked = CancellationTokenSource.CreateLinkedTokenSource(token, wake.Token))
+                        await Task.Delay(wait, linked.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
-                    return;
+                    if (token.IsCancellationRequested)
+                        return;
                 }
+            }
+        }
+
+        private CancellationTokenSource _wake;
+
+        /// <summary>Sends the next heartbeat now, with what changed about the room.</summary>
+        public void Refresh()
+        {
+            try
+            {
+                _wake?.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
             }
         }
 
@@ -176,7 +201,6 @@ namespace Campfire.Link.Lobby
             }
             catch (LobbyException ex)
             {
-                // The listing drops out by itself once the heartbeats stop.
                 LinkLog.Warn("The room could not be taken down from the lobby: " + ex.Message);
             }
             catch (OperationCanceledException)

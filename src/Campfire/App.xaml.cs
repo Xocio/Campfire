@@ -11,12 +11,6 @@ namespace Campfire
     {
         private const string LanguageArgument = "--lang=";
 
-        static App()
-        {
-            // Must run before any type that references an embedded dependency is loaded.
-            EmbeddedAssemblyLoader.Register();
-        }
-
         protected override void OnStartup(StartupEventArgs e)
         {
             // Opening Campfire again shows the one that is already running.
@@ -29,7 +23,7 @@ namespace Campfire
             DispatcherUnhandledException += (sender, args) => WriteCrashLog(args.Exception);
             AppDomain.CurrentDomain.UnhandledException += (sender, args) => WriteCrashLog(args.ExceptionObject as Exception);
 
-            // Windows 7 only offers TLS 1.2 when a program asks for it; download sites require it.
+            // Turns on TLS 1.2 for Windows 7.
             ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
 
             // Priority: command line (--lang=en / --lang=zh), saved choice, system language.

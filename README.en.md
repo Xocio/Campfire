@@ -238,7 +238,7 @@ Campfire/
 │  ├─ Assets/                    Icons
 │  ├─ MainWindow.xaml            Main window and page changes
 │  ├─ TrayIcon.cs                Notification area icon
-│  └─ EmbeddedAssemblyLoader.cs  Loads embedded dependencies
+│  └─ ILRepack.targets           Merges dnlib into Campfire.exe after the build
 ├─ src/java-agent/               Java agent attached to the host's game
 ├─ tools/                        Release signing scripts
 └─ Campfire.slnx

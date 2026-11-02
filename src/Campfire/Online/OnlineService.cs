@@ -120,7 +120,7 @@ namespace Campfire.Online
                 return null;
             try
             {
-                // A slow network must not keep the check hanging; it simply runs again next time.
+                // Times out after a few seconds; the next check tries again.
                 using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellation))
                 using (var response = await Client.GetAsync(BaseUrl + "/v1/manifest", WithTimeout(timeout)).ConfigureAwait(false))
                 {
@@ -190,7 +190,7 @@ namespace Campfire.Online
                         MaxVersion = ParseVersion(Get(item, "maxVersion")),
                         Language = Get(item, "lang") as string ?? "",
                         ButtonText = Get(item, "buttonText") as string,
-                        // Only web pages; a notice must never start a program.
+                        // Only web pages are opened.
                         ButtonUrl = url != null && url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ? url : null,
                         TitleColor = ParseColor(Get(item, "titleColor")),
                         BodyColor = ParseColor(Get(item, "bodyColor")),

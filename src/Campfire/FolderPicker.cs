@@ -5,7 +5,7 @@ namespace Campfire
 {
     /// <summary>
     /// The folder chooser of current Windows: the Explorer-style window with an address bar, where a path can be typed
-    /// or pasted. The older tree-only chooser of Windows Forms has neither.
+    /// or pasted.
     /// </summary>
     internal static class FolderPicker
     {

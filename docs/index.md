@@ -39,9 +39,13 @@ features:
     link: /guide/maps
     linkText: 了解地图
   - title: 沉浸的房间体验
-    details: 进入单人世界即自动对局域网开放；房间呈现于局域网世界列表，聊天栏与 Tab 列表实时显示房主、在线人数与延迟。
+    details: 进入单人世界即自动对局域网开放；聊天栏与 Tab 列表实时显示房主、在线人数与房间公告，开房前自动备份存档。
     link: /guide/room
     linkText: 房间管理
+  - title: 模组同步与语音
+    details: 加入房间后一键让模组与房主保持一致；房主开启语音后，安装同一模组即可在游戏中相互交谈。
+    link: /guide/mods
+    linkText: 了解模组同步
   - title: 透明可验证
     details: 远程内容无法更改设置或运行程序，更新须通过数字签名校验；全部联网行为逐项公开，均可在源代码中核对。
     link: /guide/security

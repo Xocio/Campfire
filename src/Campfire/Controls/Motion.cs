@@ -36,6 +36,17 @@ namespace Campfire.Controls
             }
         }
 
+        /// <summary>
+        /// Marks a scroll area that holds a page's cards: the elements beside it, such as a button bar, arrive and
+        /// leave with the cards.
+        /// </summary>
+        public static readonly DependencyProperty CardScrollProperty =
+            DependencyProperty.RegisterAttached("CardScroll", typeof(bool), typeof(Motion), new PropertyMetadata(false));
+
+        public static void SetCardScroll(ScrollViewer scroll, bool value) => scroll.SetValue(CardScrollProperty, value);
+
+        public static bool GetCardScroll(ScrollViewer scroll) => (bool)scroll.GetValue(CardScrollProperty);
+
         // ======================== Pages ========================
 
         /// <summary>
@@ -101,6 +112,7 @@ namespace Campfire.Controls
             TimeSpan total;
             if (items == null)
             {
+                page.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, Ms(90)) { EasingFunction = FluentIn });
                 var shift = Translate(page);
                 shift.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(-10 * direction, Ms(90)) { EasingFunction = FluentIn });
                 total = TimeSpan.FromMilliseconds(90);
@@ -132,7 +144,7 @@ namespace Campfire.Controls
 
         /// <summary>
         /// Switches between two parts of a page that share one place. Without <paramref name="animate"/> the switch
-        /// happens at once, for a page that is out of sight.
+        /// happens at once.
         /// </summary>
         public static void Swap(FrameworkElement from, FrameworkElement to, int direction = 1, bool animate = true)
         {
@@ -142,6 +154,87 @@ namespace Campfire.Controls
                 LeavePage(from, direction, animate);
             if (to != null)
                 EnterPage(to, direction, animate);
+        }
+
+        // ======================== Title bar ========================
+
+        private const int TitleOut = 100;
+
+        /// <summary>A title bar part fades out while drifting toward the side it leaves to, then hides.</summary>
+        public static void LeaveTitle(FrameworkElement part, int direction)
+        {
+            int generation = Next(part);
+            if (!Enabled || part.Visibility != Visibility.Visible)
+            {
+                part.Visibility = Visibility.Hidden;
+                Reset(part);
+                return;
+            }
+
+            part.IsHitTestVisible = false;
+            FadeTitleOut(part, direction);
+            After(TimeSpan.FromMilliseconds(TitleOut + 60), () =>
+            {
+                if (Current(part) != generation)
+                    return;
+                part.Visibility = Visibility.Hidden;
+                part.IsHitTestVisible = true;
+                Reset(part);
+            });
+        }
+
+        /// <summary>
+        /// A title bar part comes in after the part it replaces has faded: it fades in and slides a short way to
+        /// rest without overshooting.
+        /// </summary>
+        public static void EnterTitle(FrameworkElement part, int direction)
+        {
+            Next(part);
+            part.IsHitTestVisible = true;
+            part.Visibility = Visibility.Visible;
+            if (!Enabled)
+            {
+                Reset(part);
+                return;
+            }
+            SlideTitleIn(part, direction, TimeSpan.FromMilliseconds(TitleOut));
+        }
+
+        /// <summary>Replaces a title's text: the old text fades out, then the new text slides in.</summary>
+        public static void ChangeTitle(TextBlock label, string text, int direction)
+        {
+            int generation = Next(label);
+            if (!Enabled || label.Visibility != Visibility.Visible || !label.IsVisible)
+            {
+                label.Text = text;
+                Reset(label);
+                return;
+            }
+
+            FadeTitleOut(label, direction);
+            After(TimeSpan.FromMilliseconds(TitleOut), () =>
+            {
+                if (Current(label) != generation)
+                    return;
+                label.Text = text;
+                SlideTitleIn(label, direction, TimeSpan.Zero);
+            });
+        }
+
+        /// <summary>Fades out within <see cref="TitleOut"/>, most of the fade in its first half.</summary>
+        private static void FadeTitleOut(FrameworkElement part, int direction)
+        {
+            part.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, Ms(TitleOut - 20)) { EasingFunction = Soft });
+            Translate(part).BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(-8 * direction, Ms(TitleOut - 20)) { EasingFunction = Soft });
+        }
+
+        private static void SlideTitleIn(FrameworkElement part, int direction, TimeSpan delay)
+        {
+            part.BeginAnimation(UIElement.OpacityProperty, Hold(0, 1, delay, 180, Soft));
+            var shift = Translate(part);
+            shift.BeginAnimation(TranslateTransform.YProperty, null);
+            shift.Y = 0;
+            shift.BeginAnimation(TranslateTransform.XProperty, Hold(12 * direction, 0, delay, 260, Fluent));
         }
 
         /// <summary>The items of a side navigation slide in from the left, one after another.</summary>
@@ -155,7 +248,7 @@ namespace Campfire.Controls
                 return;
             }
 
-            // Like cards, the items wait out the slow first frame of the page before they move.
+            // The items start moving two frames after the page appears.
             foreach (var item in items)
             {
                 item.BeginAnimation(UIElement.OpacityProperty, null);
@@ -294,7 +387,7 @@ namespace Campfire.Controls
             if (!CanTranslate(item))
                 return;
             // Two movements run at the same time and add up: a short glide and a longer one that lands with a
-            // small bounce. Together they give one continuous fall that never stops halfway.
+            // small bounce.
             var (glide, land) = Layers(item);
             glide.BeginAnimation(TranslateTransform.YProperty, Hold(-5, 0, delay, 250, Fluent));
             land.BeginAnimation(TranslateTransform.YProperty, Hold(-11, 0, delay, 350, Settle));
@@ -320,12 +413,27 @@ namespace Campfire.Controls
             if (card == null || !(VisualTreeHelper.GetParent(card) is Panel column))
                 return null;
             var items = column.Children.OfType<FrameworkElement>().Where(c => c.Visibility == Visibility.Visible).ToList();
-            if (VisualTreeHelper.GetParent(column) is Panel outer)
+            FrameworkElement holder = column;
+            var scroll = ScrollAround(column, page);
+            if (scroll != null && GetCardScroll(scroll))
+                holder = scroll;
+            if (VisualTreeHelper.GetParent(holder) is Panel outer)
             {
                 items.AddRange(outer.Children.OfType<FrameworkElement>()
-                    .Where(c => c != column && c.Visibility == Visibility.Visible));
+                    .Where(c => c != holder && c.Visibility == Visibility.Visible));
             }
             return items;
+        }
+
+        /// <summary>The nearest scroll area around <paramref name="element"/> inside <paramref name="page"/>, or <c>null</c>.</summary>
+        private static ScrollViewer ScrollAround(DependencyObject element, DependencyObject page)
+        {
+            for (var parent = VisualTreeHelper.GetParent(element); parent != null && parent != page; parent = VisualTreeHelper.GetParent(parent))
+            {
+                if (parent is ScrollViewer scroll)
+                    return scroll;
+            }
+            return null;
         }
 
         private static HeaderedContentControl FindFirstCard(DependencyObject parent)

@@ -20,13 +20,13 @@ The lobby lists every public room, each with the following information:
 | --- | --- |
 | Picture and name | Set by the host |
 | Host and map | The host's player name and the world name |
-| Game version and tags | Confirm that your game version matches before joining |
+| Game version and tags | Confirm that your game version matches before joining; rooms offering voice chat carry a **Voice** tag |
 | Players | Current and maximum player count |
 | Age | How long the room has been listed |
 
 Rooms can be searched by name, host or map, and filtered by game version. The list refreshes periodically; **Refresh** updates it at once.
 
-Selecting a room opens **Room details**, which shows the game version, rough region and opening time. **Join room** retrieves the room's invite code from the lobby and completes the join; from there the process is identical to joining with an invite code, as described in [Hosting and Joining](./multiplayer).
+Selecting a room opens **Room details**, which shows the room description, game version, rough region and opening time; it also mentions voice chat when the room offers it, and the mod can be installed from the room page after joining; see [Voice Chat](./voice). **Join room** retrieves the room's invite code from the lobby and completes the join; from there the process is identical to joining with an invite code, as described in [Hosting and Joining](./multiplayer).
 
 ::: tip Password-protected rooms
 Rooms marked **Password** require the password provided by the host. The server verifies it before releasing the invite code.
@@ -48,6 +48,7 @@ A room cannot be joined while you are in another; leave or close the current roo
    | --- | --- |
    | **Room name** | Required; defaults to "Player's world". Names containing inappropriate content are refused |
    | **Picture** | Optional. A PNG or JPG image, or the map's own icon |
+   | **About** | Optional, up to 100 characters about the gameplay, rules or who is welcome. Checked against the same word filter |
    | **Password** | Optional. Leave it empty to admit anyone |
    | **Tags** | Up to three, such as Survival, Building, Redstone or Minigames |
    | **Show my region** | Whether the lobby displays the rough region inferred by the server |
@@ -56,7 +57,9 @@ A room cannot be joined while you are in another; leave or close the current roo
 
 Campfire reads the game version and world name from the running game, so neither needs to be entered; should reading fail, the room can still be listed.
 
-While listed, the room's lobby status appears at the bottom left of the multiplayer page, and Campfire updates the player count every few minutes. **Unlist** withdraws the listing at any time; closing the room withdraws it automatically.
+While listed, the room's lobby status appears at the bottom left of the multiplayer page, and Campfire updates the player count and voice chat every few minutes. **Unlist** withdraws the listing at any time; closing the room withdraws it automatically.
+
+While listed, the name, player limit, description, tags and region can still be changed under **Tools › Room settings**; the lobby is updated as soon as you save. See [Room settings](./room#room-settings).
 
 ::: warning About your IP address
 Players who connect to you directly can learn your IP address. If this is a concern, enable [Hide my IP address](./network#hide-my-ip-address) in the multiplayer settings. Once listed, you can still [remove or block](./room) any player at any time.
@@ -71,6 +74,7 @@ If a room's name or content is inappropriate, choose **Report** in its room deta
 | Message | Cause and resolution |
 | --- | --- |
 | The room name contains words that cannot be shown | Revise the room name and try again |
+| The description contains content that cannot be made public | Revise the description and try again |
 | Another player has already listed this room | An invite code can be listed only once |
 | Too many requests | Too many rooms from this network, or too many attempts; try again later |
 | The lobby is full | Try again later |
@@ -79,6 +83,6 @@ If a room's name or content is inappropriate, choose **Report** in its room deta
 
 ## Privacy
 
-Campfire sends room information only when you list a room: the room name, invite code, player name, game version, map name, tags and player count, together with a random ID used only by the lobby. That ID is unrelated to the multiplayer device ID and to the statistics ID.
+Campfire sends room information only when you list a room: the room name, description, invite code, player name, game version, map name, tags, player count and whether voice chat is offered, together with a random ID used only by the lobby. That ID is unrelated to the multiplayer device ID and to the statistics ID.
 
 The server retains only a digest of a room password, and keeps IP addresses only as salted digests, used to limit listing frequency and to address abuse. When a room is unlisted or closed, it leaves the lobby immediately and its records are deleted within a day. See [Network Security](./security#lobby) for the complete account.

@@ -15,7 +15,7 @@ using Campfire.Tools;
 namespace Campfire.Pages
 {
     /// <summary>
-    /// "Tools" tab: lets PCL Community Edition start the game with a JRE.
+    /// "Tools" tab: lets the community launcher start the game with a JRE.
     /// </summary>
     public partial class JrePage : UserControl
     {
@@ -237,7 +237,7 @@ namespace Campfire.Pages
 
         // ======================== Helpers ========================
 
-        /// <summary>XAML texts update through bindings; texts set from code are refreshed here.</summary>
+        /// <summary>Refreshes the texts set from code.</summary>
         private void OnLanguageChanged(object sender, EventArgs e)
         {
             RenderRows();

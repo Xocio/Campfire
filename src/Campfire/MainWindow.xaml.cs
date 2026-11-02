@@ -73,6 +73,16 @@ namespace Campfire
             PageLobbyRoom.RoomGone += (sender, e) => PageLobby.Invalidate();
             PageLink.LauncherDirectories = LauncherDirectories;
             PageMods.CheckChanged += (sender, check) => PageLink.SetModCheck(check);
+            PageLink.BackupRequested += (sender, e) =>
+            {
+                OpenSubPage(PageBackup, "Page.Backup");
+                PageBackup.Show(PageLink.Session);
+            };
+            PageLink.RoomSettingsRequested += (sender, e) =>
+            {
+                OpenSubPage(PageRoomSettings, "Page.RoomSettings");
+                PageRoomSettings.Show(PageLink.Session);
+            };
 
             Text.LanguageChanged += OnLanguageChanged;
             Closed += (sender, e) => Text.LanguageChanged -= OnLanguageChanged;
@@ -180,16 +190,12 @@ namespace Campfire
                 _subPages.Pop();
             _subPages.Push((page, titleKey));
 
-            LabTitleSub.Text = Text.Get(titleKey);
+            Motion.ChangeTitle(LabTitleSub, Text.Get(titleKey), 1);
             if (fromTab)
             {
-                Motion.LeavePage(PanTitleMain, 1);
-                Motion.LeavePage(PanTabs, 1);
-                Motion.EnterPage(PanTitleSub, 1);
-            }
-            else
-            {
-                Motion.EnterPage(LabTitleSub, 1);
+                Motion.LeaveTitle(PanTitleMain, 1);
+                Motion.LeaveTitle(PanTabs, 1);
+                Motion.EnterTitle(PanTitleSub, 1);
             }
             ShowPage(page, 1);
         }
@@ -204,15 +210,14 @@ namespace Campfire
             if (_subPages.Count > 0)
             {
                 var previous = _subPages.Peek();
-                LabTitleSub.Text = Text.Get(previous.TitleKey);
-                Motion.EnterPage(LabTitleSub, -1);
+                Motion.ChangeTitle(LabTitleSub, Text.Get(previous.TitleKey), -1);
                 ShowPage(previous.Page, -1);
                 return;
             }
 
-            Motion.LeavePage(PanTitleSub, -1);
-            Motion.EnterPage(PanTitleMain, -1);
-            Motion.EnterPage(PanTabs, -1);
+            Motion.LeaveTitle(PanTitleSub, -1);
+            Motion.EnterTitle(PanTitleMain, -1);
+            Motion.EnterTitle(PanTabs, -1);
             ShowPage(_tabPage, -1);
         }
 
@@ -595,7 +600,7 @@ namespace Campfire
         /// </summary>
         private async void WarmUpPages()
         {
-            var pages = new FrameworkElement[] { PageMaps, PageTools, PagePreferences, PageLink, PageRecent, PageDiagnostics, PageLobby, PageLobbyRoom, PageRepair, PageJre, PageWorld, PageMap, PageMods };
+            var pages = new FrameworkElement[] { PageMaps, PageTools, PagePreferences, PageLink, PageRecent, PageDiagnostics, PageLobby, PageLobbyRoom, PageRepair, PageJre, PageWorld, PageMap, PageMods, PageBackup, PageRoomSettings };
             foreach (var page in pages)
             {
                 await Task.Delay(120);
@@ -934,7 +939,7 @@ namespace Campfire
         {
             if (_restartPath == null)
                 return;
-            // The new Campfire must not find this one still holding the program file.
+            // Gives up the single-instance claim before the new Campfire starts.
             SingleInstance.Release();
             try
             {

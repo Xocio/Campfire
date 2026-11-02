@@ -7,7 +7,7 @@ using Campfire.Patching.Patches;
 namespace Campfire.Launcher
 {
     /// <summary>
-    /// Inspects and fixes PCL Community Edition, which ships as a .NET single-file bundle.
+    /// Inspects and fixes the community launcher, which ships as a .NET single-file bundle.
     /// </summary>
     /// <remarks>
     /// The community edition keeps its download code; version 2.15.1 gates it behind a region check

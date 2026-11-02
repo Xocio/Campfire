@@ -19,7 +19,7 @@ namespace Campfire.Mods
     /// </remarks>
     internal sealed class ModHost
     {
-        /// <summary>Largest piece of a file sent in one answer; the room service limits answers to 1 MB.</summary>
+        /// <summary>Largest piece of a file sent in one answer.</summary>
         public const int ChunkSize = 512 * 1024;
 
         private readonly Dictionary<string, string> _paths;

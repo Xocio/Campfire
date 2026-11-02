@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -96,6 +95,7 @@ namespace Campfire.Link.Runtime
             LinkLog.Info($"Starting network instance (rpc {rpcPort}, host name {config.Hostname}, hidden address {config.HideAddress}).");
             process.Start();
             ChildProcessJob.Assign(process);
+            WriteOwner(process);
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
             return instance;
@@ -139,6 +139,16 @@ namespace Campfire.Link.Runtime
             return false;
         }
 
+        /// <summary>Replaces the UDP ports other members may reach on this computer; an empty list blocks them all.</summary>
+        public async Task<bool> SetUdpWhitelistAsync(IEnumerable<int> ports, CancellationToken cancellation)
+        {
+            string list = string.Join(",", ports.Distinct().Select(p => p.ToString(CultureInfo.InvariantCulture)));
+            string output = await RunCliAsync(cancellation, "whitelist", "set-udp", list.Length > 0 ? list : "0").ConfigureAwait(false);
+            if (output == null)
+                LinkLog.Warn("The UDP whitelist could not be changed to " + (list.Length > 0 ? list : "0") + ".");
+            return output != null;
+        }
+
         /// <summary>The last lines the process printed, for error reports.</summary>
         public string GetRecentOutput()
         {
@@ -162,6 +172,7 @@ namespace Campfire.Link.Runtime
             catch (Exception ex) when (ex is InvalidOperationException || ex is System.ComponentModel.Win32Exception)
             {
             }
+            DeleteOwner(_process.Id);
             _process.Dispose();
 
             try
@@ -280,7 +291,7 @@ namespace Campfire.Link.Runtime
             return argument.IndexOfAny(new[] { ' ', '"' }) < 0 ? argument : "\"" + argument.Replace("\"", "\\\"") + "\"";
         }
 
-        /// <summary>A port nobody listens on right now. Good enough for local control ports.</summary>
+        /// <summary>A port nobody listens on right now.</summary>
         internal static int FindFreePort()
         {
             var listener = new TcpListener(IPAddress.Loopback, 0);
@@ -296,7 +307,7 @@ namespace Campfire.Link.Runtime
         }
 
         /// <summary>
-        /// Ends network processes whose Campfire is gone. Processes whose parent still runs are left alone.
+        /// Ends network processes whose Campfire is gone. Processes whose owner still runs are left alone.
         /// </summary>
         private static void StopLeftovers()
         {
@@ -309,7 +320,7 @@ namespace Campfire.Link.Runtime
                     if (image == null || !image.StartsWith(EasyTierPackage.InstallDirectory, StringComparison.OrdinalIgnoreCase))
                         continue;
 
-                    if (HasLivingParent(process))
+                    if (HasLivingOwner(process))
                     {
                         othersAlive = true;
                         continue;
@@ -319,6 +330,7 @@ namespace Campfire.Link.Runtime
                     {
                         process.Kill();
                         process.WaitForExit(3000);
+                        DeleteOwner(process.Id);
                         LinkLog.Info("Stopped a leftover network process " + process.Id + ".");
                     }
                     catch (Exception ex) when (ex is InvalidOperationException || ex is System.ComponentModel.Win32Exception)
@@ -327,11 +339,11 @@ namespace Campfire.Link.Runtime
                 }
             }
 
-            // Clears the configuration files of rooms that ended with a crash; only when no other room is alive.
+            // Clears the configuration and owner files of rooms that ended with a crash; only when no other room is alive.
             string runtimeDirectory = Path.Combine(LinkSettings.DataDirectory, "runtime");
             if (othersAlive || !Directory.Exists(runtimeDirectory))
                 return;
-            foreach (string file in Directory.GetFiles(runtimeDirectory, "*.toml"))
+            foreach (string file in Directory.GetFiles(runtimeDirectory, "*.toml").Concat(Directory.GetFiles(runtimeDirectory, "*.owner")))
             {
                 try
                 {
@@ -343,24 +355,49 @@ namespace Campfire.Link.Runtime
             }
         }
 
-        private static bool HasLivingParent(Process process)
+        private static string OwnerFile(int processId)
+        {
+            return Path.Combine(LinkSettings.DataDirectory, "runtime", processId + ".owner");
+        }
+
+        /// <summary>Records which Campfire started the network process, by process id and start time.</summary>
+        private static void WriteOwner(Process process)
         {
             try
             {
-                var info = new ProcessBasicInformation();
-                if (NtQueryInformationProcess(process.Handle, 0, ref info, Marshal.SizeOf(info), out _) != 0)
-                    return true;
-
-                int parentId = info.InheritedFromUniqueProcessId.ToInt32();
-                using (var parent = Process.GetProcessById(parentId))
-                {
-                    // Process ids are reused; a parent that started later is a different program.
-                    return parent.StartTime <= process.StartTime;
-                }
+                using (var self = Process.GetCurrentProcess())
+                    File.WriteAllText(OwnerFile(process.Id), self.Id + Environment.NewLine + self.StartTime.ToUniversalTime().Ticks);
             }
-            catch (ArgumentException)
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidOperationException)
             {
-                // No process with the parent id: the Campfire that started it is gone.
+            }
+        }
+
+        private static void DeleteOwner(int processId)
+        {
+            try
+            {
+                File.Delete(OwnerFile(processId));
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+            }
+        }
+
+        private static bool HasLivingOwner(Process process)
+        {
+            try
+            {
+                string[] lines = File.ReadAllLines(OwnerFile(process.Id));
+                if (lines.Length < 2 || !int.TryParse(lines[0], out int ownerId) || !long.TryParse(lines[1], out long startTicks))
+                    return false;
+
+                using (var owner = Process.GetProcessById(ownerId))
+                    return owner.StartTime.ToUniversalTime().Ticks == startTicks;
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException)
+            {
+                // No owner record, or no process with the recorded id.
                 return false;
             }
             catch (Exception ex) when (ex is InvalidOperationException || ex is System.ComponentModel.Win32Exception)
@@ -369,20 +406,5 @@ namespace Campfire.Link.Runtime
                 return true;
             }
         }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct ProcessBasicInformation
-        {
-            public IntPtr ExitStatus;
-            public IntPtr PebBaseAddress;
-            public IntPtr AffinityMask;
-            public IntPtr BasePriority;
-            public IntPtr UniqueProcessId;
-            public IntPtr InheritedFromUniqueProcessId;
-        }
-
-        [DllImport("ntdll.dll")]
-        private static extern int NtQueryInformationProcess(IntPtr process, int infoClass, ref ProcessBasicInformation info,
-            int size, out int returned);
     }
 }

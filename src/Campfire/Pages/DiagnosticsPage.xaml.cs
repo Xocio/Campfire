@@ -38,7 +38,7 @@ namespace Campfire.Pages
             Text.LanguageChanged += (sender, e) => RenderTitles();
             IsVisibleChanged += (sender, e) =>
             {
-                // The window draws every page once while idle, with hit testing off; that is not a visit.
+                // A page drawn while idle with hit testing off is not a visit.
                 if (IsVisible && IsHitTestVisible)
                     Start();
                 else if (!IsVisible)

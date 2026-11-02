@@ -11,7 +11,7 @@ namespace Campfire.Launcher
     /// </summary>
     internal static class LauncherFile
     {
-        /// <summary>Largest community bundle considered; real ones are far smaller.</summary>
+        /// <summary>Largest community bundle size accepted.</summary>
         public const long MaxBundleSize = 64L * 1024 * 1024;
 
         private const string TempExtension = ".campfire.tmp";

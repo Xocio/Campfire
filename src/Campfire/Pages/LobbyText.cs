@@ -114,11 +114,13 @@ namespace Campfire.Pages
             return panel;
         }
 
-        /// <param name="withVersion">Whether the version leads the pills; the details page shows it on its own.</param>
+        /// <param name="withVersion">Whether the version leads the pills.</param>
         public static void AddPills(Panel panel, LobbyRoom room, bool withVersion = true)
         {
             if (withVersion)
                 panel.Children.Add(Pill(VersionName(room), true));
+            if (room.Voice)
+                panel.Children.Add(Pill(Text.Get("Lobby.Voice"), true));
             foreach (string tag in room.Tags.Select(Tag).Where(t => t != null))
                 panel.Children.Add(Pill(tag, false));
         }

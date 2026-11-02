@@ -20,11 +20,6 @@ const mirrorUrl = computed(() =>
   release.mirror && release.app?.file ? release.mirror.replace(/\/?$/, '/') + release.app.file : ''
 )
 
-const size = computed(() => {
-  const bytes = release.app?.size
-  return bytes ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : ''
-})
-
 const t = computed(() =>
   en.value
     ? {
@@ -54,7 +49,6 @@ const t = computed(() =>
 
     <p class="dl-meta">
       {{ t.meta }}
-      <template v-if="size"> · {{ size }}</template>
     </p>
     <p class="dl-meta">{{ t.single }}</p>
 
