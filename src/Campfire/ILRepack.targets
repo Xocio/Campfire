@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- Merges dnlib into Campfire.exe. -->
+  <Target Name="ILRepacker" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <ItemGroup>
+      <InputAssemblies Include="$(OutputPath)Campfire.exe" />
+      <InputAssemblies Include="$(OutputPath)dnlib.dll" />
+    </ItemGroup>
+    <ILRepack Parallel="true" Internalize="true" DebugInfo="false" InputAssemblies="@(InputAssemblies)"
+              TargetKind="WinExe" OutputFile="$(OutputPath)Campfire.exe" />
+    <Delete Files="$(OutputPath)dnlib.dll" />
+  </Target>
+</Project>

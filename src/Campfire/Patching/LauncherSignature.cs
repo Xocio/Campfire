@@ -1,7 +1,7 @@
 namespace Campfire.Patching
 {
     /// <summary>
-    /// Well-known identifiers of the Plain Craft Launcher 2 assembly.
+    /// Well-known identifiers of the launcher assembly.
     /// </summary>
     internal static class LauncherSignature
     {

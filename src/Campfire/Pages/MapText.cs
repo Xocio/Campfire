@@ -42,7 +42,7 @@ namespace Campfire.Pages
             return Math.Max(1, bytes / 1024).ToString(culture) + " KB";
         }
 
-        /// <summary>The first few versions; maps often list many patch releases of the same version.</summary>
+        /// <summary>The first few versions.</summary>
         public static string Versions(IReadOnlyList<string> versions, int shown)
         {
             if (versions == null || versions.Count == 0)
@@ -51,7 +51,7 @@ namespace Campfire.Pages
             return versions.Count > shown ? Text.Format("Maps.VersionsMore", text) : text;
         }
 
-        /// <summary>Categories carry English names; the known ones have their own translation.</summary>
+        /// <summary>The translated category name; unknown categories keep their English name.</summary>
         public static string Category(MapCategory category)
         {
             string key = "Maps.Category." + category.Slug;

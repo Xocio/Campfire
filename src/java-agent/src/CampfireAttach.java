@@ -6,7 +6,7 @@ import com.sun.tools.attach.VirtualMachine;
 /**
  * Small bridge that attaches to the game process and loads the agent. It runs with the game's own
  * Java when that has the attach module, and with another Java 9 or later on this computer when the
- * game runs on Java 8, whose runtime cannot attach.
+ * game runs on Java 8.
  */
 public final class CampfireAttach {
     private CampfireAttach() {
@@ -22,7 +22,7 @@ public final class CampfireAttach {
         try {
             machine.loadAgent(args[1], args.length > 2 ? args[2] : null);
         } catch (AgentLoadException error) {
-            // A Java 8 game answers a successful load with a bare "0", which newer attach code takes
+            // A Java 8 game answers a successful load with a bare "0", reported here as an error code.
             // for an error code. The agent is loaded all the same.
             String message = error.getMessage();
             String code = message == null ? "" : message.trim();

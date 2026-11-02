@@ -25,7 +25,7 @@ namespace Campfire.Link
 
         public string Provider { get; }
 
-        /// <summary>Whether the provider caps relayed traffic, which slows down large transfers such as mod files.</summary>
+        /// <summary>Whether the provider caps relayed traffic.</summary>
         public bool IsLimited { get; }
 
         /// <summary>Localization key of the region and network shown for this node.</summary>
@@ -49,7 +49,7 @@ namespace Campfire.Link
         /// <summary>Results older than this are measured again when the list is shown.</summary>
         public static readonly TimeSpan Freshness = TimeSpan.FromMinutes(10);
 
-        /// <summary>Above this round-trip time a relayed game starts to feel sluggish.</summary>
+        /// <summary>Round-trip time above which a node counts as slow.</summary>
         public const double HighLatencyMs = 150;
 
         private static readonly object Sync = new object();
@@ -57,7 +57,7 @@ namespace Campfire.Link
         private static Task _test;
 
         /// <summary>
-        /// Community nodes that relay traffic, from several providers. The last one is the only node earlier versions can reach.
+        /// Community nodes that relay traffic, from several providers.
         /// </summary>
         public static IReadOnlyList<PublicNode> All { get; } = new[]
         {

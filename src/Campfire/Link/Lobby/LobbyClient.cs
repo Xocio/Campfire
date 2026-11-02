@@ -48,6 +48,9 @@ namespace Campfire.Link.Lobby
 
         /// <summary>What the host wrote about the room; may be empty.</summary>
         public string Description { get; set; }
+
+        /// <summary>Whether the room offers voice chat.</summary>
+        public bool Voice { get; set; }
     }
 
     internal sealed class LobbyList
@@ -97,6 +100,9 @@ namespace Campfire.Link.Lobby
 
         /// <summary>A few words about the room, typed by the host; empty for none.</summary>
         public string Description { get; set; }
+
+        /// <summary>Whether the room offers voice chat.</summary>
+        public bool Voice { get; set; }
     }
 
     /// <summary>A listed room as its host holds it: the token proves the listing is theirs.</summary>
@@ -154,8 +160,7 @@ namespace Campfire.Link.Lobby
     }
 
     /// <summary>
-    /// The public room lobby on the Campfire service. Only official builds know the service; others can still
-    /// play together with invite codes.
+    /// The public room lobby on the Campfire service, available in official builds.
     /// </summary>
     internal static class LobbyClient
     {
@@ -186,6 +191,7 @@ namespace Campfire.Link.Lobby
                     Locked = Value(r, "locked") is bool locked && locked,
                     Icon = Base64(Str(r, "icon")),
                     Description = Str(r, "description"),
+                    Voice = Value(r, "voice") is bool voice && voice,
                     CreatedAt = Value(r, "createdAt") is double ms ? DateTimeOffset.FromUnixTimeMilliseconds((long)ms).UtcDateTime : DateTime.UtcNow,
                 }).Where(r => r.Id.Length > 0 && r.Title.Length > 0).ToList(),
             };
@@ -208,6 +214,7 @@ namespace Campfire.Link.Lobby
                 ["maxPlayers"] = listing.MaxPlayers,
                 ["showRegion"] = listing.ShowRegion,
                 ["description"] = listing.Description ?? "",
+                ["voice"] = listing.Voice,
             };
             if (!string.IsNullOrEmpty(listing.Password))
                 body["password"] = listing.Password;
@@ -228,10 +235,10 @@ namespace Campfire.Link.Lobby
         }
 
         /// <summary>Keeps the room listed; returns when to send the next heartbeat.</summary>
-        public static async Task<TimeSpan> HeartbeatAsync(LobbyTicket ticket, int players, int maxPlayers,
+        public static async Task<TimeSpan> HeartbeatAsync(LobbyTicket ticket, int players, int maxPlayers, bool voice,
             CancellationToken cancellation = default)
         {
-            var body = new Dictionary<string, object> { ["players"] = players, ["maxPlayers"] = maxPlayers };
+            var body = new Dictionary<string, object> { ["players"] = players, ["maxPlayers"] = maxPlayers, ["voice"] = voice };
             var json = await SendAsync(HttpMethod.Put, "/v1/lobby/rooms/" + ticket.Id, body, ticket.Token, cancellation).ConfigureAwait(false);
             return Heartbeat(json);
         }
@@ -293,7 +300,7 @@ namespace Campfire.Link.Lobby
 
         private static TimeSpan Heartbeat(Dictionary<string, object> json)
         {
-            // The service decides; a broken answer still keeps the room alive with the default.
+            // The interval the service asks for, kept between 30 seconds and an hour; 240 seconds when it is missing.
             return TimeSpan.FromSeconds(Math.Min(Math.Max(Int(json, "heartbeatSeconds", 240), 30), 3600));
         }
 

@@ -62,7 +62,7 @@ namespace Campfire.Pages
             FillVersions();
             RenderState();
 
-            // Campfire draws every page once while starting; that alone must not contact the service.
+            // The warm-up drawing at start does not load the list.
             IsVisibleChanged += (sender, e) =>
             {
                 if (IsVisible && IsHitTestVisible)
@@ -124,7 +124,7 @@ namespace Campfire.Pages
             finally
             {
                 _loading = false;
-                // Reloading at once costs the service a request and shows nothing new.
+                // A reload within the wait time is skipped.
                 if (asked)
                 {
                     _cooldownUntil = DateTime.UtcNow + RefreshCooldown;

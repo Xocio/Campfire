@@ -28,8 +28,7 @@ namespace Campfire.Link.Room
         }
 
         /// <summary>
-        /// Connects and confirms that a room service answers. Returns <c>null</c> when nothing usable answers yet;
-        /// a forwarded port may accept connections before the host is actually reachable.
+        /// Connects and confirms that a room service answers. Returns <c>null</c> when nothing usable answers yet.
         /// </summary>
         public static async Task<RoomClient> TryConnectAsync(int localPort, CancellationToken cancellation)
         {
@@ -86,6 +85,8 @@ namespace Campfire.Link.Room
                 string reply = Encoding.UTF8.GetString(response.Body);
                 if (reply == RoomServer.RemovedReply || reply == RoomServer.BlockedReply)
                     throw new RoomRejectedException(reply == RoomServer.BlockedReply);
+                if (reply == RoomServer.FullReply)
+                    throw new RoomRejectedException(false, true);
                 throw new InvalidDataException("Heartbeat rejected: " + reply);
             }
         }
@@ -127,6 +128,30 @@ namespace Campfire.Link.Room
             }
             return (Mods.ModList.FromJson(Json.TryParse(Encoding.UTF8.GetString(response.Body)))
                     ?? throw new InvalidDataException("Mod list is not an object."), false);
+        }
+
+        /// <summary>The room's name, announcement and player limit.</summary>
+        public async Task<RoomInfo> GetRoomInfoAsync(CancellationToken cancellation)
+        {
+            var response = await SendAsync(RoomProtocol.Room, null, RequestTimeout, cancellation).ConfigureAwait(false);
+            if (!response.IsOk)
+                throw new InvalidDataException("Room request rejected.");
+            return RoomInfo.FromJson(Json.TryParse(Encoding.UTF8.GetString(response.Body)))
+                   ?? throw new InvalidDataException("Room answer is not an object.");
+        }
+
+        /// <summary>The host's voice chat, or <c>null</c> while the host has it off.</summary>
+        public async Task<Mods.VoiceOffer> GetVoiceAsync(CancellationToken cancellation)
+        {
+            var response = await SendAsync(RoomProtocol.Voice, null, RequestTimeout, cancellation).ConfigureAwait(false);
+            if (!response.IsOk)
+            {
+                if (Encoding.UTF8.GetString(response.Body) == RoomServer.VoiceOffReply)
+                    return null;
+                throw new InvalidDataException("Voice request rejected.");
+            }
+            return Mods.VoiceOffer.FromJson(Json.TryParse(Encoding.UTF8.GetString(response.Body)))
+                   ?? throw new InvalidDataException("Voice answer is not an object.");
         }
 
         /// <summary>A piece of the host's jar <paramref name="sha1"/> from <paramref name="offset"/>; empty past its end.</summary>
@@ -186,15 +211,18 @@ namespace Campfire.Link.Room
 
 namespace Campfire.Link.Room
 {
-    /// <summary>The host took this player out of the room, or blocked them.</summary>
+    /// <summary>The host took this player out of the room, blocked them, or the room is full.</summary>
     internal sealed class RoomRejectedException : Exception
     {
-        public RoomRejectedException(bool blocked)
-            : base(blocked ? "The host blocked this player." : "The host removed this player from the room.")
+        public RoomRejectedException(bool blocked, bool full = false)
+            : base(full ? "The room is full." : blocked ? "The host blocked this player." : "The host removed this player from the room.")
         {
             Blocked = blocked;
+            Full = full;
         }
 
         public bool Blocked { get; }
+
+        public bool Full { get; }
     }
 }

@@ -43,7 +43,7 @@ namespace Campfire.Worlds
         private const string LevelFile = "level.dat";
         private const string BackupFile = "level.dat_old";
 
-        /// <summary>A level.dat is a few kilobytes; anything far bigger is not one.</summary>
+        /// <summary>Largest file read as a level.dat.</summary>
         private const long MaxLevelFileSize = 8L * 1024 * 1024;
 
         /// <summary>How deep to look for worlds in a picked folder, which may be a saves folder or a whole download folder.</summary>
@@ -248,7 +248,7 @@ namespace Campfire.Worlds
                         files.Add((Relative(root, file.FullName), file.Length));
                 }
 
-                // A world's own folders never hold another world worth importing, and they can be huge.
+                // A world's own folders are not searched.
                 bool isWorld = File.Exists(System.IO.Path.Combine(directory, LevelFile));
                 foreach (var child in info.EnumerateDirectories())
                 {

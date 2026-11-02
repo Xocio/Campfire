@@ -98,7 +98,7 @@ namespace Campfire.Worlds
                 }
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidDataException)
                 {
-                    // One unreadable version should not hide the others.
+                    // An unreadable version is skipped.
                 }
             }
             return result;
@@ -159,7 +159,7 @@ namespace Campfire.Worlds
 
             if (version.GameVersion == null)
             {
-                // Before 1.14 the jar does not say; fall back on what the version files tell.
+                // Before 1.14 the version files tell instead of the jar.
                 string root = chain[chain.Count - 1].Name;
                 version.GameVersion = ValueAfter(arguments, "--fml.mcVersion")
                                       ?? MinecraftFromLoaderLibrary(libraries)

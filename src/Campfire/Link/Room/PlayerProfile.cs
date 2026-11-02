@@ -128,12 +128,12 @@ namespace Campfire.Link.Room
             if (uuid != null && (uuid.Length != 32 || !IsHex(uuid)))
                 uuid = null;
 
-            // Minecraft names are at most 16 characters; anything else is not a game name.
+            // Game names have at most 16 characters.
             string gameName = Get(json, "game_name") as string;
             if (gameName != null && (gameName.Length == 0 || gameName.Length > 16))
                 gameName = null;
 
-            // Latency is a courtesy value from the joining player; ignore anything implausible.
+            // Latency values outside the plausible range are ignored.
             double? latency = Get(json, "latency_ms") is double measured && measured >= 0 && measured <= 60000
                 ? measured
                 : (double?)null;

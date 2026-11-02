@@ -5,7 +5,7 @@ using dnlib.DotNet.Emit;
 namespace Campfire.Patching.Patches
 {
     /// <summary>
-    /// Lifts the region lock that PCL Community Edition 2.15.1 added to Minecraft downloads.
+    /// Lifts the region lock on Minecraft downloads.
     /// </summary>
     /// <remarks>
     /// <c>RegionAssessment.IsRestricted</c> is the single decision point behind every guarded entry:
@@ -46,8 +46,7 @@ namespace Campfire.Patching.Patches
         {
             var instructions = target.Body.Instructions;
 
-            // The fix rewrites the body as "ldc.i4.0; ret"; older in-place attempts padded with nops,
-            // so trailing nops are tolerated when reading the state back.
+            // The body counts as fixed when it is "ldc.i4.0; ret", trailing nops allowed.
             var meaningful = instructions.Where(i => i.OpCode.Code != Code.Nop).ToList();
             if (meaningful.Count == 2
                 && meaningful[0].OpCode.Code == Code.Ldc_I4_0

@@ -12,7 +12,7 @@ namespace Campfire.Mods
 {
     /// <summary>
     /// Finds the host's jars on CurseForge through the Campfire service, by the fingerprints the host listed. The
-    /// service keeps the CurseForge key; builds without the service skip this and fall back on the host.
+    /// service keeps the CurseForge key; builds without the service skip this.
     /// </summary>
     internal static class CurseForgeLookup
     {
@@ -75,7 +75,7 @@ namespace Campfire.Mods
                 string url = file.TryGetValue("url", out object u) ? u as string : null;
                 if (!IsAllowed(url))
                     continue;
-                // A fingerprint ignores whitespace bytes; the hash decides.
+                // The SHA-1 must match as well.
                 foreach (var mod in mods.Where(m => m.Sha1 == sha1))
                     result[mod.Sha1] = new OfficialFile(url);
             }

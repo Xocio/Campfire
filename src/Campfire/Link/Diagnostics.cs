@@ -116,7 +116,7 @@ namespace Campfire.Link
             if (!EasyTierPackage.IsInstalled())
                 return new DiagResult(DiagState.Info, Text.Get("Diag.Nodes.NeedComponent"));
 
-            // The measurement has its own time limit; waiting here only lets the page stop early.
+            // Waits for the measurement, which has its own time limit.
             var test = PublicNodes.TestAsync();
             var cancelled = new TaskCompletionSource<bool>();
             using (token.Register(() => cancelled.TrySetResult(true)))

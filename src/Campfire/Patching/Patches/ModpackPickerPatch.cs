@@ -8,8 +8,8 @@ namespace Campfire.Patching.Patches
     /// Restores the "install modpack from file" entry point.
     /// </summary>
     /// <remarks>
-    /// <c>ModModpack.ModpackInstall()</c> was reduced to a single hint. Its compiler-generated closure, which runs
-    /// <c>ModpackInstall(file)</c> and reports failures, is still present; the patch rebuilds the method as:
+    /// <c>ModModpack.ModpackInstall()</c> only shows a hint. Its compiler-generated closure runs
+    /// <c>ModpackInstall(file)</c> and reports failures; the patch rebuilds the method as:
     /// <code>
     /// var closure = new Closure();
     /// closure.File = Dialogs.SelectFile(DialogTitle, false, null, DialogFilter).FirstOrDefault();

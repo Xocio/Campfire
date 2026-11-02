@@ -69,7 +69,7 @@ namespace Campfire.Pages
             DiagnosticsRequested?.Invoke(this, EventArgs.Empty);
         }
 
-        /// <summary>Tells whether a room is running, which some actions must not interrupt.</summary>
+        /// <summary>Tells whether a room is running.</summary>
         internal Func<bool> IsRoomActive { get; set; }
 
         private void Load()

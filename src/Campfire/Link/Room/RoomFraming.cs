@@ -19,7 +19,7 @@ namespace Campfire.Link.Room
         public const byte StatusNotReady = 32;
         public const byte StatusError = 255;
 
-        /// <summary>Upper bound for a body; real messages are a few hundred bytes.</summary>
+        /// <summary>Largest body accepted.</summary>
         private const int MaxBodySize = 1024 * 1024;
 
         public static async Task WriteRequestAsync(Stream stream, string kind, byte[] body, CancellationToken cancellation)

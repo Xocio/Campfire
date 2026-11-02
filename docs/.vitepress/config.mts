@@ -76,8 +76,8 @@ export default defineConfig({
       lang: 'zh-CN',
       themeConfig: {
         nav: [
-          { text: '指南', link: '/guide/what-is-campfire', activeMatch: '^/guide/(?!multiplayer|room|lobby|network)' },
-          { text: '多人联机', link: '/guide/multiplayer', activeMatch: '^/guide/(multiplayer|room|lobby|network)' },
+          { text: '指南', link: '/guide/what-is-campfire', activeMatch: '^/guide/(?!multiplayer|room|lobby|mods|voice|network)' },
+          { text: '多人联机', link: '/guide/multiplayer', activeMatch: '^/guide/(multiplayer|room|lobby|mods|voice|network)' },
           { text: '下载', link: '/download' },
           ...versionMenu(true)
         ],
@@ -96,6 +96,8 @@ export default defineConfig({
                 { text: '创建与加入房间', link: '/guide/multiplayer' },
                 { text: '联机大厅', link: '/guide/lobby' },
                 { text: '房间管理', link: '/guide/room' },
+                { text: '模组同步', link: '/guide/mods' },
+                { text: '语音聊天', link: '/guide/voice' },
                 { text: '网络与隐私', link: '/guide/network' }
               ]
             },
@@ -161,8 +163,8 @@ export default defineConfig({
       description: 'An advanced Minecraft toolbox',
       themeConfig: {
         nav: [
-          { text: 'Guide', link: '/en/guide/what-is-campfire', activeMatch: '^/en/guide/(?!multiplayer|room|lobby|network)' },
-          { text: 'Multiplayer', link: '/en/guide/multiplayer', activeMatch: '^/en/guide/(multiplayer|room|lobby|network)' },
+          { text: 'Guide', link: '/en/guide/what-is-campfire', activeMatch: '^/en/guide/(?!multiplayer|room|lobby|mods|voice|network)' },
+          { text: 'Multiplayer', link: '/en/guide/multiplayer', activeMatch: '^/en/guide/(multiplayer|room|lobby|mods|voice|network)' },
           { text: 'Download', link: '/en/download' },
           ...versionMenu(false)
         ],
@@ -181,6 +183,8 @@ export default defineConfig({
                 { text: 'Hosting and Joining', link: '/en/guide/multiplayer' },
                 { text: 'Lobby', link: '/en/guide/lobby' },
                 { text: 'Managing a Room', link: '/en/guide/room' },
+                { text: 'Mod Sync', link: '/en/guide/mods' },
+                { text: 'Voice Chat', link: '/en/guide/voice' },
                 { text: 'Network and Privacy', link: '/en/guide/network' }
               ]
             },

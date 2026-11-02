@@ -3,8 +3,8 @@
                     xmlns:loc="clr-namespace:Campfire.Localization">
 
     <!--
-        Theme colors are always referenced as DynamicResource: the theme recolors them while the program runs.
-        Hover and selection effects fade a layer in and out, so they stay smooth whatever the colors are.
+        Theme colors are referenced as DynamicResource and change while the program runs.
+        Hover and selection effects fade a layer in and out.
     -->
 
     <QuadraticEase x:Key="EaseOut" EasingMode="EaseOut" />
@@ -262,8 +262,8 @@
     <!-- ======================== Card ======================== -->
 
     <!--
-        The shadow is a few faint outlines around the card instead of a blur effect, so moving cards cost almost
-        nothing to draw. On hover the outlines glow in the accent color and the title takes the accent color.
+        The shadow is a few faint outlines around the card. On hover the outlines glow in the accent color and
+        the title takes the accent color.
     -->
     <Style x:Key="PclCard" TargetType="HeaderedContentControl">
         <Setter Property="Focusable" Value="False" />
@@ -475,7 +475,7 @@
 
     <!--
         Checking fades the accent fill in and pops the tick out from the middle with a small overshoot.
-        The tick is drawn in the box's own 17 x 17 space, centered horizontally and a touch low, which looks centered.
+        The tick is drawn in the box's own 17 x 17 space, centered horizontally and a touch low.
     -->
     <Style x:Key="PclCheckBox" TargetType="CheckBox">
         <Setter Property="Foreground" Value="{DynamicResource Brush1}" />

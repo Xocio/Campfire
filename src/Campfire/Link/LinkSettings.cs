@@ -114,6 +114,15 @@ namespace Campfire.Link
             set => SetFlag("link.servemods", value);
         }
 
+        // ======================== Voice ========================
+
+        /// <summary>Host: whether rooms offer voice chat to their players.</summary>
+        public static bool Voice
+        {
+            get => GetFlag("link.voice", false);
+            set => SetFlag("link.voice", value);
+        }
+
         /// <summary>Guest: where mod sync gets files from, as last chosen.</summary>
         public static Mods.ModSource ModSource
         {
@@ -187,6 +196,25 @@ namespace Campfire.Link
             get => GetFlag("link.vendor", true);
             set => SetFlag("link.vendor", value);
         }
+
+        // ======================== Room ========================
+
+        /// <summary>Host: the most players a room takes, the host included; 0 for no limit.</summary>
+        public static int MaxPlayers
+        {
+            get => int.TryParse(AppSettings.Get("link.maxplayers"), out int value) && value >= 2 && value <= 100 ? value : 0;
+            set => AppSettings.Set("link.maxplayers", value >= 2 && value <= 100 ? value.ToString(System.Globalization.CultureInfo.InvariantCulture) : null);
+        }
+
+        /// <summary>Host: the announcement shown to the room's players; empty for none.</summary>
+        public static string RoomNotice
+        {
+            get => GetText("link.notice");
+            set => AppSettings.Set("link.notice", (value ?? "").Trim());
+        }
+
+        /// <summary>Host: the room name, also used as the lobby title; the default name when none is set.</summary>
+        public static string RoomName => LobbyTitle.Length > 0 ? LobbyTitle : Localization.Text.Format("Lobby.DefaultTitle", EffectivePlayerName);
 
         // ======================== Lobby ========================
 
@@ -336,7 +364,6 @@ namespace Campfire.Link
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
-                // An unsaved id only means this computer gets a new identity next time.
             }
             return id;
         }

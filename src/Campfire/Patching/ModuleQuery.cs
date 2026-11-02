@@ -10,8 +10,7 @@ namespace Campfire.Patching
     /// Lookup helpers that locate types, methods and member references inside a module.
     /// </summary>
     /// <remarks>
-    /// Patch points are located by name and IL shape instead of by token or offset,
-    /// so minor launcher rebuilds keep working.
+    /// Patch points are located by name and IL shape, not by token or offset.
     /// </remarks>
     internal static class ModuleQuery
     {
@@ -52,7 +51,7 @@ namespace Campfire.Patching
         /// <summary>
         /// Returns the first operand of type <typeparamref name="T"/> used anywhere in the module that matches <paramref name="match"/>.
         /// </summary>
-        /// <remarks>Reusing an existing reference keeps the patched assembly bound to exactly the same dependency versions.</remarks>
+        /// <remarks>The reference found keeps the dependency versions the assembly already uses.</remarks>
         public static T RequireOperand<T>(ModuleDef module, Func<T, bool> match, string description) where T : class
         {
             foreach (var method in MethodsWithBody(module))

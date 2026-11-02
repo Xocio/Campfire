@@ -39,9 +39,13 @@ features:
     link: /en/guide/maps
     linkText: Maps
   - title: Rooms inside the game
-    details: A singleplayer world is opened to LAN on entry. The room appears in the LAN world list, while chat and the Tab list present the host, player count and latency live.
+    details: A singleplayer world is opened to LAN on entry. Chat and the Tab list present the host, player count and room announcement live, and the world is backed up before the room opens.
     link: /en/guide/room
     linkText: Managing a room
+  - title: Mod sync and voice chat
+    details: Make your mods match the host's in one step after joining. Once the host turns on voice chat, players with the same mod can talk in the game.
+    link: /en/guide/mods
+    linkText: Mod sync
   - title: Transparent and verifiable
     details: Remote content cannot alter settings or run programs, and updates must pass signature verification. Every network connection is documented and verifiable in the source.
     link: /en/guide/security

@@ -94,7 +94,7 @@ namespace Campfire.Pages
 
         private void Session_Changed(object sender, EventArgs e)
         {
-            // The room only matters for fetching from the host; the comparison itself stays valid.
+            // The comparison stays; only the buttons follow the room.
             if (IsVisible)
                 UpdateButtons();
         }

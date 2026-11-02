@@ -55,7 +55,7 @@ namespace Campfire.Online
             if (!OnlineService.IsAvailable)
                 return;
 
-            // Let the window settle first; nothing here is urgent.
+            // Starts after a short delay.
             await Task.Delay(TimeSpan.FromSeconds(2));
             if (OnlineService.CheckEnabled)
                 await CheckAsync(manual: false);

@@ -9,7 +9,7 @@ namespace Campfire.Link.Runtime
     /// Settings of one virtual network instance, written to a TOML file.
     /// </summary>
     /// <remarks>
-    /// The instance is started from a file; only file-based instances accept port forwards added while running.
+    /// The instance is started from this file and accepts port forwards while running.
     /// </remarks>
     internal sealed class EasyTierConfig
     {
@@ -33,8 +33,8 @@ namespace Campfire.Link.Runtime
         public bool DirectOnly { get; set; }
 
         /// <summary>
-        /// When set, this computer never connects directly to other members and does not listen for them, so
-        /// they cannot learn its address. Traffic goes through relay nodes.
+        /// When set, this computer never connects directly to other members and does not listen for them; traffic
+        /// goes through relay nodes.
         /// </summary>
         public bool HideAddress { get; set; }
 

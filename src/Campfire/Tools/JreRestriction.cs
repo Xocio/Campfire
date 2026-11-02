@@ -7,7 +7,7 @@ using Campfire.Patching;
 namespace Campfire.Tools
 {
     /// <summary>
-    /// The rule in PCL Community Edition that switches off every JRE, a Java without <c>javac.exe</c>.
+    /// The rule in the community launcher that switches off every JRE, a Java without <c>javac.exe</c>.
     /// </summary>
     /// <remarks>
     /// <c>JavaManager._ShouldEnableByDefault</c> decides whether a discovered Java is switched on. It turns off
@@ -17,7 +17,7 @@ namespace Campfire.Tools
     /// </remarks>
     internal static class JreRestriction
     {
-        /// <summary>Assembly that holds the Java management of the community edition.</summary>
+        /// <summary>Assembly that holds the Java management of the community launcher.</summary>
         public const string CoreAssemblyName = "PCL.Core";
 
         private const string ManagerType = "PCL.Core.Minecraft.JavaManager";
@@ -56,7 +56,7 @@ namespace Campfire.Tools
             }
         }
 
-        /// <summary>Whether the module has the Java manager at all; older releases do not.</summary>
+        /// <summary>Whether the module has the Java manager at all.</summary>
         public static bool HasJavaManager(ModuleDef module)
         {
             return ModuleQuery.FindType(module, ManagerType) != null;

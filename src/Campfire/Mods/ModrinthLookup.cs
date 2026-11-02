@@ -34,7 +34,7 @@ namespace Campfire.Mods
 
         private static readonly Lazy<HttpClient> Client = new Lazy<HttpClient>(() =>
         {
-            // A download may take long; ProgressStream ends it when the server stops sending instead.
+            // No overall timeout; ProgressStream ends a download when the server stops sending.
             var client = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Campfire/" + OnlineService.CurrentVersion.ToString(3));
             return client;
@@ -81,6 +81,73 @@ namespace Campfire.Mods
             }
             LinkLog.Info($"Modrinth has {result.Count} of the needed mod file(s).");
             return result;
+        }
+
+        /// <summary>
+        /// The newest file of Modrinth project <paramref name="projectId"/> for <paramref name="gameVersion"/> and one of
+        /// <paramref name="loaders"/>, releases first; <c>null</c> when there is none or Modrinth cannot be reached.
+        /// </summary>
+        public static async Task<(OfficialFile File, ModInfo Mod)?> FindNewestAsync(string projectId, string gameVersion,
+            IReadOnlyList<string> loaders, IReadOnlyList<string> ids, CancellationToken cancellation)
+        {
+            string query = "?loaders=" + Uri.EscapeDataString(Json.Serialize(loaders.Cast<object>().ToArray()))
+                           + "&game_versions=" + Uri.EscapeDataString(Json.Serialize(new object[] { gameVersion }));
+            try
+            {
+                using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellation))
+                {
+                    timeout.CancelAfter(TimeSpan.FromSeconds(20));
+                    using (var response = await Client.Value.GetAsync("https://api.modrinth.com/v2/project/" + projectId + "/version" + query,
+                               timeout.Token).ConfigureAwait(false))
+                    {
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            LinkLog.Warn("Modrinth answered the version lookup with " + (int)response.StatusCode + ".");
+                            return null;
+                        }
+                        string text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        var versions = (Json.TryParse(text) as object[] ?? new object[0]).OfType<Dictionary<string, object>>()
+                            .OrderBy(v => v.TryGetValue("version_type", out object type) && type as string == "release" ? 0 : 1)
+                            .ToList();
+                        foreach (var version in versions)
+                        {
+                            var found = PrimaryFile(version, ids);
+                            if (found != null)
+                                return found;
+                        }
+                        return null;
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException && !cancellation.IsCancellationRequested
+                                       || ex is IOException)
+            {
+                LinkLog.Warn("The version lookup on Modrinth failed: " + ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>The primary file of one version, or its first one, when its address is allowed.</summary>
+        private static (OfficialFile File, ModInfo Mod)? PrimaryFile(Dictionary<string, object> version, IReadOnlyList<string> ids)
+        {
+            if (!(version.TryGetValue("files", out object files) && files is object[] list))
+                return null;
+            var all = list.OfType<Dictionary<string, object>>().ToList();
+            var file = all.FirstOrDefault(f => f.TryGetValue("primary", out object primary) && primary is bool p && p) ?? all.FirstOrDefault();
+            if (file == null)
+                return null;
+
+            string url = file.TryGetValue("url", out object u) ? u as string : null;
+            string name = file.TryGetValue("filename", out object n) ? n as string : null;
+            string sha1 = file.TryGetValue("hashes", out object hashes) && hashes is Dictionary<string, object> map
+                          && map.TryGetValue("sha1", out object value) ? (value as string)?.ToLowerInvariant() : null;
+            if (!IsAllowed(url) || !ModInfo.IsSafeFileName(name) || sha1 == null || sha1.Length != 40
+                || !(file.TryGetValue("size", out object rawSize) && rawSize is double size) || size <= 0)
+                return null;
+
+            string number = version.TryGetValue("version_number", out object v) ? v as string : null;
+            var mod = new ModInfo(name, sha1, (long)size, ids, null, number, ModSide.Both);
+            return (new OfficialFile(url), mod);
         }
 
         /// <summary>Each version lists its files; the one whose hash was asked for is taken, if its address is allowed.</summary>

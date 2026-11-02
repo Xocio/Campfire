@@ -236,7 +236,7 @@ Campfire/
 │  ├─ Assets/                    图标
 │  ├─ MainWindow.xaml            主窗口与页面切换
 │  ├─ TrayIcon.cs                通知区域图标
-│  └─ EmbeddedAssemblyLoader.cs  加载嵌入的依赖库
+│  └─ ILRepack.targets           构建后把 dnlib 合并进 Campfire.exe
 ├─ src/java-agent/               附加到房主游戏的 Java Agent
 ├─ tools/                        发布签名脚本
 └─ Campfire.slnx

@@ -17,7 +17,7 @@ namespace Campfire.Link.Minecraft
     internal sealed class GameProxy : IDisposable
     {
         private readonly TcpListener _listener;
-        private readonly int _targetPort;
+        private volatile int _targetPort;
         private readonly Func<string, GameOverlayInfo> _overlay;
         private readonly CancellationTokenSource _stop = new CancellationTokenSource();
         private readonly List<Connection> _connections = new List<Connection>();
@@ -43,6 +43,13 @@ namespace Campfire.Link.Minecraft
 
         /// <summary>The loopback port the proxy listens on.</summary>
         public int Port => ((IPEndPoint)_listener.LocalEndpoint).Port;
+
+        /// <summary>The port of the host's game that new connections go to.</summary>
+        public int TargetPort
+        {
+            get => _targetPort;
+            set => _targetPort = value;
+        }
 
         /// <summary>
         /// Decides about each login by player name: returns the reason to turn the player away, or <c>null</c> to
@@ -171,7 +178,7 @@ namespace Campfire.Link.Minecraft
             {
                 try
                 {
-                    // The lock is never released: nothing else may be written after the disconnect.
+                    // The lock stays held after the disconnect.
                     if (_toClient == null || !await _writeLock.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false))
                         return;
 
@@ -227,7 +234,7 @@ namespace Campfire.Link.Minecraft
                 var fromServer = new InputBuffer(_server.GetStream());
                 _toClient = _client.GetStream();
 
-                // The handshake decides everything: legacy pings and status requests are passed through as is.
+                // Legacy pings and status requests pass through as they are.
                 int first = await fromClient.ReadByteAsync(cancellation).ConfigureAwait(false);
                 if (first < 0)
                     return;
@@ -246,7 +253,7 @@ namespace Campfire.Link.Minecraft
                     return;
                 }
 
-                // The next frame names the player, which is what admission and removal go by.
+                // The next frame names the player.
                 int loginFirst = await fromClient.ReadByteAsync(cancellation).ConfigureAwait(false);
                 if (loginFirst < 0)
                     return;
@@ -277,7 +284,7 @@ namespace Campfire.Link.Minecraft
                 await Task.WhenAny(upstream, downstream).ConfigureAwait(false);
             }
 
-            /// <summary>Returns whether the connection is a login, the only kind worth watching.</summary>
+            /// <summary>Returns whether the connection is a login.</summary>
             private bool ParseHandshake(byte[] frame)
             {
                 int offset = 0;
@@ -308,7 +315,7 @@ namespace Campfire.Link.Minecraft
                         }
                         catch (Exception ex) when (ex is InvalidDataException || ex is IOException || ex is ArgumentException)
                         {
-                            // Never risk the game connection: anything unexpected turns this into a plain pipe.
+                            // Anything unexpected turns this into a plain pipe.
                             _phase = Phase.PassThrough;
                             LinkLog.Warn("Game connection could not be followed: " + ex.Message);
                         }
@@ -341,7 +348,6 @@ namespace Campfire.Link.Minecraft
                 var payload = new byte[frame.Length - offset];
                 Buffer.BlockCopy(frame, offset, payload, 0, payload.Length);
 
-                // The join game packet carries the world and is far larger than the packets followed afterwards.
                 // Packets above this size are only inflated once seen.
                 int maxSize = _phase == Phase.Play ? (_joined ? 64 : MaxFrame) : 8 * 1024;
                 byte[] body = GameProtocol.Unwrap(payload, _threshold, maxSize);
@@ -356,8 +362,7 @@ namespace Campfire.Link.Minecraft
                         if (id == GameProtocol.LoginEncryptionRequest)
                         {
                             _phase = Phase.PassThrough;
-                            // A vanilla LAN world enables authentication. The Java agent covers it; the LAN entry
-                            // is the fallback when the agent cannot be attached.
+                            // A vanilla LAN world is encrypted; the Java agent shows the room status there.
                             LinkLog.Info("Game connection is encrypted; the proxy passes it through. " +
                                          "The in-game overlay is provided by the Java agent when available.");
                         }
@@ -414,8 +419,7 @@ namespace Campfire.Link.Minecraft
             {
                 try
                 {
-                    // Login success and finish configuration are followed by the join game packet; give the client
-                    // a moment to leave its loading screen before talking to it.
+                    // Login success and finish configuration are followed by the join game packet, then a short wait.
                     await Task.Delay(1500, _closed.Token).ConfigureAwait(false);
 
                     bool welcomed = false;
@@ -424,8 +428,7 @@ namespace Campfire.Link.Minecraft
                         if (!_owner.OverlayEnabled)
                             return;
 
-                        // A reconfiguration briefly leaves play; wait for the next join game instead of writing
-                        // play packets into the configuration state.
+                        // During a reconfiguration it waits for the next join game packet.
                         if (_phase == Phase.Play && _joined)
                         {
                             var info = _owner._overlay(PlayerName);

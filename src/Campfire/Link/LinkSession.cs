@@ -70,6 +70,45 @@ namespace Campfire.Link
         Unsupported,
     }
 
+    /// <summary>Host: how far the voice chat of the room is.</summary>
+    internal enum HostVoiceState
+    {
+        /// <summary>The host has voice chat off.</summary>
+        Off,
+
+        /// <summary>Looking for the voice chat mod in the host's game.</summary>
+        Checking,
+
+        /// <summary>The host's game lacks the voice chat mod; it is installed once the host asks for it.</summary>
+        Missing,
+
+        /// <summary>Downloading the voice chat mod into the host's game.</summary>
+        Installing,
+
+        /// <summary>The mod is in the host's game, and its voice server starts once the game is started again.</summary>
+        Restart,
+
+        Ready,
+
+        /// <summary>Voice chat cannot run for this world; see <see cref="LinkSession.VoiceProblem"/>.</summary>
+        Unavailable,
+    }
+
+    /// <summary>Guest: the host's voice chat as seen from this computer.</summary>
+    internal enum GuestVoiceState
+    {
+        /// <summary>The host has voice chat off, or its Campfire does not offer it.</summary>
+        Off,
+
+        /// <summary>The host turned voice chat on; its voice server is not running yet.</summary>
+        Waiting,
+
+        Ready,
+
+        /// <summary>The voice port is in use on this computer.</summary>
+        PortBusy,
+    }
+
     /// <summary>
     /// Creates or joins one room and keeps it running. All members are read and changed on the UI thread;
     /// <see cref="Changed"/> is raised there whenever something visible changes.
@@ -78,6 +117,9 @@ namespace Campfire.Link
     {
         private static readonly TimeSpan DirectGracePeriod = TimeSpan.FromSeconds(8);
         private static readonly TimeSpan ConnectRoomTimeout = TimeSpan.FromSeconds(30);
+
+        /// <summary>How long a room waits for the host's world while the game restarts.</summary>
+        private static readonly TimeSpan RestartWait = TimeSpan.FromMinutes(10);
 
         private readonly SynchronizationContext _ui;
         private readonly Dictionary<LinkStep, StepState> _steps = new Dictionary<LinkStep, StepState>();
@@ -100,6 +142,25 @@ namespace Campfire.Link
 
         /// <summary>Guest: whether the host answers mod list requests.</summary>
         private bool _hostSharesMods;
+
+        /// <summary>Host: counts voice chat preparations; an older one stops once a newer one starts.</summary>
+        private int _voiceSerial;
+
+        /// <summary>Host: the game running the world, its version and voice chat jar, once found.</summary>
+        private Worlds.RunningGame _voiceGame;
+        private Worlds.InstalledVersion _voiceVersion;
+        private Mods.ModInfo _voiceMod;
+
+        /// <summary>Host: the UDP port of the game's voice server once found, and the one open to the room or 0.</summary>
+        private int _voicePort;
+        private int _openVoicePort;
+
+        /// <summary>Guest: whether the host answers voice requests.</summary>
+        private bool _hostOffersVoice;
+
+        /// <summary>Guest: the host's virtual address, and the UDP port forwarded to its voice server or 0.</summary>
+        private IPAddress _hostAddress;
+        private int _voiceForwardPort;
 
         /// <param name="ui">Context of the UI thread; background events are posted to it.</param>
         public LinkSession(SynchronizationContext ui)
@@ -167,6 +228,20 @@ namespace Campfire.Link
         /// <summary>Host: the copy of the world made when the room opened.</summary>
         public BackupResult Backup { get; private set; } = new BackupResult(BackupState.None);
 
+        /// <summary>Host: the voice chat of the room.</summary>
+        public HostVoiceState Voice { get; private set; }
+
+        /// <summary>Host: the world closed for a game restart and the room waits for it to be opened to LAN again.</summary>
+        public bool WaitingForWorld { get; private set; }
+
+        /// <summary>Host: the text key under "Voice.Problem." while <see cref="Voice"/> is <see cref="HostVoiceState.Unavailable"/>.</summary>
+        public string VoiceProblem { get; private set; }
+
+        /// <summary>Guest: the host's voice chat, or <c>null</c> while it is off.</summary>
+        public Mods.VoiceOffer HostVoice { get; private set; }
+
+        public GuestVoiceState GuestVoice { get; private set; }
+
         public StepState GetStepState(LinkStep step)
         {
             return _steps.TryGetValue(step, out var state) ? state : StepState.Pending;
@@ -214,14 +289,16 @@ namespace Campfire.Link
                 _gate = GameProxy.Start(new IPEndPoint(IPAddress.Loopback, 0), port, BuildGameOverlay);
                 _gate.Refuse = RefuseGamePlayer;
                 _server = RoomServer.Start(_self, _gate.Port);
+                _server.Room = CurrentRoomInfo();
                 _server.PlayersChanged += (sender, e) => Post(run, () => Players = _server?.GetPlayers() ?? Players);
                 _ = PrepareModsAsync(run, port);
 
-                int gameProcess = GameAccount.Current?.ProcessId ?? 0;
+                int gameProcess = await Task.Run(() => WorldGameProcess(port));
                 if (gameProcess > 0)
                 {
-                    // The hook only speaks while this state is kept fresh.
+                    // The state the hook reads, rewritten every few seconds.
                     _agentState = new AgentState(gameProcess);
+                    _agentState.Notice = LinkSettings.RoomNotice;
                     _ = AttachGameOverlayAsync(run, gameProcess);
                 }
                 else
@@ -248,6 +325,8 @@ namespace Campfire.Link
                 RoomHistory.Record(true, Code, _self.Name);
                 Online.Telemetry.Count("link.host");
                 OnChanged();
+                if (LinkSettings.Voice)
+                    _ = PrepareVoiceAsync(run, false);
 
                 await MonitorHostAsync(run);
             }
@@ -278,14 +357,98 @@ namespace Campfire.Link
                 {
                     ConnectedNodes = await _network.CountConnectedNodesAsync(token);
 
-                    // The room closes once the host leaves the world.
+                    // The room closes once the host leaves the world, unless the game is restarting for voice chat.
                     if (await MinecraftProbe.IsServerAsync(MinecraftPort, TimeSpan.FromSeconds(4)))
+                    {
                         missedPings = 0;
+                    }
                     else if (++missedPings >= 3)
-                        throw new LinkException("Link.Error.WorldClosed");
+                    {
+                        if (Voice != HostVoiceState.Restart)
+                            throw new LinkException("Link.Error.WorldClosed");
+                        await ReturnToWorldAsync(run);
+                        missedPings = 0;
+                        continue;
+                    }
+
+                    if (Voice == HostVoiceState.Ready || Voice == HostVoiceState.Restart)
+                        await RefreshHostVoiceAsync(run, _voiceSerial);
                 }
                 OnChanged();
             }
+        }
+
+        /// <summary>
+        /// Host: keeps the room open while the game restarts, and takes up the world again once it is open to LAN,
+        /// on the same invite code. Gives up after <see cref="RestartWait"/>.
+        /// </summary>
+        private async Task ReturnToWorldAsync(CancellationTokenSource run)
+        {
+            var token = run.Token;
+            WaitingForWorld = true;
+            LinkLog.Info("The world closed for a game restart; the room waits for it to open again.");
+            OnChanged();
+
+            // Only a world of the same game folder counts; other games on this computer are left alone.
+            string gameDirectory = _voiceGame?.GameDirectory;
+            bool SameGame(int candidate) => gameDirectory == null || string.Equals(
+                Worlds.RunningGame.FromProcess(LocalWorldFinder.FindProcess(candidate))?.GameDirectory, gameDirectory,
+                StringComparison.OrdinalIgnoreCase);
+
+            int port;
+            using (var wait = CancellationTokenSource.CreateLinkedTokenSource(token))
+            {
+                wait.CancelAfter(RestartWait);
+                var world = LocalWorldFinder.WaitForLocalWorldAsync(wait.Token, SameGame);
+                if (LinkSettings.AutoOpenLan)
+                    _ = OpenWorldToLanAsync(run, world, gameDirectory);
+                try
+                {
+                    port = await world;
+                }
+                catch (OperationCanceledException) when (!token.IsCancellationRequested)
+                {
+                    throw new LinkException("Link.Error.WorldClosed");
+                }
+                finally
+                {
+                    StopOpeningLan();
+                    AutoLan = AutoLanState.Off;
+                }
+            }
+
+            MinecraftPort = port;
+            _gate.TargetPort = port;
+            WaitingForWorld = false;
+            LinkLog.Info($"The world is open again on port {port}.");
+            _ = PrepareModsAsync(run, port);
+
+            await GameAccount.RefreshAsync();
+            int gameProcess = await Task.Run(() => WorldGameProcess(port));
+            if (gameProcess > 0)
+            {
+                _agentState?.Dispose();
+                _agentState = new AgentState(gameProcess);
+                _agentState.Notice = LinkSettings.RoomNotice;
+                _gate.OverlayEnabled = true;
+                _ = AttachGameOverlayAsync(run, gameProcess);
+            }
+            _voiceGame = null;
+            _voicePort = 0;
+            _ = PrepareVoiceAsync(run, false);
+            OnChanged();
+        }
+
+        /// <summary>
+        /// The game process that listens on <paramref name="port"/>, or the signed-in game's when that process is not
+        /// a game started by a launcher; 0 when neither is found.
+        /// </summary>
+        private static int WorldGameProcess(int port)
+        {
+            int owner = LocalWorldFinder.FindProcess(port);
+            if (owner > 0 && Worlds.RunningGame.FromProcess(owner) != null)
+                return owner;
+            return GameAccount.Current?.ProcessId ?? 0;
         }
 
         // ======================== Guest ========================
@@ -313,6 +476,7 @@ namespace Campfire.Link
                 SetStep(LinkStep.FindHost, StepState.Active);
                 var host = await FindHostAsync(config.DirectOnly, config.HideAddress, token);
                 var hostAddress = IPAddress.Parse(host.IPv4);
+                _hostAddress = hostAddress;
                 int servicePort = int.Parse(host.Hostname.Substring(RoomProtocol.HostNamePrefix.Length));
                 SetStep(LinkStep.FindHost, StepState.Done);
 
@@ -352,7 +516,7 @@ namespace Campfire.Link
                 await _client.SendHeartbeatAsync(_self, token);
                 Players = MarkLocal(await _client.GetPlayersAsync(token));
                 UpdateLanStatus();
-                // The room always appears in this computer's LAN list: an offline account can only enter from there.
+                // The room always appears in this computer's LAN list.
                 _announcer = new LanWorldAnnouncer(LanEntryWithStatus, localPort, !IsSharedWithLan);
 
                 SetStep(LinkStep.Enter, StepState.Done);
@@ -363,6 +527,8 @@ namespace Campfire.Link
                 Online.Telemetry.Count("link.join");
                 OnChanged();
                 _ = FetchHostModsAsync(run);
+                _ = FetchHostVoiceAsync(run);
+                _ = FetchRoomInfoAsync(run);
 
                 await MonitorGuestAsync(run);
             }
@@ -448,7 +614,7 @@ namespace Campfire.Link
                 if (host != null)
                     HostPeer = host;
 
-                // Players often start the game after joining; pick up its name and skin once it runs.
+                // Reads the game's player name and skin every ten seconds.
                 if (tick % 5 == 0)
                 {
                     await GameAccount.RefreshAsync();
@@ -479,7 +645,7 @@ namespace Campfire.Link
                     }
                 }
 
-                // The host may turn mod sync on or off, or reopen the world with other mods.
+                // Reads the host's mod list every ten seconds.
                 if (_hostSharesMods && tick % 5 == 1)
                 {
                     try
@@ -488,7 +654,21 @@ namespace Campfire.Link
                     }
                     catch (Exception ex) when (RoomClient.IsConnectionError(ex) && !token.IsCancellationRequested)
                     {
-                        // A lost host is noticed by the heartbeat.
+                    }
+                }
+
+                // Reads the host's voice chat and room information every ten seconds.
+                if (tick % 5 == 3)
+                {
+                    try
+                    {
+                        if (_hostOffersVoice)
+                            await ReadHostVoiceAsync(token);
+                        if (_hostSharesRoom)
+                            await ReadRoomInfoAsync(token);
+                    }
+                    catch (Exception ex) when (RoomClient.IsConnectionError(ex) && !token.IsCancellationRequested)
+                    {
                     }
                 }
                 UpdateLanStatus();
@@ -556,13 +736,24 @@ namespace Campfire.Link
 
         // ======================== Backup ========================
 
-        /// <summary>Host: copies the world in the background; the room does not wait for it.</summary>
+        /// <summary>Host: copies the world in the background when the setting asks for it; the room does not wait for it.</summary>
         private async Task BackupWorldAsync(CancellationTokenSource run, int gamePort)
         {
-            if (!LinkSettings.BackupWorld)
-                return;
+            if (LinkSettings.BackupWorld)
+                await RunBackupAsync(run, gamePort);
+        }
 
-            Backup = new BackupResult(BackupState.Working);
+        /// <summary>Host: copies the world now and returns the result.</summary>
+        public Task<BackupResult> BackupNowAsync()
+        {
+            if (Role != LinkRole.Host || _run == null || Backup.State == BackupState.Working)
+                return Task.FromResult(Backup);
+            return RunBackupAsync(_run, MinecraftPort);
+        }
+
+        private async Task<BackupResult> RunBackupAsync(CancellationTokenSource run, int gamePort)
+        {
+            Backup = new BackupResult(BackupState.Working, Backup.WorldName);
             OnChanged();
             BackupResult result;
             try
@@ -571,17 +762,47 @@ namespace Campfire.Link
             }
             catch (OperationCanceledException)
             {
-                return;
+                return Backup;
             }
             catch (Exception ex)
             {
                 LinkLog.Warn("The world could not be backed up: " + ex.Message);
-                result = new BackupResult(BackupState.Failed);
+                result = new BackupResult(BackupState.Failed, Backup.WorldName);
             }
             if (run != _run)
-                return;
+                return result;
+            if (result.State == BackupState.Done)
+                _roomBackups.Add(result.Path);
             Backup = result;
             OnChanged();
+            return result;
+        }
+
+        private readonly HashSet<string> _roomBackups = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Host: whether the backup at <paramref name="path"/> was made while this room is open.</summary>
+        public bool IsRoomBackup(string path) => path != null && _roomBackups.Contains(path);
+
+        /// <summary>Host: the folder name of the world the room runs, or <c>null</c> when it is not found.</summary>
+        public string WorldName => Backup.WorldName ?? (MinecraftPort > 0 ? WorldBackup.FindWorldName(MinecraftPort) : null);
+
+        /// <summary>
+        /// Host: copies a backup into the saves folder of the game running the world as a new world, and returns the
+        /// new world folder. The world being played is not changed.
+        /// </summary>
+        public async Task<string> RestoreBackupAsync(BackupEntry entry)
+        {
+            int port = MinecraftPort;
+            return await Task.Run(() =>
+            {
+                var game = Worlds.RunningGame.FromProcess(WorldGameProcess(port))
+                           ?? throw new InvalidOperationException("The game running the world was not found.");
+                var source = Worlds.WorldSource.Open(entry.Path);
+                var world = source.Worlds.FirstOrDefault() ?? throw new InvalidDataException("The backup holds no world.");
+                string target = Worlds.WorldImporter.Import(source, world, game.SavesDirectory);
+                LinkLog.Info("Restored a backup as " + Path.GetFileName(target) + ".");
+                return target;
+            });
         }
 
         // ======================== Mods ========================
@@ -611,6 +832,9 @@ namespace Campfire.Link
         /// <summary>Host: the mods of the game running the world, once read.</summary>
         public Mods.ModList OwnMods => _server?.Mods?.List;
 
+        /// <summary>Host: whether the mods of the game running the world cannot be read, such as for a dedicated server.</summary>
+        public bool OwnModsUnavailable => _server?.ModsUnavailable ?? false;
+
         /// <summary>Host: whether players may compare and sync mods with this computer.</summary>
         public bool ModSyncAllowed => _server?.ModsAllowed ?? LinkSettings.ShareMods;
 
@@ -636,7 +860,7 @@ namespace Campfire.Link
                 ModsState = HostModsState.Loading;
                 OnChanged();
 
-                // The host reads its mods while the room opens; a large folder can take a moment.
+                // Asks again while the host is still reading its mods.
                 for (int attempt = 0; attempt < 20 && run == _run; attempt++)
                 {
                     if (await ReadHostModsAsync(token))
@@ -703,6 +927,279 @@ namespace Campfire.Link
             return RoomClient.TryConnectAsync(_serviceLocalPort, cancellation);
         }
 
+        // ======================== Voice ========================
+
+        /// <summary>Host: turns voice chat on or off, at once and for later rooms too.</summary>
+        public void SetVoice(bool on)
+        {
+            LinkSettings.Voice = on;
+            LinkLog.Info("Voice chat turned " + (on ? "on" : "off") + " by the host.");
+            if (Role != LinkRole.Host || Stage != LinkStage.Ready || _run == null)
+            {
+                OnChanged();
+                return;
+            }
+            if (on)
+            {
+                _ = PrepareVoiceAsync(_run, true);
+            }
+            else
+            {
+                _voiceSerial++;
+                SetHostVoice(HostVoiceState.Off, null);
+            }
+        }
+
+        /// <summary>
+        /// Host: finds the voice chat mod in the game running the world and checks whether its voice server runs.
+        /// With <paramref name="install"/> a missing mod is installed or enabled; without it the state becomes
+        /// <see cref="HostVoiceState.Missing"/>.
+        /// </summary>
+        private async Task PrepareVoiceAsync(CancellationTokenSource run, bool install)
+        {
+            int serial = ++_voiceSerial;
+            bool Current() => run == _run && serial == _voiceSerial && !run.IsCancellationRequested;
+            int port = MinecraftPort;
+            SetHostVoice(HostVoiceState.Checking, null);
+            try
+            {
+                var game = await Task.Run(() => Worlds.RunningGame.FromProcess(LocalWorldFinder.FindProcess(port)), run.Token);
+                if (!Current())
+                    return;
+                if (game == null)
+                {
+                    SetHostVoice(HostVoiceState.Unavailable, "NoGame");
+                    return;
+                }
+
+                var version = await Task.Run(() => game.FindVersion(), run.Token);
+                string mods = Path.Combine(game.GameDirectory, "mods");
+                var present = await Task.Run(() => Mods.VoiceMod.Find(mods), run.Token);
+                if (!Current())
+                    return;
+                _voiceGame = game;
+                _voiceVersion = version;
+                if (present == null && !install)
+                {
+                    SetHostVoice(HostVoiceState.Missing, null);
+                    return;
+                }
+                if (present == null)
+                    SetHostVoice(HostVoiceState.Installing, null);
+
+                var (_, mod) = await Mods.VoiceMod.InstallAsync(mods, version?.GameVersion, version?.Loader, null, run.Token);
+                await Task.Run(() => Mods.VoiceMod.EnableLocalServer(game.GameDirectory), run.Token);
+                if (!Current())
+                    return;
+                _voiceMod = mod;
+                await RefreshHostVoiceAsync(run, serial);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Mods.ModSyncException ex)
+            {
+                if (Current())
+                    SetHostVoice(HostVoiceState.Unavailable, ex.Key);
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidOperationException
+                                       || ex is ArgumentException)
+            {
+                LinkLog.Warn("Voice chat could not be prepared: " + ex.Message);
+                if (Current())
+                    SetHostVoice(HostVoiceState.Unavailable, "Unexpected");
+            }
+        }
+
+        /// <summary>Host: reads whether the voice server of the game runs, and on which UDP port.</summary>
+        private async Task RefreshHostVoiceAsync(CancellationTokenSource run, int serial)
+        {
+            var game = _voiceGame;
+            int gamePort = MinecraftPort;
+            if (game == null)
+                return;
+            int port = await Task.Run(() => FindVoiceServer(game, gamePort));
+            if (run != _run || serial != _voiceSerial || run.IsCancellationRequested)
+                return;
+            var state = port > 0 ? HostVoiceState.Ready : HostVoiceState.Restart;
+            if (state != Voice || (port > 0 && port != _voicePort))
+            {
+                LinkLog.Info(port > 0 ? $"The voice server of the game is running on UDP port {port}." : "The voice server of the game is not running.");
+                if (port > 0)
+                    _voicePort = port;
+                SetHostVoice(state, null);
+            }
+        }
+
+        /// <summary>
+        /// The UDP port of the voice server in <paramref name="game"/>: the one its log reports, else the game port,
+        /// as long as the game holds it; 0 when the voice server does not run.
+        /// </summary>
+        private static int FindVoiceServer(Worlds.RunningGame game, int gamePort)
+        {
+            int? reported = Mods.VoiceMod.ReadServerPort(game.GameDirectory);
+            if (reported != null && LocalWorldFinder.HasUdpSocket(reported.Value, game.ProcessId))
+                return reported.Value;
+            return LocalWorldFinder.HasUdpSocket(gamePort, game.ProcessId) ? gamePort : 0;
+        }
+
+        /// <summary>Host: shows the voice chat state, offers it to players and opens or closes its UDP port to the room.</summary>
+        private void SetHostVoice(HostVoiceState state, string problem)
+        {
+            bool wasReady = Voice == HostVoiceState.Ready;
+            Voice = state;
+            VoiceProblem = problem;
+            bool ready = state == HostVoiceState.Ready;
+            int port = _voicePort > 0 ? _voicePort : MinecraftPort;
+            if (_server != null)
+                _server.Voice = state == HostVoiceState.Off || state == HostVoiceState.Unavailable || state == HostVoiceState.Missing
+                    ? null
+                    : new Mods.VoiceOffer(ready, port, _voiceVersion?.GameVersion, _voiceVersion?.Loader, _voiceMod);
+
+            int open = ready ? port : 0;
+            if (open != _openVoicePort && _network != null && _gate != null)
+            {
+                _openVoicePort = open;
+                _ = _network.SetUdpWhitelistAsync(open > 0 ? new[] { _gate.Port, open } : new[] { _gate.Port }, CancellationToken.None);
+            }
+            if (wasReady != ready)
+                _lobby?.Refresh();
+            OnChanged();
+        }
+
+        /// <summary>Guest: asks whether the host offers voice chat; hosts without it are left alone.</summary>
+        private async Task FetchHostVoiceAsync(CancellationTokenSource run)
+        {
+            try
+            {
+                var protocols = await _client.GetProtocolsAsync(run.Token);
+                if (!protocols.Contains(RoomProtocol.Voice) || run != _run)
+                    return;
+                _hostOffersVoice = true;
+                await ReadHostVoiceAsync(run.Token);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex) when (RoomClient.IsConnectionError(ex))
+            {
+                LinkLog.Warn("The host's voice chat could not be read: " + ex.Message);
+            }
+        }
+
+        /// <summary>Guest: reads the host's voice chat and forwards its UDP port once its voice server runs.</summary>
+        private async Task ReadHostVoiceAsync(CancellationToken token)
+        {
+            var offer = await _client.GetVoiceAsync(token);
+            var state = offer == null ? GuestVoiceState.Off : offer.Ready ? GuestVoiceState.Ready : GuestVoiceState.Waiting;
+            if (state == GuestVoiceState.Ready && _voiceForwardPort != offer.Port)
+            {
+                var bind = IsSharedWithLan ? IPAddress.Any : IPAddress.Loopback;
+                if (IsPortFree(offer.Port, bind)
+                    && await _network.AddPortForwardAsync("udp", new IPEndPoint(bind, offer.Port), new IPEndPoint(_hostAddress, offer.Port), token))
+                {
+                    _voiceForwardPort = offer.Port;
+                    LinkLog.Info($"The host's voice chat is reachable at UDP port {offer.Port}.");
+                }
+                else
+                {
+                    state = GuestVoiceState.PortBusy;
+                    if (GuestVoice != GuestVoiceState.PortBusy)
+                        LinkLog.Warn($"UDP port {offer.Port} is in use on this computer; the host's voice chat cannot be reached.");
+                }
+            }
+
+            bool changed = state != GuestVoice || (HostVoice?.Mod?.Sha1 != offer?.Mod?.Sha1) || (HostVoice == null) != (offer == null);
+            HostVoice = offer;
+            GuestVoice = state;
+            if (changed)
+                OnChanged();
+        }
+
+        // ======================== Room ========================
+
+        /// <summary>Guest: the host's room name, announcement and player limit, or <c>null</c> when the host does not tell.</summary>
+        public RoomInfo HostRoom { get; private set; }
+
+        /// <summary>Guest: whether the host answers room requests.</summary>
+        private bool _hostSharesRoom;
+
+        /// <summary>Host: the room as the settings describe it.</summary>
+        private static RoomInfo CurrentRoomInfo()
+        {
+            return new RoomInfo(LinkSettings.RoomName, LinkSettings.RoomNotice, LinkSettings.MaxPlayers);
+        }
+
+        /// <summary>
+        /// Host: hands the saved room settings to the room's players, the game and the lobby listing at once.
+        /// </summary>
+        public async Task ApplyRoomSettingsAsync()
+        {
+            if (Role != LinkRole.Host || Stage != LinkStage.Ready || _server == null)
+                return;
+            _server.Room = CurrentRoomInfo();
+            if (_agentState != null)
+                _agentState.Notice = LinkSettings.RoomNotice;
+            LinkLog.Info("Room settings changed by the host.");
+
+            var lobby = _lobby;
+            if (lobby != null)
+            {
+                var listing = lobby.Listing;
+                listing.Title = LinkSettings.RoomName;
+                listing.Tags = LinkSettings.LobbyTags;
+                listing.Description = LinkSettings.LobbyDescription;
+                listing.ShowRegion = LinkSettings.LobbyShowRegion;
+                int limit = LinkSettings.MaxPlayers;
+                if (limit > 0)
+                {
+                    listing.MaxPlayers = limit;
+                }
+                else
+                {
+                    var status = await MinecraftProbe.GetStatusAsync(MinecraftPort, TimeSpan.FromSeconds(3));
+                    listing.MaxPlayers = status?.MaxPlayers ?? 0;
+                }
+                if (_lobby == lobby)
+                {
+                    lobby.Dispose();
+                    _lobby = new LobbyPublisher(listing, null, () => Players.Count, () => Voice == HostVoiceState.Ready, _ui);
+                    _lobby.Changed += (sender, e) => OnChanged();
+                    _lobby.Start();
+                }
+            }
+            OnChanged();
+        }
+
+        /// <summary>Guest: asks for the host's room information; hosts without it are left alone.</summary>
+        private async Task FetchRoomInfoAsync(CancellationTokenSource run)
+        {
+            try
+            {
+                var protocols = await _client.GetProtocolsAsync(run.Token);
+                if (!protocols.Contains(RoomProtocol.Room) || run != _run)
+                    return;
+                _hostSharesRoom = true;
+                await ReadRoomInfoAsync(run.Token);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex) when (RoomClient.IsConnectionError(ex))
+            {
+                LinkLog.Warn("The host's room information could not be read: " + ex.Message);
+            }
+        }
+
+        private async Task ReadRoomInfoAsync(CancellationToken token)
+        {
+            var room = await _client.GetRoomInfoAsync(token);
+            bool changed = HostRoom == null || HostRoom.Name != room.Name || HostRoom.Notice != room.Notice || HostRoom.MaxPlayers != room.MaxPlayers;
+            HostRoom = room;
+            if (changed)
+                OnChanged();
+        }
+
         // ======================== Lobby ========================
 
         /// <summary>
@@ -715,7 +1212,7 @@ namespace Campfire.Link
             if (Role != LinkRole.Host || Stage != LinkStage.Ready || Code?.Code != listing.Code?.Code)
                 return false;
             _lobby?.Dispose();
-            _lobby = new LobbyPublisher(listing, ticket, () => Players.Count, _ui);
+            _lobby = new LobbyPublisher(listing, ticket, () => Players.Count, () => Voice == HostVoiceState.Ready, _ui);
             _lobby.Changed += (sender, e) => OnChanged();
             _lobby.Start();
             OnChanged();
@@ -782,6 +1279,23 @@ namespace Campfire.Link
             Backup = new BackupResult(BackupState.None);
             _hostSharesMods = false;
             _serviceLocalPort = 0;
+            Voice = HostVoiceState.Off;
+            VoiceProblem = null;
+            WaitingForWorld = false;
+            HostVoice = null;
+            GuestVoice = GuestVoiceState.Off;
+            _voiceSerial++;
+            _voiceGame = null;
+            _voiceVersion = null;
+            _voiceMod = null;
+            _voicePort = 0;
+            _openVoicePort = 0;
+            _hostOffersVoice = false;
+            _hostSharesRoom = false;
+            HostRoom = null;
+            _roomBackups.Clear();
+            _hostAddress = null;
+            _voiceForwardPort = 0;
             OnChanged();
             return _run;
         }
@@ -817,7 +1331,7 @@ namespace Campfire.Link
                 return;
 
             if (ex is RoomRejectedException rejected)
-                ex = new LinkException(rejected.Blocked ? "Link.Error.Blocked" : "Link.Error.Removed");
+                ex = new LinkException(rejected.Full ? "Link.Error.RoomFull" : rejected.Blocked ? "Link.Error.Blocked" : "Link.Error.Removed");
             Error = ex as LinkException ?? new LinkException(ex, "Link.Error.Unexpected", ex.Message);
             LinkLog.Error("Room failed: " + Error.Message, ex is LinkException ? ex.InnerException : ex);
             if (_network != null)
@@ -856,7 +1370,8 @@ namespace Campfire.Link
         /// While the room waits for a LAN world, asks each running game to open the world the host plays to LAN,
         /// the way the game's own button does. Opening it by hand still works; whichever happens first counts.
         /// </summary>
-        private async Task OpenWorldToLanAsync(CancellationTokenSource run, Task world)
+        /// <param name="gameDirectory">Only games with this game folder are asked, or every game when <c>null</c>.</param>
+        private async Task OpenWorldToLanAsync(CancellationTokenSource run, Task world, string gameDirectory = null)
         {
             var token = run.Token;
             var asked = new HashSet<int>();
@@ -866,7 +1381,9 @@ namespace Campfire.Link
             {
                 while (!world.IsCompleted && run == _run && !token.IsCancellationRequested)
                 {
-                    var games = await Task.Run(() => Worlds.RunningGame.Find(), token);
+                    var games = (await Task.Run(() => Worlds.RunningGame.Find(), token))
+                        .Where(g => gameDirectory == null || string.Equals(g.GameDirectory, gameDirectory, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
                     if (run != _run || world.IsCompleted)
                         return;
 
@@ -967,7 +1484,7 @@ namespace Campfire.Link
             });
             await EasyTierPackage.InstallAsync(progress, token);
             Download = null;
-            // Windows 7 can lack system functions the component needs; find out before going any further.
+            // On Windows 7, checks that the component can run.
             if (EasyTierPackage.IsWindows7 && !await EasyTierPackage.CanRunAsync())
                 throw new LinkException("Link.Error.Windows7Updates");
             SetStep(LinkStep.Component, StepState.Done);
@@ -1052,18 +1569,20 @@ namespace Campfire.Link
             }
         }
 
-        /// <summary>Text of the room entry in the multiplayer list.</summary>
-        private static string LanEntryText()
+        /// <summary>Text of the room entry in the multiplayer list: the player's own name for it, else the host's room name.</summary>
+        private string LanEntryText()
         {
             string custom = LinkSettings.LanEntryName;
-            return custom.Length > 0 ? custom : Text.Get("Link.LanEntry");
+            if (custom.Length > 0)
+                return custom;
+            string room = HostRoom?.Name;
+            return string.IsNullOrEmpty(room) ? Text.Get("Link.LanEntry") : room;
         }
 
-        /// <summary>The entry text followed by the live room status; read from the announcer's thread.</summary>
+        /// <summary>The entry text followed by the live room status on one line; read from the announcer's thread.</summary>
         private string LanEntryWithStatus()
         {
             string status = _lanStatus;
-            // One line only: the multiplayer list draws a line break as a glyph and overflows the row.
             return status == null ? LanEntryText() : LanEntryText() + " §8· §7" + status;
         }
 
@@ -1074,8 +1593,7 @@ namespace Campfire.Link
                 ? Text.Format("Link.Game.ListStatus", Players.Count)
                 : Text.Format("Link.Game.ListStatusLatency", Players.Count, FormatLatency(host.LatencyMs.Value));
 
-            // Show the host name before entering the world too: the encrypted LAN connection keeps the
-            // in-game overlay out, but the LAN entry is always plain broadcast text.
+            // The LAN entry shows the host name.
             var hostPlayer = Players.FirstOrDefault(p => p.Kind == PlayerKind.Host);
             string hostName = hostPlayer?.GameName ?? hostPlayer?.Name;
             _lanStatus = string.IsNullOrWhiteSpace(hostName) ? status : hostName + " · " + status;

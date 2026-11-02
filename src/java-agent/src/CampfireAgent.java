@@ -10,9 +10,7 @@ import java.util.jar.JarFile;
  * server class that is already loaded and in one the game loads later, such as when the host opens
  * a world after Campfire attached.
  *
- * <p>The hook itself is put on the bootstrap class path. Minecraft may load its server classes in a
- * child class loader (the dedicated server bundler does), and only the bootstrap loader is visible
- * to every one of them.</p>
+ * <p>The hook itself is put on the bootstrap class path, visible to every class loader of the game.</p>
  *
  * <p>Options are "key=value" pairs separated by '|': "state" is the folder with Campfire's state
  * files, "mappings" the official mapping file of an obfuscated release.</p>

@@ -23,12 +23,12 @@
         StateChanged="Window_StateChanged"
         Activated="Window_Activated">
 
-    <!-- Outer margin leaves room for the window shadow; the shadow has its own layer so text stays sharp. -->
+    <!-- Outer margin holds the window shadow, drawn on its own layer. -->
     <Grid x:Name="PanRoot" Margin="12" RenderTransformOrigin="0.5,0.5">
         <Grid.RenderTransform>
             <ScaleTransform />
         </Grid.RenderTransform>
-        <!-- The window shadow: faint outlines, cheap to draw while the window and its pages move. -->
+        <!-- The window shadow: faint outlines. -->
         <Grid IsHitTestVisible="False">
             <Border Margin="-10" CornerRadius="16" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.04" />
             <Border Margin="-9" CornerRadius="15" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.07" />
@@ -175,6 +175,8 @@
                 <pages:WorldPage x:Name="PageWorld" Visibility="Hidden" CreateRoomRequested="PageWorld_CreateRoomRequested" />
                 <pages:MapPage x:Name="PageMap" Visibility="Hidden" />
                 <pages:ModsPage x:Name="PageMods" Visibility="Hidden" />
+                <pages:BackupPage x:Name="PageBackup" Visibility="Hidden" />
+                <pages:RoomSettingsPage x:Name="PageRoomSettings" Visibility="Hidden" />
             </Grid>
 
             <!-- First-run tour; dialogs stay above it. -->

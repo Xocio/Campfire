@@ -11,7 +11,7 @@ namespace Campfire.Launcher
     /// </summary>
     internal static class LauncherLocator
     {
-        /// <summary>Upper bound for candidate files; the official launcher is far smaller.</summary>
+        /// <summary>Largest candidate file size.</summary>
         private const long MaxCandidateSize = 64L * 1024 * 1024;
 
         public static string FindIn(string directory)

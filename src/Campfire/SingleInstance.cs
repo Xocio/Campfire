@@ -37,7 +37,7 @@ namespace Campfire
             if (owned)
                 return true;
 
-            // Lets the running Campfire take the foreground, which only the program the user just opened may grant.
+            // Lets the running Campfire take the foreground.
             AllowSetForegroundWindow(AsfwAny);
             _wake.Set();
             _mutex.Dispose();

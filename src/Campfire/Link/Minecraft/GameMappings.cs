@@ -37,7 +37,7 @@ namespace Campfire.Link.Minecraft
 
         /// <summary>
         /// Releases Mojang published no mappings for, by the SHA-1 of their client jar, and the name table Campfire
-        /// carries for each (1.7.2 to 1.14.3). The tables were made by reading the jars themselves; each one names
+        /// carries for each (1.7.2 to 1.14.3). Each table names
         /// its jar in a "# client &lt;SHA-1&gt;" line.
         /// </summary>
         private static readonly Lazy<Dictionary<string, string>> Legacy = new Lazy<Dictionary<string, string>>(() =>

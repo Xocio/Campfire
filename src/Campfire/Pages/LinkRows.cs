@@ -9,7 +9,7 @@ using Campfire.Localization;
 namespace Campfire.Pages
 {
     /// <summary>
-    /// Display model of one step in the progress card. Rows are updated in place so their spinners keep turning.
+    /// Display model of one step in the progress card. Rows are updated in place.
     /// </summary>
     internal sealed class StepRow : INotifyPropertyChanged
     {

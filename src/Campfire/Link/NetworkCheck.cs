@@ -12,8 +12,7 @@ namespace Campfire.Link
     internal static class NetworkCheck
     {
         /// <summary>
-        /// Whether this computer has a global IPv6 address. Two players with IPv6 can almost always reach each
-        /// other directly, which gives the lowest latency.
+        /// Whether this computer has a global IPv6 address.
         /// </summary>
         public static bool HasPublicIPv6()
         {

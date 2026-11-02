@@ -16,7 +16,7 @@ namespace Campfire.Worlds
     /// </remarks>
     internal static class Nbt
     {
-        /// <summary>A level.dat is a few kilobytes; even heavily modded ones stay far below this.</summary>
+        /// <summary>Largest level.dat read.</summary>
         private const long MaxDecompressedSize = 32L * 1024 * 1024;
 
         private const int MaxDepth = 512;
@@ -154,7 +154,7 @@ namespace Campfire.Worlds
             {
                 Fill(2);
                 int length = _buffer[0] << 8 | _buffer[1];
-                // Java's modified UTF-8 only differs for NUL and characters outside the BMP, which names never use.
+                // Read as standard UTF-8; modified UTF-8 differs only for NUL and characters outside the BMP.
                 return Encoding.UTF8.GetString(ReadBytes(length));
             }
 

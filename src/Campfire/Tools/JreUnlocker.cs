@@ -62,7 +62,7 @@ namespace Campfire.Tools
     }
 
     /// <summary>
-    /// Allows JREs in PCL Community Edition by rewriting the Java default check in place.
+    /// Allows JREs in the community launcher by rewriting the Java default check in place.
     /// </summary>
     /// <remarks>
     /// This is a tool of its own and does not take part in the launcher repair. Its backup lives next to the
@@ -181,7 +181,7 @@ namespace Campfire.Tools
         {
             string version = LauncherFile.ReadBundleVersion(path, image);
 
-            // Releases from before the Java manager never switched JREs off.
+            // A release without the Java manager has no JRE rule.
             if (!JreRestriction.HasJavaManager(image.Module))
                 return new JreReport(path, version, JreState.Unlocked, "Jre.Message.NotNeeded");
 

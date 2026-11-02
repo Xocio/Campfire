@@ -1,8 +1,7 @@
 name: Deploy docs
 run-name: Deploy documentation site
 
-# Also started by build.yml after a release updates docs/.vitepress/release.json: commits made with
-# GITHUB_TOKEN do not trigger push workflows, but workflow_dispatch is allowed.
+# Also started by build.yml after a release updates docs/.vitepress/release.json.
 on:
   push:
     branches: [main]

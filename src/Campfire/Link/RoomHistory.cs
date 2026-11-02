@@ -172,7 +172,7 @@ namespace Campfire.Link
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
-                // The list is a convenience; failing to save it is not an error.
+                // Saving failures are ignored.
             }
         }
     }

@@ -86,7 +86,7 @@ namespace Campfire.Pages
         private async void LoadHeaderLogo(string url, int generation)
         {
             var image = await MapImages.LoadAsync(url, 112);
-            // A slow logo must not land on the next map.
+            // Skips a logo that arrives after another map was opened.
             if (image != null && generation == _generation)
                 PanLogo.Background = new ImageBrush(image) { Stretch = Stretch.UniformToFill };
         }

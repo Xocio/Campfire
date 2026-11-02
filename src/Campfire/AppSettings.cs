@@ -33,7 +33,7 @@ namespace Campfire
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
-                // The old folder is in use; start fresh rather than fail.
+                // The old folder is in use; a new one is started.
             }
             return current;
         }
@@ -130,7 +130,7 @@ namespace Campfire
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
-                // Preferences are a convenience; failing to save them is not an error.
+                // A failed save is ignored.
             }
         }
     }

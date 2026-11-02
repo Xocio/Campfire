@@ -126,6 +126,64 @@
             <Setter Property="Foreground" Value="{DynamicResource Brush1}" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
+
+        <!-- The cards of an open room. The height is set to the page height above the button bar; the value here is the least it can be. -->
+        <Style x:Key="RoomScroll" TargetType="ScrollViewer">
+            <Setter Property="Margin" Value="-8,-8,-8,-8" />
+            <Setter Property="MaxHeight" Value="431" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="Focusable" Value="False" />
+        </Style>
+
+        <!-- One row of the room tools: round icon, name with its state below, and the action on the right. -->
+        <Style x:Key="ToolRow" TargetType="Grid">
+            <Setter Property="Margin" Value="0,5" />
+        </Style>
+        <Style x:Key="ToolIcon" TargetType="Border">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Background" Value="{DynamicResource Brush7}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="ToolGlyph" TargetType="Path">
+            <Setter Property="Stroke" Value="{DynamicResource Brush3}" />
+            <Setter Property="StrokeThickness" Value="1.5" />
+            <Setter Property="StrokeStartLineCap" Value="Round" />
+            <Setter Property="StrokeEndLineCap" Value="Round" />
+            <Setter Property="StrokeLineJoin" Value="Round" />
+            <Setter Property="Stretch" Value="None" />
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="ToolText" TargetType="StackPanel">
+            <Setter Property="Grid.Column" Value="1" />
+            <Setter Property="Margin" Value="12,0,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="ToolState" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,2,0,0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushGray4}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style x:Key="ToolButton" TargetType="Button" BasedOn="{StaticResource PclButton}">
+            <Setter Property="Grid.Column" Value="2" />
+            <Setter Property="Margin" Value="12,0,0,0" />
+            <Setter Property="MinWidth" Value="76" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="ToolButtonHighlight" TargetType="Button" BasedOn="{StaticResource PclButtonHighlight}">
+            <Setter Property="Grid.Column" Value="2" />
+            <Setter Property="Margin" Value="12,0,0,0" />
+            <Setter Property="MinWidth" Value="76" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
     </UserControl.Resources>
 
     <!-- All states share one cell; inactive ones are Hidden. -->
@@ -225,17 +283,16 @@
                                TextTrimming="CharacterEllipsis" Foreground="{DynamicResource BrushGray4}" />
                 </Grid>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <!-- Lets players sync mods with this computer, or stops them. Shown once the host's mods are read. -->
                     <Button x:Name="BtnFavoriteHost" Margin="12,0,0,0" MinWidth="92" Style="{StaticResource PclButton}"
                             Click="BtnFavorite_Click" />
-                    <Button x:Name="BtnModSync" Margin="12,0,0,0" Style="{StaticResource PclButton}" Visibility="Collapsed"
-                            Click="BtnModSync_Click" />
                     <Button x:Name="BtnLobby" Margin="12,0,0,0" MinWidth="140" Click="BtnLobby_Click" />
                     <Button x:Name="BtnCloseRoom" Margin="12,0,0,0" Content="{loc:Text Link.CloseRoom}"
                             Style="{StaticResource PclButton}" Click="BtnStop_Click" />
                 </StackPanel>
             </Grid>
-            <StackPanel>
+            <!-- The scroll area reaches past the page margin to take in the card shadows. -->
+            <ScrollViewer x:Name="ScrollHost" Style="{StaticResource RoomScroll}">
+            <StackPanel Margin="8,8,8,8">
                 <HeaderedContentControl Header="{loc:Text Link.HostReady}" Style="{StaticResource PclCard}">
                     <StackPanel>
                         <Grid>
@@ -254,13 +311,6 @@
                         </Grid>
                         <TextBlock x:Name="LabHostTip" Margin="0,8,0,0" FontSize="12" TextWrapping="Wrap"
                                    Foreground="{DynamicResource BrushGray4}" />
-                        <!-- The copy of the world made when the room opened. -->
-                        <StackPanel x:Name="PanBackup" Margin="0,6,0,0" Orientation="Horizontal" Visibility="Collapsed">
-                            <TextBlock x:Name="LabBackup" VerticalAlignment="Center" FontSize="12"
-                                       Foreground="{DynamicResource BrushGray4}" />
-                            <Button x:Name="BtnOpenBackup" Margin="10,0,0,0" FontSize="12" Style="{StaticResource PclTextButton}"
-                                    Content="{loc:Text Backup.Open}" Click="BtnOpenBackup_Click" />
-                        </StackPanel>
                         <UniformGrid Margin="0,14,0,0" Columns="3">
                             <StackPanel>
                                 <TextBlock Style="{StaticResource StatLabel}" Text="{loc:Text Link.GamePort}" />
@@ -288,7 +338,94 @@
                         <ItemsControl x:Name="ListHostPlayers" Focusable="False" ItemTemplate="{StaticResource PlayerTemplate}" />
                     </ScrollViewer>
                 </HeaderedContentControl>
+
+                <!-- Room tools, one row each: room settings, world backup, voice chat, mod sync and diagnostics. -->
+                <HeaderedContentControl Margin="0,15,0,0" Header="{loc:Text Link.Tools}" Style="{StaticResource PclCard}">
+                    <StackPanel Margin="0,-5">
+                        <Grid Style="{StaticResource ToolRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource ToolIcon}">
+                                <Path Style="{StaticResource ToolGlyph}"
+                                      Data="M2.5,4.5 L13.5,4.5 M2.5,11.5 L13.5,11.5 M6,2.8 L6,6.2 M10,9.8 L10,13.2" />
+                            </Border>
+                            <StackPanel Style="{StaticResource ToolText}">
+                                <TextBlock FontSize="14" Text="{loc:Text RoomSettings.Label}" />
+                                <TextBlock x:Name="LabRoomSettings" Style="{StaticResource ToolState}" />
+                            </StackPanel>
+                            <Button Style="{StaticResource ToolButton}" Content="{loc:Text RoomSettings.Edit}" Click="BtnRoomSettings_Click" />
+                        </Grid>
+                        <Grid Style="{StaticResource ToolRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource ToolIcon}">
+                                <Path Style="{StaticResource ToolGlyph}"
+                                      Data="M2.5,3.5 L13.5,3.5 L13.5,6 L2.5,6 Z M3.5,6 L3.5,12.5 L12.5,12.5 L12.5,6 M6.5,8.5 L9.5,8.5" />
+                            </Border>
+                            <StackPanel Style="{StaticResource ToolText}">
+                                <TextBlock FontSize="14" Text="{loc:Text Backup.Label}" />
+                                <TextBlock x:Name="LabBackup" Style="{StaticResource ToolState}" />
+                            </StackPanel>
+                            <Button x:Name="BtnOpenBackup" Style="{StaticResource ToolButton}" Content="{loc:Text Backup.Manage}"
+                                    Click="BtnOpenBackup_Click" />
+                        </Grid>
+                        <Grid Style="{StaticResource ToolRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource ToolIcon}">
+                                <Path Style="{StaticResource ToolGlyph}"
+                                      Data="M8,2 C9.4,2 10,2.8 10,4 L10,7.5 C10,8.7 9.4,9.5 8,9.5 C6.6,9.5 6,8.7 6,7.5 L6,4 C6,2.8 6.6,2 8,2 Z M3.8,7.2 C3.8,10.2 5.6,11.8 8,11.8 C10.4,11.8 12.2,10.2 12.2,7.2 M8,11.8 L8,14" />
+                            </Border>
+                            <StackPanel Style="{StaticResource ToolText}">
+                                <TextBlock FontSize="14" Text="{loc:Text Voice.Label}" />
+                                <TextBlock x:Name="LabHostVoice" Style="{StaticResource ToolState}" />
+                            </StackPanel>
+                            <Button x:Name="BtnHostVoice" Style="{StaticResource ToolButton}" Click="BtnHostVoice_Click" />
+                        </Grid>
+                        <Grid Style="{StaticResource ToolRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource ToolIcon}">
+                                <Path Style="{StaticResource ToolGlyph}"
+                                      Data="M2.8,7 C3.3,4.4 5.4,2.6 8,2.6 C9.9,2.6 11.5,3.6 12.4,5.1 M12.6,2.6 L12.6,5.3 L9.9,5.3 M13.2,9 C12.7,11.6 10.6,13.4 8,13.4 C6.1,13.4 4.5,12.4 3.6,10.9 M3.4,13.4 L3.4,10.7 L6.1,10.7" />
+                            </Border>
+                            <StackPanel Style="{StaticResource ToolText}">
+                                <TextBlock FontSize="14" Text="{loc:Text Mods.Label}" />
+                                <TextBlock x:Name="LabModSync" Style="{StaticResource ToolState}" />
+                            </StackPanel>
+                            <Button x:Name="BtnModSync" Style="{StaticResource ToolButton}" Click="BtnModSync_Click" />
+                        </Grid>
+                        <Grid Style="{StaticResource ToolRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource ToolIcon}">
+                                <Path Style="{StaticResource ToolGlyph}" Data="M2,8.5 L5,8.5 L6.5,4.5 L9.2,12 L10.8,8.5 L14,8.5" />
+                            </Border>
+                            <StackPanel Style="{StaticResource ToolText}">
+                                <TextBlock FontSize="14" Text="{loc:Text Diagnostics.Label}" />
+                                <TextBlock x:Name="LabHostDiagnostics" Style="{StaticResource ToolState}" />
+                            </StackPanel>
+                            <Button Style="{StaticResource ToolButton}" Content="{loc:Text Diagnostics.Open}" Click="BtnDiagnostics_Click" />
+                        </Grid>
+                    </StackPanel>
+                </HeaderedContentControl>
             </StackPanel>
+            </ScrollViewer>
         </DockPanel>
 
         <!-- ======================== List in the lobby (host) ======================== -->
@@ -383,17 +520,16 @@
         <DockPanel x:Name="PanGuest" Visibility="Hidden">
             <Grid DockPanel.Dock="Bottom" Margin="0,18,0,0">
                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-                    <!-- Shown when the host shares its mods; it stands out while they differ from this computer's. -->
-                    <Button x:Name="BtnFavoriteGuest" Margin="0,0,12,0" MinWidth="92" Style="{StaticResource PclButton}"
+                    <Button x:Name="BtnFavoriteGuest" MinWidth="92" Style="{StaticResource PclButton}"
                             Click="BtnFavorite_Click" />
-                    <Button x:Name="BtnMods" MinWidth="140" Content="{loc:Text Mods.Sync}" Style="{StaticResource PclButton}"
-                            Visibility="Collapsed" Click="BtnMods_Click" />
                     <Button x:Name="BtnLeaveRoom" Margin="12,0,0,0" Content="{loc:Text Link.LeaveRoom}"
                             Style="{StaticResource PclButton}" Click="BtnStop_Click" />
                 </StackPanel>
             </Grid>
-            <StackPanel>
-                <HeaderedContentControl Header="{loc:Text Link.GuestReady}" Style="{StaticResource PclCard}">
+            <!-- The scroll area reaches past the page margin to take in the card shadows. -->
+            <ScrollViewer x:Name="ScrollGuest" Style="{StaticResource RoomScroll}">
+            <StackPanel Margin="8,8,8,8">
+                <HeaderedContentControl x:Name="CardGuest" Style="{StaticResource PclCard}">
                     <StackPanel>
                         <ContentControl Style="{StaticResource PclHintGreen}">
                             <TextBlock x:Name="LabGuestGuide" TextWrapping="Wrap" />
@@ -429,6 +565,14 @@
                     </StackPanel>
                 </HeaderedContentControl>
 
+                <!-- The host's announcement; hidden while there is none. -->
+                <ContentControl x:Name="HintGuestNotice" Margin="0,15,0,0" Style="{StaticResource PclHint}" Visibility="Collapsed">
+                    <TextBlock TextWrapping="Wrap">
+                        <Run FontWeight="Bold" Text="{loc:Text Link.Game.Notice}" />
+                        <Run x:Name="RunGuestNotice" />
+                    </TextBlock>
+                </ContentControl>
+
                 <HeaderedContentControl x:Name="CardGuestPlayers" Margin="0,15,0,0" Style="{StaticResource PclCard}">
                     <StackPanel>
                         <ScrollViewer MaxHeight="116" VerticalScrollBarVisibility="Auto" Focusable="False">
@@ -441,7 +585,63 @@
                         </StackPanel>
                     </StackPanel>
                 </HeaderedContentControl>
+
+                <!-- Room tools, one row each: the host's voice chat, mod sync and diagnostics. -->
+                <HeaderedContentControl Margin="0,15,0,0" Header="{loc:Text Link.Tools}" Style="{StaticResource PclCard}">
+                    <StackPanel Margin="0,-5">
+                        <Grid Style="{StaticResource ToolRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource ToolIcon}">
+                                <Path Style="{StaticResource ToolGlyph}"
+                                      Data="M8,2 C9.4,2 10,2.8 10,4 L10,7.5 C10,8.7 9.4,9.5 8,9.5 C6.6,9.5 6,8.7 6,7.5 L6,4 C6,2.8 6.6,2 8,2 Z M3.8,7.2 C3.8,10.2 5.6,11.8 8,11.8 C10.4,11.8 12.2,10.2 12.2,7.2 M8,11.8 L8,14" />
+                            </Border>
+                            <StackPanel Style="{StaticResource ToolText}">
+                                <TextBlock FontSize="14" Text="{loc:Text Voice.Label}" />
+                                <TextBlock x:Name="LabGuestVoice" Style="{StaticResource ToolState}" />
+                            </StackPanel>
+                            <Button x:Name="BtnVoice" Style="{StaticResource ToolButton}" Content="{loc:Text Voice.InstallShort}"
+                                    Click="BtnVoice_Click" />
+                        </Grid>
+                        <Grid Style="{StaticResource ToolRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource ToolIcon}">
+                                <Path Style="{StaticResource ToolGlyph}"
+                                      Data="M2.8,7 C3.3,4.4 5.4,2.6 8,2.6 C9.9,2.6 11.5,3.6 12.4,5.1 M12.6,2.6 L12.6,5.3 L9.9,5.3 M13.2,9 C12.7,11.6 10.6,13.4 8,13.4 C6.1,13.4 4.5,12.4 3.6,10.9 M3.4,13.4 L3.4,10.7 L6.1,10.7" />
+                            </Border>
+                            <StackPanel Style="{StaticResource ToolText}">
+                                <TextBlock FontSize="14" Text="{loc:Text Mods.Label}" />
+                                <TextBlock x:Name="LabMods" Style="{StaticResource ToolState}" />
+                            </StackPanel>
+                            <Button x:Name="BtnMods" Style="{StaticResource ToolButton}" Content="{loc:Text Mods.SyncShort}"
+                                    Click="BtnMods_Click" />
+                        </Grid>
+                        <Grid Style="{StaticResource ToolRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource ToolIcon}">
+                                <Path Style="{StaticResource ToolGlyph}" Data="M2,8.5 L5,8.5 L6.5,4.5 L9.2,12 L10.8,8.5 L14,8.5" />
+                            </Border>
+                            <StackPanel Style="{StaticResource ToolText}">
+                                <TextBlock FontSize="14" Text="{loc:Text Diagnostics.Label}" />
+                                <TextBlock x:Name="LabGuestDiagnostics" Style="{StaticResource ToolState}" />
+                            </StackPanel>
+                            <Button Style="{StaticResource ToolButton}" Content="{loc:Text Diagnostics.Open}" Click="BtnDiagnostics_Click" />
+                        </Grid>
+                    </StackPanel>
+                </HeaderedContentControl>
             </StackPanel>
+            </ScrollViewer>
         </DockPanel>
     </Grid>
 </UserControl>

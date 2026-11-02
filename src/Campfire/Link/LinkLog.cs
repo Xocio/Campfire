@@ -6,7 +6,7 @@ using System.Text;
 namespace Campfire.Link
 {
     /// <summary>
-    /// Plain-text log of multiplayer sessions in %LocalAppData%\Campfire\Link\link.log, kept for troubleshooting.
+    /// Plain-text log of multiplayer sessions in %LocalAppData%\Campfire\Link\link.log.
     /// </summary>
     internal static class LinkLog
     {
@@ -47,7 +47,7 @@ namespace Campfire.Link
                 }
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
                 {
-                    // Logging must never break multiplayer.
+                    // Logging errors are ignored.
                 }
             }
         }

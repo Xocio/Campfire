@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 namespace Campfire.Worlds
 {
     /// <summary>The mod loader a world was last saved with, as far as level.dat tells.</summary>
-    /// <remarks>Fabric and Quilt leave no trace in level.dat, so their worlds read as <see cref="None"/>.</remarks>
+    /// <remarks>Worlds played with Fabric or Quilt read as <see cref="None"/>.</remarks>
     internal enum WorldLoader
     {
         None,
@@ -172,7 +172,7 @@ namespace Campfire.Worlds
                 .ToList();
         }
 
-        /// <summary>Forge build numbers before 1.9, which is when level.dat started to name the game version.</summary>
+        /// <summary>Forge build numbers of game versions before 1.9.</summary>
         private static readonly (string Prefix, string Game)[] ForgeBuilds =
         {
             ("11.15.1.", "1.8.9"),

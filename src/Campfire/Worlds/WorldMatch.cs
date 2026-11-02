@@ -62,7 +62,7 @@ namespace Campfire.Worlds
                 .Where(m => m.Fit != WorldFit.TooNew)
                 .OrderBy(m => m.LoaderMissing)
                 .ThenBy(m => m.Fit)
-                // The closest newer game first: it converts the least. Releases before 1.14 have no data
+                // The closest newer game first. Releases before 1.14 have no data
                 // version in their jar and are older than any that do; other names go last.
                 .ThenBy(m => m.Version.DataVersion ?? (ParseRelease(m.Version.GameVersion ?? "") != null ? 0 : int.MaxValue))
                 .ThenBy(m => ParseRelease(m.Version.GameVersion ?? "") ?? new Version(int.MaxValue, 0))

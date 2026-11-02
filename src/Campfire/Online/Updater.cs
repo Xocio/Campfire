@@ -45,8 +45,8 @@ namespace Campfire.Online
         }
 
         /// <summary>
-        /// Whether the service asks for this update before Campfire can be used. The manifest is not signed, so
-        /// this alone never closes Campfire: OnlineFlow only insists once a correctly signed file is in hand.
+        /// Whether the service asks for this update before Campfire can be used. OnlineFlow only requires it once a
+        /// correctly signed file is in hand.
         /// </summary>
         public static bool IsRequired(Manifest manifest)
         {

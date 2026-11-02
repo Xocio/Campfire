@@ -20,11 +20,12 @@ namespace Campfire.Link.Minecraft
     {
         private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(1500);
 
-        /// <summary>Ports that did not answer a ping are skipped for a while; Java programs listen on other ports too.</summary>
+        /// <summary>How long a port that did not answer a ping is skipped.</summary>
         private static readonly TimeSpan RetryRejected = TimeSpan.FromSeconds(20);
 
         /// <summary>Returns the game port of a Minecraft world or server running on this computer.</summary>
-        public static async Task<int> WaitForLocalWorldAsync(CancellationToken cancellation)
+        /// <param name="accept">Decides about each world found by its port, or <c>null</c> to take the first one.</param>
+        public static async Task<int> WaitForLocalWorldAsync(CancellationToken cancellation, Func<int, bool> accept = null)
         {
             var rejected = new Dictionary<int, DateTime>();
             while (true)
@@ -34,7 +35,8 @@ namespace Campfire.Link.Minecraft
                 {
                     if (rejected.TryGetValue(port, out var since) && DateTime.UtcNow - since < RetryRejected)
                         continue;
-                    if (await MinecraftProbe.IsServerAsync(port, TimeSpan.FromSeconds(2)).ConfigureAwait(false))
+                    if (await MinecraftProbe.IsServerAsync(port, TimeSpan.FromSeconds(2)).ConfigureAwait(false)
+                        && (accept == null || accept(port)))
                         return port;
                     rejected[port] = DateTime.UtcNow;
                 }
@@ -51,6 +53,13 @@ namespace Campfire.Link.Minecraft
                     return pid;
             }
             return 0;
+        }
+
+        /// <summary>Whether process <paramref name="pid"/> holds a UDP socket on <paramref name="port"/>.</summary>
+        public static bool HasUdpSocket(int port, int pid)
+        {
+            return pid > 0 && ReadUdpSockets(AfInet, 12, 4, 8).Concat(ReadUdpSockets(AfInet6, 28, 20, 24))
+                .Any(s => s.Port == port && s.Pid == pid);
         }
 
         private static IEnumerable<int> GetJavaListeningPorts()
@@ -123,12 +132,55 @@ namespace Campfire.Link.Minecraft
             return result;
         }
 
+        /// <summary>Reads (port, process id) pairs of UDP sockets from the IP Helper table.</summary>
+        /// <param name="rowSize">Size of one row in bytes.</param>
+        /// <param name="portOffset">Offset of the local port within a row.</param>
+        /// <param name="pidOffset">Offset of the owning process id within a row.</param>
+        private static List<(int Port, int Pid)> ReadUdpSockets(int family, int rowSize, int portOffset, int pidOffset)
+        {
+            var result = new List<(int, int)>();
+            int size = 0;
+            GetExtendedUdpTable(IntPtr.Zero, ref size, false, family, UdpTableOwnerPid, 0);
+
+            for (int attempt = 0; attempt < 3 && size > 0; attempt++)
+            {
+                IntPtr table = Marshal.AllocHGlobal(size);
+                try
+                {
+                    uint error = GetExtendedUdpTable(table, ref size, false, family, UdpTableOwnerPid, 0);
+                    if (error == ErrorInsufficientBuffer)
+                        continue;
+                    if (error != 0)
+                        break;
+
+                    int count = Marshal.ReadInt32(table);
+                    for (int i = 0; i < count; i++)
+                    {
+                        IntPtr row = table + 4 + i * rowSize;
+                        int rawPort = Marshal.ReadInt32(row, portOffset);
+                        int port = ((rawPort & 0xFF) << 8) | ((rawPort >> 8) & 0xFF);
+                        result.Add((port, Marshal.ReadInt32(row, pidOffset)));
+                    }
+                    break;
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(table);
+                }
+            }
+            return result;
+        }
+
         private const int AfInet = 2;
         private const int AfInet6 = 23;
         private const int TcpTableOwnerPidListener = 3;
+        private const int UdpTableOwnerPid = 1;
         private const uint ErrorInsufficientBuffer = 122;
 
         [DllImport("iphlpapi.dll", SetLastError = true)]
         private static extern uint GetExtendedTcpTable(IntPtr table, ref int size, bool sort, int family, int tableClass, uint reserved);
+
+        [DllImport("iphlpapi.dll", SetLastError = true)]
+        private static extern uint GetExtendedUdpTable(IntPtr table, ref int size, bool sort, int family, int tableClass, uint reserved);
     }
 }

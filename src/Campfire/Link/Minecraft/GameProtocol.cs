@@ -403,7 +403,7 @@ namespace Campfire.Link.Minecraft
 
         /// <summary>
         /// Returns the packet body of a frame payload, inflating it when needed. Returns <c>null</c> for compressed
-        /// packets larger than <paramref name="maxSize"/>, which are never interesting here.
+        /// packets larger than <paramref name="maxSize"/>.
         /// </summary>
         public static byte[] Unwrap(byte[] payload, int threshold, int maxSize)
         {

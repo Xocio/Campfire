@@ -15,9 +15,8 @@ namespace Campfire.Link.Minecraft
 {
     /// <summary>
     /// Attaches the small Java agent that works from inside the host's own Minecraft server: it adds the room
-    /// header, footer and welcome message, which is the only path that works in a normal LAN world, whose
-    /// login connection is encrypted before Campfire can see any play packets, and it opens an imported map
-    /// to LAN when asked (see <see cref="LanOpener"/>). It runs on every release since 1.14.4.
+    /// header, footer, welcome message and announcement, and it opens an imported map to LAN when asked
+    /// (see <see cref="LanOpener"/>).
     /// </summary>
     internal static class JavaAgent
     {
@@ -26,7 +25,7 @@ namespace Campfire.Link.Minecraft
         private const string HookResource = "Campfire.CampfireHook.jar";
         private static readonly SemaphoreSlim Gate = new SemaphoreSlim(1, 1);
 
-        /// <summary>How long to wait for the hook to confirm it runs; the server ticks twenty times a second.</summary>
+        /// <summary>How long to wait for the hook to confirm it runs.</summary>
         private static readonly TimeSpan ReadyTimeout = TimeSpan.FromSeconds(6);
 
         /// <summary>The room state the hook reads; see <see cref="AgentState"/>.</summary>
@@ -47,8 +46,7 @@ namespace Campfire.Link.Minecraft
 
             try
             {
-                // Loading the agent says nothing about the game: a modded version may use other class names,
-                // and the hook then stays idle. Only its own confirmation counts.
+                // The hook's own confirmation tells that it runs in this game.
                 var deadline = DateTime.UtcNow + ReadyTimeout;
                 while (!File.Exists(ReadyPath(processId)))
                 {
@@ -71,8 +69,7 @@ namespace Campfire.Link.Minecraft
 
         /// <summary>
         /// Loads the agent into <paramref name="processId"/>, with the mapping file of its release when that is
-        /// obfuscated. Returns whether the agent was loaded; what it can do in that game only shows through
-        /// its state files. Loading it again is harmless: the hook is installed once per game.
+        /// obfuscated. Returns whether the agent was loaded. The hook is installed once per game.
         /// </summary>
         public static async Task<bool> LoadAsync(int processId, CancellationToken cancellation)
         {
@@ -90,7 +87,7 @@ namespace Campfire.Link.Minecraft
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidOperationException)
             {
-                // Without mappings only releases with official names work; the agent finds out by itself.
+                // Without mappings the agent works with official names only.
                 LinkLog.Warn("The mapping file could not be prepared: " + ex.Message);
             }
 
@@ -104,7 +101,7 @@ namespace Campfire.Link.Minecraft
                     return false;
                 }
 
-                // Content hashes, not sizes: two builds can produce jars of exactly the same length.
+                // Compared by content hash.
                 string directory = Path.Combine(LinkSettings.DataDirectory, "agent",
                     "v" + ResourceHash(AgentResource) + "-" + ResourceHash(HookResource) + "-" + ResourceHash(AttachResource));
                 Directory.CreateDirectory(directory);
@@ -236,7 +233,7 @@ namespace Campfire.Link.Minecraft
             }
         }
 
-        /// <summary>Whether <paramref name="java"/> has the attach module; Java 8 does not even know the question.</summary>
+        /// <summary>Whether <paramref name="java"/> has the attach module.</summary>
         private static bool CanAttach(string java)
         {
             lock (AttachSupport)
@@ -346,7 +343,7 @@ namespace Campfire.Link.Minecraft
     /// <summary>
     /// Tells the hook in the game that the room is open, and in which language to speak. The file is rewritten
     /// every few seconds and deleted when the room ends; the hook stops and clears the player list as soon as
-    /// it is gone or no longer fresh, which also covers Campfire being closed abruptly.
+    /// it is gone or no longer fresh.
     /// </summary>
     internal sealed class AgentState : IDisposable
     {
@@ -358,12 +355,24 @@ namespace Campfire.Link.Minecraft
         private readonly string _readyPath;
         private readonly Timer _timer;
         private bool _disposed;
+        private volatile string _notice;
+
+        /// <summary>The room announcement shown in the game; one line, or empty for none.</summary>
+        public string Notice
+        {
+            get => _notice;
+            set
+            {
+                _notice = (value ?? "").Replace('\r', ' ').Replace('\n', ' ');
+                Write();
+            }
+        }
 
         public AgentState(int processId)
         {
             _path = JavaAgent.StatePath(processId);
             _readyPath = JavaAgent.ReadyPath(processId);
-            // A confirmation from an earlier room must not count for this one.
+            // Clears the confirmation of an earlier room.
             TryDelete(_readyPath);
             Write();
             _timer = new Timer(_ => Write(), null, Interval, Interval);
@@ -395,6 +404,8 @@ namespace Campfire.Link.Minecraft
                 "latency=" + Text.Get("Link.Game.Latency"),
                 "latencyValue=" + Text.Get("Link.Game.LatencyValue"),
                 "measuring=" + Text.Get("Link.Game.LatencyMeasuring"),
+                "noticeTitle=" + Text.Get("Link.Game.Notice"),
+                "notice=" + (_notice ?? ""),
             };
 
             lock (_sync)
@@ -414,7 +425,6 @@ namespace Campfire.Link.Minecraft
                 }
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
                 {
-                    // The hook keeps the last state for a while; the next write usually succeeds.
                 }
             }
         }

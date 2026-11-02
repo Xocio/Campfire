@@ -295,8 +295,8 @@ namespace Campfire.Controls
 
             if (below != _below && !snapCard)
             {
-                // The spring follows the edge nearest to the hole. Swapping sides keeps the card where it is
-                // for now by switching to the other edge of the same card, and the arrow reappears on the new side.
+                // The spring follows the edge nearest to the hole. On a side change it moves to the other edge of the
+                // same card, and the arrow shows on the new side.
                 double current = _cardText.Value + Chrome;
                 _cardEdge.Value += below ? -current : current;
                 FlipArrow(below);
@@ -346,7 +346,7 @@ namespace Campfire.Controls
                 Arrow.BeginAnimation(OpacityProperty, Hold(0, 1, TimeSpan.FromMilliseconds(180), 260, EaseOut));
         }
 
-        /// <summary>Pages that were just switched are still animating; look again once they have settled.</summary>
+        /// <summary>Measures the target again once the page animations have settled.</summary>
         private void ScheduleRetarget()
         {
             int session = _session;

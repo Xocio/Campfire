@@ -23,7 +23,7 @@ namespace Campfire.Launcher
             }
             catch (BadImageFormatException)
             {
-                // The community edition is a single-file bundle, which dnlib cannot open; inspect the bundle instead.
+                // A community edition bundle is inspected as a bundle.
                 LauncherReport community;
                 return CommunityLauncher.TryInspect(path, out community)
                     ? community

@@ -16,12 +16,33 @@ When the host opens LAN with a premium account, the game verifies every joining 
 
 ### The room is not found, or finding the host never finishes
 
-Check, in order:
+Run [Diagnostics](./room#diagnostics) first; it checks the system, networking component, connection, relay servers and local port one by one. Then check, in order:
 
 1. that the invite code is complete and correct;
 2. that the host's room is still open;
-3. that both sides can reach the same nodes. If either side turned off the built-in public nodes, both must enter the same custom nodes;
+3. that both sides have at least one relay server enabled in common. If either side turned off every built-in server, both must enter the same custom nodes;
 4. if the host uses another client, both sides likewise need to reach the same nodes.
+
+### "The room is full"
+
+The host set a player limit in the room settings, and the room has reached it. Try again later, or ask the host to raise it; see [Room settings](./room#room-settings).
+
+### Mods are missing or differ when entering the world
+
+When the host has mod sync on, **Tools › Mod sync** on the multiplayer page makes your mods match the host's in one step; see [Mod Sync](./mods).
+
+### Voice chat cannot be turned on or does not work
+
+- Voice chat needs a mod loader; vanilla is not supported. Use a Fabric, Forge, NeoForge or Quilt version.
+- After installing the voice chat mod, the host must restart the game and enter the same world before voice chat works.
+- Players need a local version with the host's game version and loader, with the voice chat mod installed.
+- If a UDP port on this computer is reported in use, close the program using it and try again.
+
+See [Voice Chat](./voice).
+
+### Something went wrong with my world. Can it be restored?
+
+With **Back up the world before opening a room** on (the default), the world being played is backed up whenever a room is created. **Tools › World backup** restores any copy as a new world; see [World backups](./room#world-backups).
 
 ### The host was found, but no direct connection is possible
 
@@ -49,7 +70,7 @@ Multiplayer on Windows 7 needs KB3063858 and KB4474419, installed through Window
 
 ### Where can I see why it failed?
 
-The failure page has a **View multiplayer log** button. The log is saved in `%LocalAppData%\Campfire\Link\link.log`; please attach it when reporting a problem.
+Run [Diagnostics](./room#diagnostics) first. The failure page also has a **View multiplayer log** button. The log is saved in `%LocalAppData%\Campfire\Link\link.log`; please attach it when reporting a problem.
 
 ## Maps
 

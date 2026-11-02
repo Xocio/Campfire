@@ -6,10 +6,10 @@
 # backup somewhere safe. Never commit it. The public key printed at the end goes into
 # src/Campfire/Online/Updater.cs (PublicKeys).
 #
-# Campfire accepts a release signed by any key in PublicKeys. To be ready for a leak, make a second key pair
-# now, keep its private key offline and add its public key to PublicKeys. If the current private key leaks,
-# sign releases with the backup key from then on and remove the leaked public key in that release. Clients
-# that only know the leaked key cannot update automatically and must download the new version by hand.
+# Campfire accepts a release signed by any key in PublicKeys. Backup key: make a second key pair, keep its
+# private key offline and add its public key to PublicKeys. After a leak, sign releases with the backup key
+# and remove the leaked public key in that release. Clients that only know the leaked key cannot update
+# automatically and must download the new version by hand.
 param(
     [Parameter(Mandatory = $true)][string]$OutFile
 )

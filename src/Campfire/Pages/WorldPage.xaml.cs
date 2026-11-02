@@ -254,7 +254,7 @@ namespace Campfire.Pages
         private static FrameworkElement VersionRow(WorldMatch match, bool showFolder, WorldInfo world)
         {
             var parts = new List<string>();
-            // The folder name usually is the game version already; only a renamed or modded version needs it spelled out.
+            // The game version is shown when it differs from the folder name.
             if (!string.Equals(match.Version.GameVersion, match.Version.Name, StringComparison.OrdinalIgnoreCase))
                 parts.Add(match.Version.GameVersion ?? Text.Get("World.VersionUnknown"));
             parts.Add(FitText(match.Fit));
@@ -498,7 +498,7 @@ namespace Campfire.Pages
 
         private const string AutoLanKey = "worlds.autolan";
 
-        /// <summary>The first release with official mappings; older ones cannot be reached by the agent.</summary>
+        /// <summary>The first release with official mappings.</summary>
         private const int FirstMappedDataVersion = 1976;
 
         private static readonly TimeSpan LanPollInterval = TimeSpan.FromSeconds(2);
@@ -667,7 +667,7 @@ namespace Campfire.Pages
             _selected = version;
             if (_imported != null)
             {
-                // A different version may keep its worlds elsewhere; the next click imports for that one.
+                // The next click imports again for the chosen version.
                 ResetImport();
                 if (_world != null)
                     ShowHint(Kind(_world), () => Describe(_world));

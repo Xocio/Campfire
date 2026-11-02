@@ -5,7 +5,6 @@ import rel from '../.vitepress/release.json'
 const GH = 'https://github.com/Xocio/Campfire/releases'
 const app = rel.app || {}
 const mirror = rel.mirror && app.file ? rel.mirror.replace(/\/?$/, '/') + app.file : ''
-const size = app.size ? (app.size / 1024 / 1024).toFixed(1) + ' MB' : ''
 </script>
 
 <DownloadCard inline />
@@ -14,13 +13,12 @@ const size = app.size ? (app.size / 1024 / 1024).toFixed(1) + ' MB' : ''
 
 <table class="dl-table">
   <thead>
-    <tr><th>File</th><th>Version</th><th>Size</th><th>Download</th></tr>
+    <tr><th>File</th><th>Version</th><th>Download</th></tr>
   </thead>
   <tbody>
     <tr>
       <td><code>Campfire.exe</code></td>
       <td>{{ rel.version || '—' }}</td>
-      <td>{{ size || '—' }}</td>
       <td><template v-if="mirror"><a :href="mirror">Mirror</a> · </template><a :href="GH" target="_blank" rel="noopener">GitHub</a></td>
     </tr>
   </tbody>
@@ -49,7 +47,7 @@ The result must match the value above exactly.
 | Operating system | Windows 7 SP1, 8, 8.1, 10, 11 |
 | Runtime | .NET Framework 4.8, included in Windows 10 and 11 |
 | Multiplayer | Windows 7 additionally needs updates KB3063858 and KB4474419 |
-| Disk space | About 1.7 MB for the program, plus about 14 MB for the networking component on first use |
+| Disk space | About 14 MB for the networking component, downloaded on first use |
 
 On Windows 7 and 8, download .NET Framework 4.8 from [Microsoft](https://dotnet.microsoft.com/download/dotnet-framework/net48) if it is not installed yet.
 

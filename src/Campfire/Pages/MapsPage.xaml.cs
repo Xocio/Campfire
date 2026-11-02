@@ -32,7 +32,7 @@ namespace Campfire.Pages
 
         private static readonly MapSort[] Sorts = { MapSort.Popular, MapSort.Downloads, MapSort.Updated, MapSort.Released, MapSort.Name };
 
-        /// <summary>Releases offered in the version filter besides the installed ones: those most maps are made for.</summary>
+        /// <summary>Releases offered in the version filter besides the installed ones.</summary>
         private static readonly string[] CommonVersions =
         {
             "1.21.1", "1.20.1", "1.19.2", "1.18.2", "1.17.1", "1.16.5", "1.15.2", "1.14.4", "1.13.2", "1.12.2", "1.11.2",
@@ -73,7 +73,7 @@ namespace Campfire.Pages
             FillFilters();
             RenderState();
 
-            // Campfire draws every page once while starting; that alone must not contact the service.
+            // The warm-up drawing at start does not contact the service.
             IsVisibleChanged += (sender, e) =>
             {
                 if (IsVisible && IsHitTestVisible)
@@ -185,7 +185,7 @@ namespace Campfire.Pages
                 if (generation != _generation)
                     return;
 
-                // Popularity shifts while the list is read; a map may come round again on the next page.
+                // Maps already in the list are skipped.
                 var known = new HashSet<int>(_maps.Select(m => m.Id));
                 foreach (var map in result.Maps.Where(m => known.Add(m.Id)))
                 {

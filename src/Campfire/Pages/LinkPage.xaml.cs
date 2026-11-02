@@ -22,6 +22,7 @@ using Campfire.Localization;
 
 namespace Campfire.Pages
 {
+
     /// <summary>
     /// Multiplayer page: create a room for a LAN world or join a friend's room with an invite code.
     /// </summary>
@@ -47,10 +48,10 @@ namespace Campfire.Pages
         private bool? _hasIPv6;
 
         /// <summary>Tags offered when listing a room, as the service accepts them by default.</summary>
-        private static readonly string[] LobbyTagIds =
+        internal static readonly string[] LobbyTagIds =
             { "survival", "creative", "building", "redstone", "minigame", "modded", "adventure", "pvp", "casual" };
 
-        private const int MaxLobbyTags = 3;
+        internal const int MaxLobbyTags = 3;
 
         // Listing the room in the lobby.
         private bool _publishOpen;
@@ -78,6 +79,13 @@ namespace Campfire.Pages
         private Campfire.Mods.ModCheck _modCheck;
         private Campfire.Mods.ModList _checkedHost;
 
+        // Voice chat: the host's last shown state, and as a guest the version the voice chat mod goes into.
+        private HostVoiceState _shownHostVoice;
+        private bool _voiceRequested;
+        private VoiceCheck _voiceCheck;
+        private string _voiceCheckedFor;
+        private bool _installingVoice;
+
         private bool _codeCopied;
         private DateTime _codeCopiedAt = DateTime.MinValue;
         private DateTime _addressCopiedAt = DateTime.MinValue;
@@ -85,6 +93,9 @@ namespace Campfire.Pages
         public LinkPage()
         {
             InitializeComponent();
+            Motion.SetCardScroll(ScrollHost, true);
+            Motion.SetCardScroll(ScrollGuest, true);
+            SizeChanged += (sender, e) => FitRoomScroll();
 
             _session = new LinkSession(new DispatcherSynchronizationContext(Dispatcher));
             _session.Changed += (sender, e) => Render();
@@ -126,6 +137,12 @@ namespace Campfire.Pages
 
         /// <summary>Raised when the user wants to compare or sync mods with the host.</summary>
         public event EventHandler ModsRequested;
+
+        /// <summary>Raised when the host wants to see the backups of the room's world.</summary>
+        internal event EventHandler BackupRequested;
+
+        /// <summary>Raised when the host wants to change the room's name, player limit, tags or announcement.</summary>
+        internal event EventHandler RoomSettingsRequested;
 
         /// <summary>Folders that hold a launcher, also searched for installed versions; set by the window.</summary>
         internal Func<IEnumerable<string>> LauncherDirectories { get; set; }
@@ -434,7 +451,7 @@ namespace Campfire.Pages
         {
             LabCode.Text = _session.Code?.Code;
             BtnCopyCode.Content = Text.Get(IsRecent(_codeCopiedAt) ? "Link.Copied" : "Link.CopyCode");
-            LabHostTip.Text = Text.Get(_codeCopied ? "Link.HostTipCopied" : "Link.HostTip");
+            LabHostTip.Text = Text.Get(_session.WaitingForWorld ? "Link.HostTipRestart" : _codeCopied ? "Link.HostTipCopied" : "Link.HostTip");
             LabHostPort.Text = _session.MinecraftPort.ToString(CultureInfo.InvariantCulture);
             LabHostLinks.Text = ConnectionsText;
             LabHostNat.Text = LocalNatText;
@@ -443,6 +460,9 @@ namespace Campfire.Pages
             RenderFavorite();
             RenderLobby();
             RenderModSync();
+            RenderHostVoice();
+            RenderRoomSettings();
+            SetToolState(LabHostDiagnostics, DiagnosticsText());
 
             CardHostPlayers.Header = Text.Format("Link.Players", _session.Players.Count);
             RenderPlayers(ListHostPlayers);
@@ -475,30 +495,43 @@ namespace Campfire.Pages
         private void RenderBackup()
         {
             var backup = _session.Backup;
-            bool shown = backup.State == BackupState.Working || backup.State == BackupState.Done || backup.State == BackupState.Failed;
-            PanBackup.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
-            if (!shown)
-                return;
-            LabBackup.Text = backup.State == BackupState.Working ? Text.Get("Backup.Working")
-                : backup.State == BackupState.Done ? Text.Format("Backup.Done", backup.WorldName)
-                : Text.Get("Backup.Failed");
-            BtnOpenBackup.Visibility = backup.State == BackupState.Done ? Visibility.Visible : Visibility.Collapsed;
+            SetToolState(LabBackup, Text.Format("Backup.Value." + (backup.State == BackupState.None ? "Off" : backup.State.ToString()),
+                backup.WorldName ?? ""));
         }
 
-        private async void BtnOpenBackup_Click(object sender, RoutedEventArgs e)
+        private void BtnOpenBackup_Click(object sender, RoutedEventArgs e)
         {
-            string path = _session.Backup.Path;
-            try
-            {
-                if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path))
-                    System.Diagnostics.Process.Start("explorer.exe", "/select,\"" + path + "\"");
-                else
-                    System.Diagnostics.Process.Start("explorer.exe", "\"" + WorldBackup.Directory + "\"");
-            }
-            catch (Exception ex) when (ex is System.IO.IOException || ex is System.ComponentModel.Win32Exception)
-            {
-                await Dialogs.Of(this).ErrorAsync(Text.Get("Backup.Open"), Text.Format("Settings.ActionFailed", ex.Message));
-            }
+            BackupRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>Host: the room name, player limit and whether an announcement is set.</summary>
+        private void RenderRoomSettings()
+        {
+            int limit = LinkSettings.MaxPlayers;
+            string state = LinkSettings.RoomName + " · " + (limit > 0 ? Text.Format("RoomSettings.Limit", limit) : Text.Get("RoomSettings.Unlimited"));
+            if (LinkSettings.RoomNotice.Length > 0)
+                state += " · " + Text.Get("RoomSettings.HasNotice");
+            SetToolState(LabRoomSettings, state);
+        }
+
+        private void BtnRoomSettings_Click(object sender, RoutedEventArgs e)
+        {
+            RoomSettingsRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void BtnDiagnostics_Click(object sender, RoutedEventArgs e)
+        {
+            DiagnosticsRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>How players are connected, and how many relay nodes answer.</summary>
+        private string DiagnosticsText()
+        {
+            string nodes = _session.ConnectedNodes < 0 ? Text.Get("Diagnostics.NodesChecking")
+                : Text.Format("Diagnostics.NodesValue", _session.ConnectedNodes);
+            return _session.Role == LinkRole.Host
+                ? ConnectionsText + " · " + nodes
+                : HostPathText + " · " + nodes;
         }
 
         private void RenderGuest()
@@ -515,6 +548,168 @@ namespace Campfire.Pages
             RenderPlayers(ListGuestPlayers);
             RenderFavorite();
             RenderMods();
+            RenderGuestVoice();
+            SetToolState(LabGuestDiagnostics, DiagnosticsText());
+
+            var room = _session.HostRoom;
+            CardGuest.Header = string.IsNullOrEmpty(room?.Name) ? Text.Get("Link.GuestReady") : Text.Format("Link.GuestReadyNamed", room.Name);
+            RunGuestNotice.Text = room?.Notice ?? "";
+            HintGuestNotice.Visibility = string.IsNullOrEmpty(room?.Notice) ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        // ======================== Voice ========================
+
+        /// <summary>The installed version that takes the voice chat mod, and whether the mod is already in it.</summary>
+        private sealed class VoiceCheck
+        {
+            public VoiceCheck(Campfire.Worlds.InstalledVersion version, bool installed)
+            {
+                Version = version;
+                Installed = installed;
+            }
+
+            /// <summary>The version with the host's game version and loader, or <c>null</c> when none is installed.</summary>
+            public Campfire.Worlds.InstalledVersion Version { get; }
+
+            public bool Installed { get; }
+        }
+
+        /// <summary>Host: the voice chat state and the switch next to it.</summary>
+        private void RenderHostVoice()
+        {
+            var state = _session.Voice;
+            SetToolState(LabHostVoice, state == HostVoiceState.Unavailable ? VoiceProblemText(_session.VoiceProblem) : Text.Get("Voice.Host." + state));
+            bool busy = state == HostVoiceState.Checking || state == HostVoiceState.Installing;
+            BtnHostVoice.Visibility = busy ? Visibility.Collapsed : Visibility.Visible;
+            BtnHostVoice.Content = Text.Get(state == HostVoiceState.Off ? "Link.TurnOn"
+                : state == HostVoiceState.Missing ? "Voice.InstallShort"
+                : "Link.TurnOff");
+            BtnHostVoice.ToolTip = state == HostVoiceState.Off || state == HostVoiceState.Missing ? Text.Get("Voice.TurnOnTip") : null;
+
+            // The restart notice only answers the host's own click.
+            var shown = _shownHostVoice;
+            _shownHostVoice = state;
+            if (_voiceRequested && (shown == HostVoiceState.Checking || shown == HostVoiceState.Installing) && state != shown
+                && state != HostVoiceState.Checking && state != HostVoiceState.Installing)
+            {
+                _voiceRequested = false;
+                if (state == HostVoiceState.Restart)
+                    _ = Dialogs.Of(this)?.AlertAsync(Text.Get("Voice.RestartTitle"),
+                        Text.Get(LinkSettings.AutoOpenLan ? "Voice.RestartMessage" : "Voice.RestartMessageManual"));
+            }
+        }
+
+        private void BtnHostVoice_Click(object sender, RoutedEventArgs e)
+        {
+            bool on = _session.Voice == HostVoiceState.Off || _session.Voice == HostVoiceState.Missing;
+            _voiceRequested = on;
+            _session.SetVoice(on);
+        }
+
+        /// <summary>Guest: the host's voice chat, and the button that installs the mod while it is missing here.</summary>
+        private void RenderGuestVoice()
+        {
+            var offer = _session.HostVoice;
+            if (offer == null)
+            {
+                _voiceCheck = null;
+                _voiceCheckedFor = null;
+            }
+            else if (VoiceCheckKey(offer) != _voiceCheckedFor)
+            {
+                StartVoiceCheck(offer);
+            }
+
+            var state = _session.GuestVoice;
+            var check = _voiceCheck;
+            string key = state == GuestVoiceState.Off ? "Off"
+                : state == GuestVoiceState.PortBusy ? "PortBusy"
+                : check == null ? "Checking"
+                : check.Version == null ? "NoVersion"
+                : !check.Installed ? "Missing"
+                : state == GuestVoiceState.Waiting ? "Waiting"
+                : "Ready";
+            SetToolState(LabGuestVoice, Text.Format("Voice.Guest." + key, offer?.Port ?? 0, check?.Version?.Name ?? ""));
+            bool install = state != GuestVoiceState.Off && check?.Version != null && !check.Installed;
+            BtnVoice.Visibility = install ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private static string VoiceCheckKey(Campfire.Mods.VoiceOffer offer)
+        {
+            return offer.GameVersion + "|" + offer.Loader + "|" + offer.Mod?.Sha1;
+        }
+
+        /// <summary>Finds the version with the host's game version and loader and looks for the voice chat mod in it.</summary>
+        private async void StartVoiceCheck(Campfire.Mods.VoiceOffer offer)
+        {
+            string key = VoiceCheckKey(offer);
+            _voiceCheckedFor = key;
+            VoiceCheck check = null;
+            try
+            {
+                check = await Task.Run(async () =>
+                {
+                    if (offer.GameVersion == null || offer.Loader == null)
+                        return new VoiceCheck(null, false);
+                    var host = new Campfire.Mods.ModList(offer.GameVersion, offer.Loader, null, null);
+                    var found = await Campfire.Mods.ModCheck.RunAsync(host, LauncherDirectories?.Invoke() ?? Array.Empty<string>());
+                    var version = found.Version;
+                    return new VoiceCheck(version, version != null && Campfire.Mods.VoiceMod.Find(version.ModsDirectory) != null);
+                });
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is InvalidOperationException)
+            {
+                LinkLog.Warn("The voice chat mod could not be looked for: " + ex.Message);
+            }
+            if (_voiceCheckedFor != key)
+                return;
+            _voiceCheck = check;
+            Render();
+        }
+
+        private async void BtnVoice_Click(object sender, RoutedEventArgs e)
+        {
+            var dialogs = Dialogs.Of(this);
+            var offer = _session.HostVoice;
+            var version = _voiceCheck?.Version;
+            if (dialogs == null || offer == null || version == null || _installingVoice)
+                return;
+            if (!await dialogs.ConfirmAsync(Text.Get("Voice.InstallTitle"),
+                    Text.Format("Voice.InstallMessage", Campfire.Mods.VoiceMod.Title, version.Name), Text.Get("Voice.Install")))
+                return;
+
+            _installingVoice = true;
+            BtnVoice.IsEnabled = false;
+            BtnVoice.Content = Text.Get("Voice.Installing");
+            try
+            {
+                await Campfire.Mods.VoiceMod.InstallAsync(version.ModsDirectory, offer.GameVersion, offer.Loader, offer.Mod, System.Threading.CancellationToken.None);
+                bool running = await Task.Run(() => Campfire.Mods.ModSync.IsRunning(version));
+                await dialogs.AlertAsync(Text.Get("Voice.InstalledTitle"),
+                    Text.Format(running ? "Voice.InstalledRestart" : "Voice.Installed", Campfire.Mods.VoiceMod.Title, version.Name));
+            }
+            catch (Campfire.Mods.ModSyncException ex)
+            {
+                await dialogs.ErrorAsync(Text.Get("Voice.InstallFailed"), VoiceProblemText(ex.Key));
+            }
+            finally
+            {
+                _installingVoice = false;
+                BtnVoice.IsEnabled = true;
+                BtnVoice.Content = Text.Get("Voice.InstallShort");
+                _voiceCheckedFor = null;
+                Render();
+            }
+        }
+
+        /// <summary>The text for a voice chat problem key.</summary>
+        private static string VoiceProblemText(string key)
+        {
+            if (key != null && Text.Has("Voice.Problem." + key))
+                return Text.Get("Voice.Problem." + key);
+            if (key != null && key != "Unexpected" && Text.Has("Mods.Error." + key))
+                return Text.Get("Mods.Error." + key);
+            return Text.Get("Voice.Problem.Unexpected");
         }
 
         // ======================== Mods ========================
@@ -533,33 +728,54 @@ namespace Campfire.Pages
                 StartModCheck(host);
             }
 
-            // The button appears once the comparison is ready; its tooltip tells the result.
+            // The sync button appears once the comparison is ready; it stands out while the mods differ.
             var check = _session.ModsState == HostModsState.Ready && _modCheck?.Host == host ? _modCheck : null;
             bool shown = check != null && check.HostHasMods;
             bool differs = shown && (check.Version == null || !check.Comparison.IsMatch);
             BtnMods.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
-            if (!shown)
-                return;
-
-            BtnMods.ToolTip = check.Version == null ? Text.Get("Mods.State.NoVersion")
+            BtnMods.Style = (Style)FindResource(differs ? "ToolButtonHighlight" : "ToolButton");
+            SetToolState(LabMods, _session.ModsState == HostModsState.None || _session.ModsState == HostModsState.Off ? Text.Get("Mods.Value.NotShared")
+                : check == null ? Text.Get("Mods.Value.Checking")
+                : !check.HostHasMods ? Text.Get("Mods.Value.HostNoMods")
+                : check.Version == null ? Text.Get("Mods.State.NoVersion")
                 : check.Comparison.IsMatch ? Text.Get("Mods.State.Match")
-                : Text.Format("Mods.State.Differs", check.Comparison.Changes.Count);
-            // The button is highlighted while the mods differ.
-            BtnMods.Style = (Style)FindResource(differs ? "PclButtonHighlight" : "PclButton");
-            BtnMods.FontWeight = differs ? FontWeights.Bold : FontWeights.Normal;
+                : Text.Format("Mods.State.Differs", check.Comparison.Changes.Count));
         }
 
-        /// <summary>Host: the button that lets players sync mods, once the host's own mods are read.</summary>
+        /// <summary>Gives the room cards the page height above the button bar; beyond it they scroll.</summary>
+        private void FitRoomScroll()
+        {
+            var page = (FrameworkElement)Content;
+            double inner = ActualHeight - page.Margin.Top - page.Margin.Bottom;
+            foreach (var (panel, scroll) in new[] { (PanHost, ScrollHost), (PanGuest, ScrollGuest) })
+            {
+                var bar = panel.Children.OfType<FrameworkElement>().FirstOrDefault(c => DockPanel.GetDock(c) == Dock.Bottom);
+                double barHeight = bar == null ? 0 : bar.ActualHeight + bar.Margin.Top + bar.Margin.Bottom;
+                double height = inner - barHeight - scroll.Margin.Top - scroll.Margin.Bottom;
+                if (height > 0 && bar != null && bar.ActualHeight > 0)
+                    scroll.MaxHeight = height;
+            }
+        }
+
+        /// <summary>Shows the state line of a tool row, with the whole text as its tooltip.</summary>
+        private static void SetToolState(TextBlock label, string text)
+        {
+            label.Text = text;
+            label.ToolTip = text;
+        }
+
+        /// <summary>Host: whether players may sync mods, and the switch next to it once the host's own mods are read.</summary>
         private void RenderModSync()
         {
             var own = _session.OwnMods;
             bool shown = own != null && (own.Mods.Any(m => m.IsShared) || (own.Loader != null && own.Loader != Campfire.Worlds.VersionLoader.Vanilla));
-            BtnModSync.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
-            if (!shown)
-                return;
             bool allowed = _session.ModSyncAllowed;
-            BtnModSync.Content = Text.Get(allowed ? "Mods.HostStop" : "Mods.HostAllow");
+            BtnModSync.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+            BtnModSync.Content = Text.Get(allowed ? "Link.TurnOff" : "Link.TurnOn");
             BtnModSync.ToolTip = Text.Get(allowed ? "Mods.HostStopTip" : "Mods.HostAllowTip");
+            SetToolState(LabModSync, own == null ? Text.Get(_session.OwnModsUnavailable ? "Mods.Value.Unavailable" : "Mods.Value.Reading")
+                : !shown ? Text.Get("Mods.Value.NoMods")
+                : Text.Get(allowed ? "Mods.Value.On" : "Mods.Value.Off"));
         }
 
         private void BtnModSync_Click(object sender, RoutedEventArgs e)
@@ -975,7 +1191,7 @@ namespace Campfire.Pages
             bool available = LobbyClient.IsAvailable;
             PanLobbyState.Visibility = BtnLobby.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
             var lobby = _session.Lobby;
-            // Before listing, the button says it all; a status line only appears once the room is in the lobby.
+            // The status line shows once the room is in the lobby.
             string text = null;
             string brush = null;
             if (lobby?.State == LobbyState.Listed)
@@ -1197,11 +1413,12 @@ namespace Campfire.Pages
                 Version = status?.Version ?? "",
                 Map = status?.WorldName ?? "",
                 Tags = tags,
-                MaxPlayers = status?.MaxPlayers ?? 0,
+                MaxPlayers = LinkSettings.MaxPlayers > 0 ? LinkSettings.MaxPlayers : status?.MaxPlayers ?? 0,
                 ShowRegion = ChkLobbyRegion.IsChecked == true,
                 Description = TxtLobbyDescription.Text.Trim(),
                 Password = TxtLobbyPassword.Text.Trim(),
                 Icon = _lobbyIcon,
+                Voice = _session.Voice == HostVoiceState.Ready,
             };
             LinkSettings.LobbyTitle = title;
             LinkSettings.LobbyDescription = listing.Description;
@@ -1330,7 +1547,7 @@ namespace Campfire.Pages
 
         private static bool TryCopy(string text)
         {
-            // Another program may hold the clipboard for a moment; retry briefly.
+            // Retries briefly while another program holds the clipboard.
             for (int attempt = 0; attempt < 10; attempt++)
             {
                 try
