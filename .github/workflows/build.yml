@@ -4,6 +4,10 @@ name: build
 on:
   workflow_dispatch:
     inputs:
+      sign_test:
+        description: "仅测试代码签名：提交 SignPath 签名并上传签名后的文件，不发布 Release"
+        type: boolean
+        default: false
       release:
         description: "同时发布 Release"
         type: boolean
@@ -94,11 +98,56 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload artifact
+        id: upload-unsigned
         uses: actions/upload-artifact@v4
         with:
           name: Campfire
           path: src/Campfire/bin/Release/Campfire.exe
 
+      # Submits the unsigned Campfire.exe to SignPath and waits for the signed file.
+      - name: Code signing (SignPath)
+        if: inputs.release || inputs.sign_test
+        id: signpath
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+
+      - name: Replace with signed file
+        if: inputs.release || inputs.sign_test
+        shell: pwsh
+        run: |
+          if (-not (Test-Path signed/Campfire.exe)) {
+            Write-Error "SignPath 没有返回签名后的 Campfire.exe"
+            exit 1
+          }
+          Copy-Item signed/Campfire.exe src/Campfire/bin/Release/Campfire.exe -Force
+
+      # Prints the Authenticode signature of the signed file.
+      - name: Show signature
+        if: inputs.release || inputs.sign_test
+        shell: pwsh
+        run: |
+          $signature = Get-AuthenticodeSignature src/Campfire/bin/Release/Campfire.exe
+          $signature | Format-List Status, StatusMessage, SignerCertificate
+          if (-not $signature.SignerCertificate) {
+            Write-Error "文件没有数字签名"
+            exit 1
+          }
+
+      - name: Upload signed artifact
+        if: inputs.sign_test && !inputs.release
+        uses: actions/upload-artifact@v4
+        with:
+          name: Campfire-signed
+          path: src/Campfire/bin/Release/Campfire.exe
+
+      # Runs after the code signing step; the signature covers the signed file.
       - name: Sign
         if: inputs.release
         shell: pwsh
