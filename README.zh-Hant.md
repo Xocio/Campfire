@@ -17,10 +17,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Xocio/Campfire/releases/latest"><img src="https://img.shields.io/github/v/release/Xocio/Campfire?label=%E4%B8%8B%E8%BC%89&color=E2680C" alt="Release" /></a>
+  <a href="https://github.com/Xocio/Campfire/releases/latest"><img src="https://img.shields.io/github/v/release/Xocio/Campfire?filter=v*&label=%E4%B8%8B%E8%BC%89&color=E2680C" alt="Release" /></a>
   <a href="https://github.com/Xocio/Campfire/releases"><img src="https://img.shields.io/github/downloads/Xocio/Campfire/total?label=%E4%B8%8B%E8%BC%89%E9%87%8F&color=E2680C" alt="Downloads" /></a>
   <a href="https://mccampfire.top/zh-hant/"><img src="https://img.shields.io/badge/%E6%96%87%E4%BB%B6-mccampfire.top-E2680C" alt="Docs" /></a>
   <img src="https://img.shields.io/badge/%E5%B9%B3%E8%87%BA-Windows%207%20%7C%208%20%7C%2010%20%7C%2011-0B5BCB" alt="Platform" />
+  <a href="https://mccampfire.top/zh-hant/download"><img src="https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white" alt="Android" /></a>
   <a href="NETWORK.zh-Hant.md"><img src="https://img.shields.io/badge/%E6%9C%8D%E5%8B%99%E8%88%87%E5%AE%89%E5%85%A8%E9%98%B2%E8%AD%B7-Cloudflare-F38020?logo=cloudflare&logoColor=white" alt="Cloudflare" /></a>
 </p>
 

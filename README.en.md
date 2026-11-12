@@ -17,10 +17,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Xocio/Campfire/releases/latest"><img src="https://img.shields.io/github/v/release/Xocio/Campfire?label=download&color=E2680C" alt="Release" /></a>
+  <a href="https://github.com/Xocio/Campfire/releases/latest"><img src="https://img.shields.io/github/v/release/Xocio/Campfire?filter=v*&label=download&color=E2680C" alt="Release" /></a>
   <a href="https://github.com/Xocio/Campfire/releases"><img src="https://img.shields.io/github/downloads/Xocio/Campfire/total?label=downloads&color=E2680C" alt="Downloads" /></a>
   <a href="https://mccampfire.top/en/"><img src="https://img.shields.io/badge/docs-mccampfire.top-E2680C" alt="Docs" /></a>
   <img src="https://img.shields.io/badge/platform-Windows%207%20%7C%208%20%7C%2010%20%7C%2011-0B5BCB" alt="Platform" />
+  <a href="https://mccampfire.top/en/download"><img src="https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white" alt="Android" /></a>
   <a href="NETWORK.en.md"><img src="https://img.shields.io/badge/service%20%26%20protection-Cloudflare-F38020?logo=cloudflare&logoColor=white" alt="Cloudflare" /></a>
 </p>
 

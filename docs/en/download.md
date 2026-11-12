@@ -10,7 +10,7 @@ const androidMirror = rel.mirror && android.file ? rel.mirror.replace(/\/?$/, '/
 const androidGithub = android.tag ? GH + '/tag/' + android.tag : GH
 </script>
 
-<DownloadCard inline />
+<DownloadRow />
 
 ## File
 
@@ -63,8 +63,6 @@ Official releases check for updates at startup. When a new version is found, Cam
 See [Getting Started](/en/guide/getting-started) for the first steps.
 
 ## Android
-
-<DownloadCard inline android />
 
 <p v-if="!rel.android">Once the Android app is released, its download and checksum appear here.</p>
 

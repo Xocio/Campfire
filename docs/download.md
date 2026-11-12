@@ -14,7 +14,7 @@ const androidGithub = android.tag ? GH + '/tag/' + android.tag : GH
 本站为中国大陆用户提供**国内直链**，无需代理即可高速下载。直链与 GitHub Releases 分发的是同一份经过数字签名的文件，可使用下方的 SHA-256 自行核对。
 :::
 
-<DownloadCard inline />
+<DownloadRow />
 
 ## 文件信息
 
@@ -67,8 +67,6 @@ Campfire 是免安装的单文件程序，下载后可直接运行，也可以�
 完整的首次使用说明见[安装与上手](/guide/getting-started)。
 
 ## Android 版
-
-<DownloadCard inline android />
 
 <p v-if="!rel.android">Android 版发布后，下载地址与校验值将显示于此。</p>
 

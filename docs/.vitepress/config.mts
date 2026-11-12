@@ -120,7 +120,7 @@ export default defineConfig({
               items: [
                 { text: '认识 Campfire', link: '/guide/what-is-campfire' },
                 { text: '安装与上手', link: '/guide/getting-started' },
-                { text: '安卓版', link: '/guide/android' }
+                { text: 'Android 版', link: '/guide/android' }
               ]
             },
             {
@@ -208,7 +208,7 @@ export default defineConfig({
               items: [
                 { text: '認識 Campfire', link: '/zh-hant/guide/what-is-campfire' },
                 { text: '安裝與上手', link: '/zh-hant/guide/getting-started' },
-                { text: '安卓版', link: '/zh-hant/guide/android' }
+                { text: 'Android 版', link: '/zh-hant/guide/android' }
               ]
             },
             {
@@ -296,7 +296,7 @@ export default defineConfig({
               items: [
                 { text: '認識 Campfire', link: '/yue/guide/what-is-campfire' },
                 { text: '安裝與上手', link: '/yue/guide/getting-started' },
-                { text: '安卓版', link: '/yue/guide/android' }
+                { text: 'Android 版', link: '/yue/guide/android' }
               ]
             },
             {
