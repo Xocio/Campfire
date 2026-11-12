@@ -47,6 +47,7 @@ namespace Campfire
             // The theme colors live in the window resources.
             Themes.ThemeManager.Initialize(Resources);
             InitializeComponent();
+            LoadWindowFrame();
             _shownPage = PageHome;
             _tabPage = PageHome;
             PageHome.QuickJoinRequested += PageHome_QuickJoinRequested;
@@ -55,6 +56,12 @@ namespace Campfire
             PagePreferences.LinkSettingsPage.IsRoomActive = () => PageLink.IsRoomActive;
             PagePreferences.LinkSettingsPage.SettingsChanged += PageSettings_SettingsChanged;
             PagePreferences.LinkSettingsPage.DiagnosticsRequested += Page_DiagnosticsRequested;
+            PagePreferences.LinkSettingsPage.ApplyAllowlistOnly = on => PageLink.Session.SetAllowlistOnly(on);
+            PagePreferences.LinkSettingsPage.RoomPresetsRequested += (sender, e) =>
+            {
+                OpenSubPage(PageRoomSettings, "Page.RoomSettings");
+                PageRoomSettings.Show(PageLink.Session);
+            };
             PageRecent.IsRoomActive = () => PageLink.IsRoomActive;
             PageRecent.JoinRequested += async (sender, code) =>
             {
@@ -95,6 +102,8 @@ namespace Campfire
                 StartOnline();
                 StartRelayLamp();
                 OfferTour();
+                if (DataLocation.Unavailable != null)
+                    _ = this.ErrorAsync(Text.Get("Storage.Unavailable.Title"), Text.Format("Storage.Unavailable", DataLocation.Unavailable));
                 await LoadInitialLauncherAsync();
             };
         }
@@ -102,6 +111,17 @@ namespace Campfire
         // ======================== Tour ========================
 
         private const string TourPendingKey = "tour.pending";
+
+        private readonly TaskCompletionSource<bool> _tourOffered = new TaskCompletionSource<bool>();
+        private TaskCompletionSource<bool> _tourRun;
+
+        /// <summary>Completes when no tour is running or about to start.</summary>
+        private async Task WhenTourDoneAsync()
+        {
+            await _tourOffered.Task;
+            while (_tourRun != null)
+                await _tourRun.Task;
+        }
 
         /// <summary>
         /// The first time Campfire runs, walks the user through it once the window has settled. The tour stays pending
@@ -112,14 +132,17 @@ namespace Campfire
             if (AppSettings.IsFirstRun && AppSettings.Get(TourPendingKey) == null)
                 AppSettings.Set(TourPendingKey, "1");
             if (AppSettings.Get(TourPendingKey) != "1" || Environment.GetCommandLineArgs().Skip(1).Any(File.Exists))
+            {
+                _tourOffered.TrySetResult(true);
                 return;
+            }
 
             await Task.Delay(1500);
-            // An update or notice dialog comes first.
             while (_dialog != null)
                 await _dialog.Task;
             if (IsVisible && WindowState != WindowState.Minimized)
                 StartTour();
+            _tourOffered.TrySetResult(true);
         }
 
         /// <summary>Starts the guided tour from the Home tab.</summary>
@@ -147,7 +170,14 @@ namespace Campfire
                 new TourStep { TitleKey = "Tour.6.Title", BodyKey = "Tour.6.Body", Target = () => PageHome.TileCreate, Padding = 6, Enter = () => ShowTab(TabHome) },
             };
             ShowTab(TabHome);
-            Tour.Start(steps, () => AppSettings.Set(TourPendingKey, null));
+            var run = new TaskCompletionSource<bool>();
+            _tourRun = run;
+            Tour.Start(steps, () =>
+            {
+                AppSettings.Set(TourPendingKey, null);
+                _tourRun = null;
+                run.TrySetResult(true);
+            });
         }
 
         // ======================== Navigation ========================
@@ -309,11 +339,51 @@ namespace Campfire
             return new[] { AppDomain.CurrentDomain.BaseDirectory, string.IsNullOrEmpty(launcher) ? null : Path.GetDirectoryName(launcher) };
         }
 
+        /// <summary>Opens a page by the name a notice button uses; see <see cref="Online.Notices.Pages"/>.</summary>
+        private void OpenNamedPage(string name)
+        {
+            if (Tour.IsActive)
+                return;
+            while (_subPages.Count > 0)
+                CloseSubPage();
+
+            switch (name)
+            {
+                case "home":
+                    TabHome.IsChecked = true;
+                    break;
+                case "maps":
+                    TabMaps.IsChecked = true;
+                    break;
+                case "tools":
+                    TabTools.IsChecked = true;
+                    break;
+                case "settings":
+                    TabSettings.IsChecked = true;
+                    PagePreferences.ShowSection("personalize");
+                    break;
+                case "linksettings":
+                case "support":
+                case "about":
+                case "licenses":
+                    TabSettings.IsChecked = true;
+                    PagePreferences.ShowSection(name == "linksettings" ? "link" : name);
+                    break;
+                case "lobby":
+                    TabHome.IsChecked = true;
+                    OpenSubPage(PageLobby, "Page.Lobby");
+                    break;
+                case "recent":
+                    TabHome.IsChecked = true;
+                    OpenSubPage(PageRecent, "Page.Recent");
+                    break;
+            }
+        }
+
         private void Page_RecentRequested(object sender, EventArgs e)
         {
             OpenSubPage(PageRecent, "Page.Recent");
         }
-
         private void Page_DiagnosticsRequested(object sender, EventArgs e)
         {
             OpenSubPage(PageDiagnostics, "Page.Diagnostics");
@@ -353,6 +423,18 @@ namespace Campfire
         {
             OpenSubPage(PageJre, "Page.Jre");
             await PageJre.LoadInitialLauncherAsync(PageRepair.LauncherPath);
+        }
+
+        private async void PageTools_ModCheckRequested(object sender, EventArgs e)
+        {
+            OpenSubPage(PageModCheck, "Page.ModCheck");
+            await PageModCheck.ShowAsync(LauncherDirectories());
+        }
+
+        private async void PageTools_CrashRequested(object sender, EventArgs e)
+        {
+            OpenSubPage(PageCrash, "Page.Crash");
+            await PageCrash.ShowAsync(LauncherDirectories());
         }
 
         private async void Page_WorldRequested(object sender, EventArgs e)
@@ -455,6 +537,76 @@ namespace Campfire
             if (PageLink.IsRoomActive)
                 PageHome.SetQuickJoin(null);
             UpdateTray();
+            AnnounceRoomChanges();
+        }
+
+        // ======================== Room notices ========================
+
+        private string _announcedRoom;
+        private LinkStage _announcedStage;
+        private Dictionary<string, string> _announcedPlayers = new Dictionary<string, string>();
+
+        /// <summary>
+        /// Tells the user in the notification area when other players join or leave, and when the room ends on its own,
+        /// while the window is hidden, minimized or behind other windows.
+        /// </summary>
+        private void AnnounceRoomChanges()
+        {
+            var stage = PageLink.Stage;
+            var previousStage = _announcedStage;
+            _announcedStage = stage;
+
+            if (stage == LinkStage.Failed && previousStage == LinkStage.Ready)
+            {
+                _announcedRoom = null;
+                if (ShouldAnnounce())
+                    _tray.ShowNotice(Text.Get(PageLink.Role == LinkRole.Host ? "Tray.RoomClosedTitle" : "Tray.RoomLeftTitle"),
+                        PageLink.Session.Error?.LocalizedMessage ?? Text.Get("Tray.RoomEnded"));
+                return;
+            }
+            if (stage != LinkStage.Ready || PageLink.Code == null)
+            {
+                if (stage != LinkStage.Working)
+                    _announcedRoom = null;
+                return;
+            }
+
+            // Everyone but this computer's own player.
+            var others = new Dictionary<string, string>();
+            foreach (var player in PageLink.Players)
+            {
+                bool self = PageLink.Role == LinkRole.Host ? player.Kind == Link.Room.PlayerKind.Host : player.Kind == Link.Room.PlayerKind.Local;
+                if (!self && !others.ContainsKey(player.MachineId))
+                    others[player.MachineId] = player.Name.Length > 0 ? player.Name : "?";
+            }
+
+            string room = PageLink.Code.Code;
+            var before = _announcedPlayers;
+            _announcedPlayers = others;
+            if (_announcedRoom != room)
+            {
+                _announcedRoom = room;
+                return;
+            }
+
+            var joined = others.Where(p => !before.ContainsKey(p.Key)).Select(p => p.Value).ToList();
+            var left = before.Where(p => !others.ContainsKey(p.Key)).Select(p => p.Value).ToList();
+            if ((joined.Count == 0 && left.Count == 0) || !ShouldAnnounce())
+                return;
+
+            var lines = new List<string>();
+            if (joined.Count > 0)
+                lines.Add(joined.Count == 1 ? Text.Format("Tray.PlayerJoined", joined[0]) : Text.Format("Tray.PlayersJoined", joined[0], joined.Count));
+            if (left.Count > 0)
+                lines.Add(left.Count == 1 ? Text.Format("Tray.PlayerLeft", left[0]) : Text.Format("Tray.PlayersLeft", left[0], left.Count));
+            _tray.ShowNotice(Text.Format("Tray.PlayersTitle", others.Count + 1), string.Join("\n", lines));
+        }
+
+        /// <summary>Whether a room notice is shown now: the setting is on, the icon is there and the window is not in front.</summary>
+        private bool ShouldAnnounce()
+        {
+            return _tray != null && TrayIcon.ShowIcon && TrayIcon.RoomNotices
+                   && (!IsVisible || !IsActive || WindowState == WindowState.Minimized);
         }
 
         /// <summary>One line about the room, or <c>null</c> when there is none.</summary>
@@ -486,6 +638,7 @@ namespace Campfire
 
         private void OnLanguageChanged(object sender, EventArgs e)
         {
+            UpdateFrame();
             if (_subPages.Count > 0)
                 LabTitleSub.Text = Text.Get(_subPages.Peek().TitleKey);
             PageLink_StatusChanged(this, EventArgs.Empty);
@@ -575,7 +728,7 @@ namespace Campfire
                 PlayWindowEntrance();
             }
             if (WindowState == WindowState.Minimized)
-                WindowState = WindowState.Normal;
+                WindowState = _shownState;
             Activate();
             UpdateTray();
         }
@@ -600,7 +753,7 @@ namespace Campfire
         /// </summary>
         private async void WarmUpPages()
         {
-            var pages = new FrameworkElement[] { PageMaps, PageTools, PagePreferences, PageLink, PageRecent, PageDiagnostics, PageLobby, PageLobbyRoom, PageRepair, PageJre, PageWorld, PageMap, PageMods, PageBackup, PageRoomSettings };
+            var pages = new FrameworkElement[] { PageMaps, PageTools, PagePreferences, PageLink, PageRecent, PageDiagnostics, PageLobby, PageLobbyRoom, PageRepair, PageJre, PageWorld, PageMap, PageMods, PageBackup, PageRoomSettings, PageModCheck, PageCrash };
             foreach (var page in pages)
             {
                 await Task.Delay(120);
@@ -661,12 +814,6 @@ namespace Campfire
             PanRoot.BeginAnimation(OpacityProperty, fade);
         }
 
-        private void Window_StateChanged(object sender, EventArgs e)
-        {
-            if (WindowState == WindowState.Normal)
-                PlayWindowEntrance();
-        }
-
         // ======================== Dialog ========================
 
         private Task WhenVisibleAsync()
@@ -723,9 +870,14 @@ namespace Campfire
             TxtDialogInput.Tag = request.InputHint;
             TxtDialogInput.MaxLength = request.InputMaxLength;
             TxtDialogInput.Visibility = request.InputHint == null ? Visibility.Collapsed : Visibility.Visible;
+            CmbDialogOption.ItemsSource = request.Options;
+            CmbDialogOption.SelectedIndex = request.Options == null || request.Options.Count == 0
+                ? -1
+                : Math.Max(0, Math.Min(request.SelectedOption, request.Options.Count - 1));
+            CmbDialogOption.Visibility = request.Options == null ? Visibility.Collapsed : Visibility.Visible;
 
             if (WindowState == WindowState.Minimized)
-                WindowState = WindowState.Normal;
+                WindowState = _shownState;
             PanDialog.IsHitTestVisible = true;
             PanDialog.Visibility = Visibility.Visible;
             var (tilt, lift) = DialogTransforms();
@@ -801,6 +953,8 @@ namespace Campfire
             _dialog = null;
             if (_dialogRequest != null && _dialogRequest.InputHint != null)
                 _dialogRequest.InputText = TxtDialogInput.Text;
+            if (_dialogRequest != null && _dialogRequest.Options != null)
+                _dialogRequest.SelectedOption = CmbDialogOption.SelectedIndex;
             _dialogRequest = null;
             _dialogLinkAction = null;
             PanDialog.IsHitTestVisible = false;
@@ -834,6 +988,18 @@ namespace Campfire
 
         protected override void OnPreviewKeyDown(KeyEventArgs e)
         {
+            if (e.Key == Key.F11)
+            {
+                ToggleFullScreen();
+                e.Handled = true;
+                return;
+            }
+            if (_fullScreen && e.Key == Key.Escape && _dialog == null && !Tour.IsActive)
+            {
+                ToggleFullScreen();
+                e.Handled = true;
+                return;
+            }
             if (PanDialog.Visibility == Visibility.Visible && _dialog != null && e.Key == Key.Escape)
             {
                 CloseDialog(DialogChoice.Dismissed);
@@ -859,7 +1025,7 @@ namespace Campfire
 
         private void StartOnline()
         {
-            new OnlineFlow(this, () => PageLink.IsRoomActive, PageHome.ShowNotice, ExitAndStart).Start();
+            new OnlineFlow(this, () => PageLink.IsRoomActive, PageHome.ShowNotice, ExitAndStart, WhenTourDoneAsync, OpenNamedPage).Start();
         }
 
         // ======================== Relay lamp ========================
@@ -926,6 +1092,11 @@ namespace Campfire
             PagePreferences.ShowLinkSettings(true);
         }
 
+        private void PagePreferences_RestartRequested(object sender, EventArgs e)
+        {
+            ExitAndStart(Process.GetCurrentProcess().MainModule.FileName);
+        }
+
         /// <summary>Closes Campfire without asking again, then starts <paramref name="path"/> when given.</summary>
         private void ExitAndStart(string path)
         {
@@ -953,15 +1124,23 @@ namespace Campfire
 
         // ======================== Title bar ========================
 
-        private void PanTitle_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ButtonState == MouseButtonState.Pressed)
-                DragMove();
-        }
-
         private void BtnLanguage_Click(object sender, RoutedEventArgs e)
         {
-            Text.Language = Text.Language == AppLanguage.Chinese ? AppLanguage.English : AppLanguage.Chinese;
+            switch (Text.Language)
+            {
+                case AppLanguage.Chinese:
+                    Text.Language = AppLanguage.TraditionalChinese;
+                    break;
+                case AppLanguage.TraditionalChinese:
+                    Text.Language = AppLanguage.Cantonese;
+                    break;
+                case AppLanguage.Cantonese:
+                    Text.Language = AppLanguage.English;
+                    break;
+                default:
+                    Text.Language = AppLanguage.Chinese;
+                    break;
+            }
             AppSettings.SaveLanguage(Text.Language);
         }
 
@@ -993,7 +1172,7 @@ namespace Campfire
                 e.Cancel = true;
                 _exitRequested = false;
                 if (WindowState == WindowState.Minimized)
-                    WindowState = WindowState.Normal;
+                    WindowState = _shownState;
                 Activate();
 
                 bool confirmed = await this.ConfirmAsync(Text.Get("Dialog.ExitTitle"),

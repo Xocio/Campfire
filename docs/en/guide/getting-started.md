@@ -12,6 +12,8 @@
 
 Get the latest version from the [download page](/en/download) or from [GitHub Releases](https://github.com/Xocio/Campfire/releases/latest).
 
+To play Minecraft: Java Edition on a phone or tablet, use the [Android app](./android).
+
 ## First start
 
 1. Put `Campfire.exe` in any folder and double-click it. If you plan to repair a launcher, placing it in the launcher's folder lets Campfire find the launcher automatically.
@@ -51,7 +53,7 @@ The launcher is ready to use afterwards. The original is kept next to it with a 
 
 ## Where data is stored
 
-Settings, the networking component, logs and caches live in `%LocalAppData%\Campfire`. The program file itself can be moved or replaced freely without losing settings.
+Settings, the networking component, logs and caches live in `%LocalAppData%\Campfire` by default. You can choose another location at first start, and change it later under **Settings › General › Storage location**; existing data is moved for you. After a change, the default folder keeps only a small file recording the location, and the paths below follow the chosen folder. The program file itself can be moved or replaced freely without losing settings.
 
 | Path | Contents |
 | --- | --- |

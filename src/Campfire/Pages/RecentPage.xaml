@@ -40,7 +40,7 @@
     </UserControl.Resources>
 
     <!-- The scroll area reaches past the page margin to take in the card shadows. -->
-    <ScrollViewer Margin="12,12,12,10" Height="481" VerticalScrollBarVisibility="Auto" Focusable="False">
+    <ScrollViewer Margin="12,12,12,10" VerticalScrollBarVisibility="Auto" Focusable="False">
         <StackPanel Margin="10,8,10,8">
 
             <StackPanel Orientation="Horizontal" Margin="2,0,0,10">

@@ -122,6 +122,7 @@ namespace Campfire.Themes
             if (UseWallpaper)
                 WallpaperCandidates = WallpaperColors.Extract();
             Apply(false);
+            SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
             SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
         }
 

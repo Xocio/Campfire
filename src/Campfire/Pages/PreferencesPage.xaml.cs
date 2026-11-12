@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using Campfire.Controls;
 using Campfire.Link.Runtime;
@@ -43,6 +47,12 @@ namespace Campfire.Pages
         private bool _loading;
         private AppLanguage? _licensesLanguage;
 
+        /// <summary>The languages in the order of the language list.</summary>
+        private static readonly AppLanguage[] LanguageChoices =
+        {
+            AppLanguage.Chinese, AppLanguage.TraditionalChinese, AppLanguage.Cantonese, AppLanguage.English,
+        };
+
         public PreferencesPage()
         {
             InitializeComponent();
@@ -80,6 +90,9 @@ namespace Campfire.Pages
         /// <summary>Raised when the notification area settings changed.</summary>
         public event EventHandler TraySettingsChanged;
 
+        /// <summary>The data folder changed; Campfire has to start again.</summary>
+        public event EventHandler RestartRequested;
+
         // ======================== Navigation ========================
 
         private void Nav_Checked(object sender, RoutedEventArgs e)
@@ -88,6 +101,7 @@ namespace Campfire.Pages
                 return;
             var target = sender == NavGeneral ? PanGeneral
                 : sender == NavLink ? PanLink
+                : sender == NavSupport ? PanSupport
                 : sender == NavAbout ? PanAbout
                 : sender == NavLicenses ? PanLicenses
                 : (FrameworkElement)PanPersonalize;
@@ -100,7 +114,26 @@ namespace Campfire.Pages
 
         private int SectionOrder(FrameworkElement section)
         {
-            return section == PanGeneral ? 1 : section == PanLink ? 2 : section == PanAbout ? 3 : section == PanLicenses ? 4 : 0;
+            return section == PanGeneral ? 1 : section == PanLink ? 2 : section == PanSupport ? 3
+                : section == PanAbout ? 4 : section == PanLicenses ? 5 : 0;
+        }
+
+        /// <summary>Switches to a section by name: personalize, general, link, support, about or licenses.</summary>
+        internal bool ShowSection(string name)
+        {
+            RadioButton nav;
+            switch (name)
+            {
+                case "personalize": nav = NavPersonalize; break;
+                case "general": nav = NavGeneral; break;
+                case "link": nav = NavLink; break;
+                case "support": nav = NavSupport; break;
+                case "about": nav = NavAbout; break;
+                case "licenses": nav = NavLicenses; break;
+                default: return false;
+            }
+            nav.IsChecked = true;
+            return true;
         }
 
         /// <summary>The multiplayer section, which raises <see cref="SettingsPage.SettingsChanged"/> after a change.</summary>
@@ -124,12 +157,18 @@ namespace Campfire.Pages
                 Fill(CmbMode, new[] { "Prefs.ModeSystem", "Prefs.ModeLight", "Prefs.ModeDark" }, (int)ThemeManager.Mode);
                 Fill(CmbStyle, Styles.Select(s => s.Key).ToArray(), Array.FindIndex(Styles, s => s.Style == ThemeManager.Style));
                 Fill(CmbSource, new[] { "Prefs.Source.Chosen", "Prefs.Source.Wallpaper", "Prefs.Source.Windows" }, (int)CurrentSource());
-                CmbLanguage.SelectedIndex = Text.Language == AppLanguage.English ? 1 : 0;
+                CmbLanguage.SelectedIndex = Array.IndexOf(LanguageChoices, Text.Language);
+                LabStoragePath.Text = AppSettings.DataDirectory;
+                BtnStorageReset.Visibility = DataLocation.SamePath(AppSettings.DataDirectory, DataLocation.DefaultDirectory)
+                    ? Visibility.Collapsed
+                    : Visibility.Visible;
 
                 ChkMotion.IsChecked = Motion.Enabled;
                 ChkTray.IsChecked = TrayIcon.ShowIcon;
                 ChkCloseToTray.IsChecked = TrayIcon.ShowIcon && TrayIcon.CloseToTray;
                 ChkCloseToTray.IsEnabled = TrayIcon.ShowIcon;
+                ChkTrayNotices.IsChecked = TrayIcon.ShowIcon && TrayIcon.RoomNotices;
+                ChkTrayNotices.IsEnabled = TrayIcon.ShowIcon;
                 CardUpdate.Visibility = CardPrivacy.Visibility = OnlineService.IsAvailable ? Visibility.Visible : Visibility.Collapsed;
                 ChkAutoCheck.IsChecked = OnlineService.CheckEnabled;
                 ChkStats.IsChecked = Telemetry.Consent == true;
@@ -351,11 +390,107 @@ namespace Campfire.Pages
         {
             if (_loading || CmbLanguage.SelectedIndex < 0)
                 return;
-            var language = CmbLanguage.SelectedIndex == 1 ? AppLanguage.English : AppLanguage.Chinese;
+            var language = LanguageChoices[CmbLanguage.SelectedIndex];
             if (language == Text.Language)
                 return;
             Text.Language = language;
             AppSettings.SaveLanguage(language);
+        }
+
+        private async void BtnStorageChange_Click(object sender, RoutedEventArgs e)
+        {
+            string picked = FolderPicker.Pick(new WindowInteropHelper(Window.GetWindow(this)).Handle, Text.Get("Storage.PickTitle"));
+            if (picked != null)
+                await ChangeStorageAsync(DataLocation.ToDataFolder(picked));
+        }
+
+        private async void BtnStorageReset_Click(object sender, RoutedEventArgs e)
+        {
+            await ChangeStorageAsync(DataLocation.DefaultDirectory);
+        }
+
+        private async void BtnStorageOpen_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Directory.CreateDirectory(AppSettings.DataDirectory);
+                Process.Start("explorer.exe", "\"" + AppSettings.DataDirectory + "\"");
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is System.ComponentModel.Win32Exception)
+            {
+                await Dialogs.Of(this).ErrorAsync(Text.Get("Storage.Header"), Text.Format("Settings.ActionFailed", ex.Message));
+            }
+        }
+
+        /// <summary>Carries the data over to <paramref name="target"/>, or switches to the data already there, then asks for a restart.</summary>
+        private async Task ChangeStorageAsync(string target)
+        {
+            var dialogs = Dialogs.Of(this);
+            string current = AppSettings.DataDirectory;
+            string title = Text.Get("Storage.Header");
+            if (DataLocation.SamePath(target, current))
+                return;
+            if (LinkSettingsPage.IsRoomActive?.Invoke() == true)
+            {
+                await dialogs.AlertAsync(title, Text.Get("Storage.RoomActive"));
+                return;
+            }
+
+            string problem = await Task.Run(() => DataLocation.Check(target, current));
+            if (problem != null)
+            {
+                await dialogs.ErrorAsync(title, Text.Get(problem));
+                return;
+            }
+
+            bool existing = DataLocation.HasData(target);
+            if (existing)
+            {
+                if (!await dialogs.ConfirmAsync(title, Text.Format("Storage.ConfirmExisting", target), Text.Get("Storage.Restart")))
+                    return;
+            }
+            else
+            {
+                long size = await Task.Run(() => DataLocation.Measure(current));
+                long? free = DataLocation.FreeSpace(target);
+                if (free.HasValue && free.Value < size)
+                {
+                    await dialogs.ErrorAsync(title, Text.Format("Storage.Error.NoSpace", MapText.Size(size), MapText.Size(free.Value)));
+                    return;
+                }
+                if (!await dialogs.ConfirmAsync(title, Text.Format("Storage.Confirm", MapText.Size(size), target), Text.Get("Storage.MoveRestart")))
+                    return;
+                if (!await CopyStorageAsync(current, target))
+                    return;
+            }
+
+            DataLocation.Record(target, existing ? null : current);
+            RestartRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>Copies the data while the window takes no input; returns whether it worked.</summary>
+        private async Task<bool> CopyStorageAsync(string current, string target)
+        {
+            var content = (UIElement)Window.GetWindow(this).Content;
+            var progress = new Progress<int>(percent => LabStorageState.Text = Text.Format("Storage.Moving", percent));
+            LabStorageState.Text = Text.Format("Storage.Moving", 0);
+            LabStorageState.Visibility = Visibility.Visible;
+            content.IsEnabled = false;
+            string error = null;
+            try
+            {
+                await Task.Run(() => DataLocation.Copy(current, target, progress));
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                error = ex.Message;
+            }
+            content.IsEnabled = true;
+            LabStorageState.Visibility = Visibility.Collapsed;
+            if (error == null)
+                return true;
+            await Dialogs.Of(this).ErrorAsync(Text.Get("Storage.Header"), Text.Format("Storage.Failed", error));
+            return false;
         }
 
         private void ChkTray_Click(object sender, RoutedEventArgs e)
@@ -369,6 +504,11 @@ namespace Campfire.Pages
         {
             TrayIcon.CloseToTray = ChkCloseToTray.IsChecked == true;
             TraySettingsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void ChkTrayNotices_Click(object sender, RoutedEventArgs e)
+        {
+            TrayIcon.RoomNotices = ChkTrayNotices.IsChecked == true;
         }
 
         private void ChkAutoCheck_Click(object sender, RoutedEventArgs e)

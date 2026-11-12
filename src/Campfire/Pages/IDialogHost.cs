@@ -57,6 +57,12 @@ namespace Campfire.Pages
 
         /// <summary>What was typed in the text box, set when the dialog closes.</summary>
         public string InputText { get; set; }
+
+        /// <summary>Shows a drop-down list with these choices below the message; <c>null</c> shows none.</summary>
+        public System.Collections.Generic.IReadOnlyList<string> Options { get; set; }
+
+        /// <summary>The chosen entry of <see cref="Options"/>: the one shown first, then the one picked when the dialog closes.</summary>
+        public int SelectedOption { get; set; }
     }
 
     /// <summary>

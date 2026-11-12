@@ -100,6 +100,40 @@ namespace Campfire.Link
                 return Latencies.TryGetValue(node.Id, out latency);
         }
 
+        /// <summary>Test results up to this age are used by <see cref="Pick"/>.</summary>
+        public static readonly TimeSpan PickFreshness = TimeSpan.FromMinutes(60);
+
+        /// <summary>
+        /// The nodes of <paramref name="enabled"/> a room connects to. With a recent complete test: the ones that
+        /// answered, fastest first and capped nodes last, or all of them when none answered. Without one: all of them
+        /// in their usual order.
+        /// </summary>
+        public static IReadOnlyList<PublicNode> Pick(IReadOnlyList<PublicNode> enabled)
+        {
+            if (TestedAt == null || DateTime.Now - TestedAt.Value > PickFreshness || IsTesting)
+                return enabled;
+
+            var measured = new List<(PublicNode Node, double Latency)>();
+            int skipped = 0;
+            lock (Sync)
+            {
+                foreach (var node in enabled)
+                {
+                    if (!Latencies.TryGetValue(node.Id, out double? latency))
+                        measured.Add((node, double.MaxValue));
+                    else if (latency.HasValue)
+                        measured.Add((node, latency.Value));
+                    else
+                        skipped++;
+                }
+            }
+            if (measured.Count == 0)
+                return enabled;
+            if (skipped > 0)
+                LinkLog.Info($"Leaving out {skipped} relay node(s) that did not answer the last test.");
+            return measured.OrderBy(m => m.Node.IsLimited ? 1 : 0).ThenBy(m => m.Latency).Select(m => m.Node).ToList();
+        }
+
         /// <summary>Measures every node at once. A test that is already running is joined rather than repeated.</summary>
         public static Task TestAsync()
         {

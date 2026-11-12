@@ -5,6 +5,9 @@ import rel from './.vitepress/release.json'
 const GH = 'https://github.com/Xocio/Campfire/releases'
 const app = rel.app || {}
 const mirror = rel.mirror && app.file ? rel.mirror.replace(/\/?$/, '/') + app.file : ''
+const android = rel.android || {}
+const androidMirror = rel.mirror && android.file ? rel.mirror.replace(/\/?$/, '/') + android.file : ''
+const androidGithub = android.tag ? GH + '/tag/' + android.tag : GH
 </script>
 
 ::: tip 国内直链
@@ -62,6 +65,45 @@ Campfire 是免安装的单文件程序，下载后可直接运行，也可以�
 正式版在启动时检查更新。发现新版本后，Campfire 会先征求同意，再下载更新包并校验其数字签名，校验通过后自动替换并重新启动。若程序位于不可写入的文件夹，将改为打开本页供手动下载。
 
 完整的首次使用说明见[安装与上手](/guide/getting-started)。
+
+## Android 版
+
+<DownloadCard inline android />
+
+<p v-if="!rel.android">Android 版发布后，下载地址与校验值将显示于此。</p>
+
+<template v-if="rel.android">
+
+<table class="dl-table">
+  <thead>
+    <tr><th>文件</th><th>版本</th><th>下载</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Campfire.apk</code></td>
+      <td>{{ android.version }}</td>
+      <td><template v-if="androidMirror"><a :href="androidMirror">国内直链</a> · </template><a :href="androidGithub" target="_blank" rel="noopener">GitHub</a></td>
+    </tr>
+  </tbody>
+</table>
+
+<div v-if="android.sha256" class="dl-sum">
+
+**SHA-256**
+
+<code>{{ android.sha256 }}</code>
+
+</div>
+
+</template>
+
+| 项目 | 要求 |
+| --- | --- |
+| 系统 | Android 7.0 及以上 |
+| 处理器 | 64 位 ARM |
+| 游戏 | 一款能够运行 Minecraft Java 版的 Android 启动器 |
+
+安装包已使用 Campfire 的发布证书签名。首次安装时，系统可能要求允许浏览器或文件管理器安装未知来源应用。更新时直接安装新版本即可，应用数据会被保留。完整说明见[Android 版](/guide/android)。
 
 ## 下载遇到问题
 

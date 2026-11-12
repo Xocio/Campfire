@@ -22,6 +22,9 @@ namespace Campfire.Link.Runtime
         /// <summary>Round-trip time in milliseconds, or <c>null</c> when not measured yet.</summary>
         public double? LatencyMs { get; private set; }
 
+        /// <summary>Packet loss to this peer in percent, or <c>null</c> when the tool does not report it.</summary>
+        public double? LossPercent { get; private set; }
+
         /// <summary>Transport in use, such as "udp", "tcp" or "quic".</summary>
         public string Tunnel { get; private set; }
 
@@ -41,9 +44,24 @@ namespace Campfire.Link.Runtime
                 LatencyMs = double.TryParse(GetString(item, "lat_ms"), NumberStyles.Float, CultureInfo.InvariantCulture, out var lat)
                     ? lat
                     : (double?)null,
+                LossPercent = ParseLoss(GetString(item, "loss_rate")),
                 Tunnel = GetString(item, "tunnel_proto"),
                 Nat = ParseNat(GetString(item, "nat_type")),
             };
+        }
+
+        /// <summary>Reads "1.5%" as 1.5 and a bare fraction such as "0.015" as 1.5; anything else as <c>null</c>.</summary>
+        private static double? ParseLoss(string value)
+        {
+            string text = (value ?? "").Trim();
+            bool percent = text.EndsWith("%", StringComparison.Ordinal);
+            if (percent)
+                text = text.Substring(0, text.Length - 1).Trim();
+            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double loss) || double.IsNaN(loss) || loss < 0)
+                return null;
+            if (!percent)
+                loss *= 100;
+            return loss <= 100 ? loss : (double?)null;
         }
 
         public static NatKind ParseNat(string value)

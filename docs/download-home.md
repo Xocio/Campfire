@@ -27,5 +27,6 @@ import rel from './.vitepress/release.json'
     <p class="dl-sub">{{ rel.version || '先进的 Minecraft 工具箱' }}</p>
   </header>
   <DownloadCard />
-  <p class="dl-foot"><a href="/guide/getting-started">安装说明</a><span class="dl-dot">·</span><a href="/download">文件与校验</a><span class="dl-dot">·</span><a href="/en/download-home">English</a></p>
+  <DownloadCard android />
+  <p class="dl-foot"><a href="/guide/getting-started">安装说明</a><span class="dl-dot">·</span><a href="/download">文件与校验</a><span class="dl-dot">·</span><a href="/zh-hant/download-home">繁體中文</a><span class="dl-dot">·</span><a href="/yue/download-home">粵語</a><span class="dl-dot">·</span><a href="/en/download-home">English</a></p>
 </div>

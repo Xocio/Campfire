@@ -27,5 +27,6 @@ import rel from '../.vitepress/release.json'
     <p class="dl-sub">{{ rel.version || 'An advanced Minecraft toolbox' }}</p>
   </header>
   <DownloadCard />
-  <p class="dl-foot"><a href="/en/guide/getting-started">Setup guide</a><span class="dl-dot">·</span><a href="/en/download">Files and checksums</a><span class="dl-dot">·</span><a href="/download-home">简体中文</a></p>
+  <DownloadCard android />
+  <p class="dl-foot"><a href="/en/guide/getting-started">Setup guide</a><span class="dl-dot">·</span><a href="/en/download">Files and checksums</a><span class="dl-dot">·</span><a href="/download-home">简体中文</a><span class="dl-dot">·</span><a href="/zh-hant/download-home">繁體中文</a><span class="dl-dot">·</span><a href="/yue/download-home">粵語</a></p>
 </div>

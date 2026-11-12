@@ -6,7 +6,7 @@ using System.Text;
 namespace Campfire.Link
 {
     /// <summary>
-    /// Plain-text log of multiplayer sessions in %LocalAppData%\Campfire\Link\link.log.
+    /// Plain-text log of multiplayer sessions, in Link\link.log in the data folder.
     /// </summary>
     internal static class LinkLog
     {
@@ -14,7 +14,7 @@ namespace Campfire.Link
 
         private static readonly object Sync = new object();
 
-        public static string FilePath { get; } = Path.Combine(LinkSettings.DataDirectory, "link.log");
+        public static string FilePath => Path.Combine(LinkSettings.DataDirectory, "link.log");
 
         public static void Info(string message)
         {

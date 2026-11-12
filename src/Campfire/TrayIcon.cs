@@ -73,6 +73,13 @@ namespace Campfire
             set => AppSettings.Set("tray.close", value ? "1" : null);
         }
 
+        /// <summary>Whether players joining or leaving, and a room that ends, are announced while the window is not in front.</summary>
+        public static bool RoomNotices
+        {
+            get => AppSettings.Get("tray.notices") != "0";
+            set => AppSettings.Set("tray.notices", value ? null : "0");
+        }
+
         // ======================== State ========================
 
         /// <summary>Shows or hides the icon and updates its tooltip.</summary>
@@ -207,6 +214,9 @@ namespace Campfire
                     case WmRButtonUp:
                         MenuRequested?.Invoke(this, EventArgs.Empty);
                         break;
+                    case NinBalloonUserClick:
+                        OpenRequested?.Invoke(this, EventArgs.Empty);
+                        break;
                 }
                 handled = true;
             }
@@ -228,6 +238,7 @@ namespace Campfire
         private const int NifInfo = 0x10;
         private const int WmLButtonUp = 0x0202;
         private const int WmRButtonUp = 0x0205;
+        private const int NinBalloonUserClick = 0x0405; // WM_USER + 5
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         private struct NotifyIconData

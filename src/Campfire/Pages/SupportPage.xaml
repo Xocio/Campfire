@@ -1,0 +1,71 @@
+<UserControl x:Class="Campfire.Pages.SupportPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Campfire.Localization">
+
+    <UserControl.Resources>
+        <Style x:Key="EntryIcon" TargetType="Border">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Background" Value="{DynamicResource Brush7}" />
+        </Style>
+        <Style x:Key="EntrySummary" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,1,0,0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource BrushGray4}" />
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel>
+
+        <HeaderedContentControl Header="{loc:Text Support.Header}" Style="{StaticResource PclCard}">
+            <StackPanel>
+                <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource BrushGray3}" Text="{loc:Text Support.Intro}" />
+
+                <!-- Campfire developer -->
+                <Grid Margin="0,16,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource EntryIcon}">
+                        <Path Width="16" Height="16" Stretch="None" Fill="{DynamicResource Brush3}"
+                              Data="M8,14 C8,14 1.5,10 1.5,5.7 C1.5,3.8 3,2.3 4.9,2.3 C6.3,2.3 7.4,3.1 8,4.2 C8.6,3.1 9.7,2.3 11.1,2.3 C13,2.3 14.5,3.8 14.5,5.7 C14.5,10 8,14 8,14 Z" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="12,0,12,0" VerticalAlignment="Center">
+                        <TextBlock Text="{loc:Text Support.Developer}" />
+                        <TextBlock Style="{StaticResource EntrySummary}" Text="{loc:Text Support.DeveloperSummary}" />
+                    </StackPanel>
+                    <Button Grid.Column="2" MinWidth="88" Height="30" Content="{loc:Text Support.Sponsor}"
+                            Style="{StaticResource PclButtonHighlight}" Tag="https://afdian.com/a/xocio"
+                            Click="LinkButton_Click" />
+                </Grid>
+
+                <!-- EasyTier -->
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource EntryIcon}">
+                        <Path Width="16" Height="16" Stretch="None" Stroke="{DynamicResource Brush3}" StrokeThickness="1.6"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                              Data="M6.2,3.5 A1.8,1.8 0 1 1 9.8,3.5 A1.8,1.8 0 1 1 6.2,3.5 Z M1.7,12.3 A1.8,1.8 0 1 1 5.3,12.3 A1.8,1.8 0 1 1 1.7,12.3 Z M10.7,12.3 A1.8,1.8 0 1 1 14.3,12.3 A1.8,1.8 0 1 1 10.7,12.3 Z M7.1,5.1 L4.4,10.7 M8.9,5.1 L11.6,10.7 M5.5,12.3 L10.5,12.3" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="12,0,12,0" VerticalAlignment="Center">
+                        <TextBlock Text="{loc:Text Support.EasyTier}" />
+                        <TextBlock Style="{StaticResource EntrySummary}" Text="{loc:Text Support.EasyTierSummary}" />
+                    </StackPanel>
+                    <Button Grid.Column="2" MinWidth="88" Height="30" Content="{loc:Text Support.Website}"
+                            Style="{StaticResource PclButton}" Tag="https://github.com/EasyTier/EasyTier"
+                            Click="LinkButton_Click" />
+                </Grid>
+            </StackPanel>
+        </HeaderedContentControl>
+
+    </StackPanel>
+</UserControl>

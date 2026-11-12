@@ -320,6 +320,7 @@ namespace Campfire.Link
 
                 Players = _server.GetPlayers();
                 SetStep(LinkStep.Network, StepState.Done);
+                _backupCheckedUtc = DateTime.UtcNow;
                 Stage = LinkStage.Ready;
                 LinkLog.Info($"Room {Mask(Code)} is open ({ConnectedNodes} nodes connected).");
                 RoomHistory.Record(true, Code, _self.Name);
@@ -374,6 +375,7 @@ namespace Campfire.Link
                     if (Voice == HostVoiceState.Ready || Voice == HostVoiceState.Restart)
                         await RefreshHostVoiceAsync(run, _voiceSerial);
                 }
+                ScheduleBackup(run);
                 OnChanged();
             }
         }
@@ -512,7 +514,7 @@ namespace Campfire.Link
                 if (!reachable)
                     LinkLog.Warn("The host's game did not answer through the tunnel yet; continuing anyway.");
 
-                _self = _self.WithLatency(HostPeer?.LatencyMs);
+                _self = WithHostConnection(_self);
                 await _client.SendHeartbeatAsync(_self, token);
                 Players = MarkLocal(await _client.GetPlayersAsync(token));
                 UpdateLanStatus();
@@ -628,7 +630,7 @@ namespace Campfire.Link
                 {
                     try
                     {
-                        _self = _self.WithLatency(HostPeer?.LatencyMs);
+                        _self = WithHostConnection(_self);
                         await _client.SendHeartbeatAsync(_self, token);
                         var players = MarkLocal(await _client.GetPlayersAsync(token));
                         Players = players;
@@ -679,23 +681,28 @@ namespace Campfire.Link
         // ======================== Control ========================
 
         /// <summary>
-        /// Takes a guest out of the room and out of the world. A removed player may come back after a minute; a
-        /// blocked one is turned away from every room this computer opens until unblocked in the settings.
+        /// Takes a guest out of the room and out of the world. A removed player may come back once
+        /// <paramref name="duration"/> has passed, or after the room closes when it is <c>null</c>; a blocked one is
+        /// turned away from every room this computer opens until unblocked in the settings.
         /// </summary>
-        public void RemovePlayer(PlayerProfile player, bool block)
+        public void RemovePlayer(PlayerProfile player, bool block, TimeSpan? duration = null)
         {
             if (Role != LinkRole.Host || _server == null || player.Kind == PlayerKind.Host)
                 return;
 
             if (block)
+            {
                 Blocklist.Add(player);
-            _server.Remove(player.MachineId);
+                Allowlist.Remove(player.MachineId);
+            }
+            var until = duration.HasValue ? DateTime.UtcNow + duration.Value : DateTime.MaxValue;
+            _server.Remove(player.MachineId, until);
 
             var names = new[] { player.Name, player.GameName }.Where(n => !string.IsNullOrEmpty(n)).ToList();
             lock (_removedNames)
             {
                 foreach (string name in names)
-                    _removedNames[name] = DateTime.UtcNow + RoomServer.RemovalTime;
+                    _removedNames[name] = until;
             }
             int closed = _gate?.Disconnect(name => names.Contains(name, StringComparer.OrdinalIgnoreCase),
                 Text.Get(block ? "Link.Game.BlockedKick" : "Link.Game.RemovedKick")) ?? 0;
@@ -705,11 +712,42 @@ namespace Campfire.Link
             OnChanged();
         }
 
+        /// <summary>Host: whether the room only takes the players on the allowlist.</summary>
+        public bool AllowlistOnly => _server?.AllowlistOnly ?? LinkSettings.AllowlistOnly;
+
+        /// <summary>
+        /// Host: lets only allowed players in, or everyone with the invite code, at once and for later rooms too.
+        /// Turning it on adds the players already in the room to the allowlist. Returns how many were added.
+        /// </summary>
+        public int SetAllowlistOnly(bool on)
+        {
+            int added = 0;
+            if (on && Role == LinkRole.Host && _server != null)
+                added = Allowlist.Add(_server.GetPlayers().Where(p => p.Kind != PlayerKind.Host));
+            LinkSettings.AllowlistOnly = on;
+            if (_server != null)
+                _server.AllowlistOnly = on;
+            LinkLog.Info("Allowlist " + (on ? "turned on" : "turned off") + $" by the host; {added} player(s) added.");
+            OnChanged();
+            return added;
+        }
+
+        /// <summary>Host: puts a guest on the allowlist.</summary>
+        public void AllowPlayer(PlayerProfile player)
+        {
+            if (player == null || player.Kind == PlayerKind.Host)
+                return;
+            Allowlist.Add(new[] { player });
+            OnChanged();
+        }
+
         /// <summary>Tells the gate whether a player name may enter the world; called on a worker thread.</summary>
         private string RefuseGamePlayer(string name)
         {
             if (Blocklist.ContainsName(name))
                 return Text.Get("Link.Game.BlockedKick");
+            if (_server != null && _server.AllowlistOnly && !Allowlist.ContainsName(name))
+                return Text.Get("Link.Game.NotAllowedKick");
             lock (_removedNames)
             {
                 if (_removedNames.TryGetValue(name, out var until) && until > DateTime.UtcNow)
@@ -751,8 +789,54 @@ namespace Campfire.Link
             return RunBackupAsync(_run, MinecraftPort);
         }
 
+        /// <summary>Host: when the world was last copied, in UTC, or <see cref="DateTime.MinValue"/>.</summary>
+        private DateTime _lastBackupUtc;
+
+        /// <summary>Host: when the timed backup last checked the world, in UTC.</summary>
+        private DateTime _backupCheckedUtc;
+
+        /// <summary>Host: when the next timed backup is due, in local time, or <c>null</c> while there is none.</summary>
+        public DateTime? NextBackupAt
+        {
+            get
+            {
+                int minutes = LinkSettings.BackupIntervalMinutes;
+                if (Role != LinkRole.Host || Stage != LinkStage.Ready || minutes <= 0)
+                    return null;
+                return (_backupCheckedUtc + TimeSpan.FromMinutes(minutes)).ToLocalTime();
+            }
+        }
+
+        /// <summary>
+        /// Host: starts a timed backup once the interval has passed. A world without changes since the last backup
+        /// is not copied again.
+        /// </summary>
+        private void ScheduleBackup(CancellationTokenSource run)
+        {
+            int minutes = LinkSettings.BackupIntervalMinutes;
+            if (minutes <= 0 || WaitingForWorld || Backup.State == BackupState.Working
+                || DateTime.UtcNow - _backupCheckedUtc < TimeSpan.FromMinutes(minutes))
+                return;
+            _backupCheckedUtc = DateTime.UtcNow;
+            _ = RunTimedBackupAsync(run, MinecraftPort, _lastBackupUtc);
+        }
+
+        private async Task RunTimedBackupAsync(CancellationTokenSource run, int gamePort, DateTime sinceUtc)
+        {
+            bool changed = await Task.Run(() => WorldBackup.HasChangedSince(gamePort, sinceUtc));
+            if (run != _run || run.IsCancellationRequested)
+                return;
+            if (!changed)
+            {
+                LinkLog.Info("The world has not changed since the last backup; the timed backup was skipped.");
+                return;
+            }
+            await RunBackupAsync(run, gamePort);
+        }
+
         private async Task<BackupResult> RunBackupAsync(CancellationTokenSource run, int gamePort)
         {
+            var started = DateTime.UtcNow;
             Backup = new BackupResult(BackupState.Working, Backup.WorldName);
             OnChanged();
             BackupResult result;
@@ -772,7 +856,10 @@ namespace Campfire.Link
             if (run != _run)
                 return result;
             if (result.State == BackupState.Done)
+            {
                 _roomBackups.Add(result.Path);
+                _lastBackupUtc = started;
+            }
             Backup = result;
             OnChanged();
             return result;
@@ -1294,6 +1381,8 @@ namespace Campfire.Link
             _hostSharesRoom = false;
             HostRoom = null;
             _roomBackups.Clear();
+            _lastBackupUtc = DateTime.MinValue;
+            _backupCheckedUtc = DateTime.UtcNow;
             _hostAddress = null;
             _voiceForwardPort = 0;
             OnChanged();
@@ -1331,7 +1420,8 @@ namespace Campfire.Link
                 return;
 
             if (ex is RoomRejectedException rejected)
-                ex = new LinkException(rejected.Full ? "Link.Error.RoomFull" : rejected.Blocked ? "Link.Error.Blocked" : "Link.Error.Removed");
+                ex = new LinkException(rejected.Full ? "Link.Error.RoomFull" : rejected.NotAllowed ? "Link.Error.NotAllowed"
+                    : rejected.Blocked ? "Link.Error.Blocked" : "Link.Error.Removed");
             Error = ex as LinkException ?? new LinkException(ex, "Link.Error.Unexpected", ex.Message);
             LinkLog.Error("Room failed: " + Error.Message, ex is LinkException ? ex.InnerException : ex);
             if (_network != null)
@@ -1516,10 +1606,19 @@ namespace Campfire.Link
             return config;
         }
 
+        /// <summary>Guest: <paramref name="profile"/> with the latency, path and loss to the host measured last.</summary>
+        private PlayerProfile WithHostConnection(PlayerProfile profile)
+        {
+            var host = HostPeer;
+            string path = host == null ? null : host.IsDirect ? PlayerProfile.PathDirect : PlayerProfile.PathRelay;
+            return profile.WithConnection(host?.LatencyMs, path, host?.LossPercent);
+        }
+
         private IReadOnlyList<PlayerProfile> MarkLocal(IReadOnlyList<PlayerProfile> players)
         {
+            // The local row shows the newest measurement rather than the one the host received last.
             var list = players
-                .Select(p => p.MachineId == _self.MachineId ? p.WithKind(PlayerKind.Local) : p)
+                .Select(p => p.MachineId == _self.MachineId ? WithHostConnection(p.WithKind(PlayerKind.Local)) : p)
                 .ToList();
             if (list.All(p => p.Kind != PlayerKind.Local))
                 list.Add(_self);

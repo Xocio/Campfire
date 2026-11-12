@@ -2,6 +2,8 @@
 
 Campfire is a Windows toolbox for Minecraft: Java Edition players. It unites remote multiplayer, a lobby, maps and launcher repair in a single program. It needs no installation, writes nothing to the registry, and runs on everything from Windows 7 SP1 to Windows 11.
 
+Campfire also has an [Android app](./android) that speaks the same multiplayer protocol, so players on phones and computers can share a room.
+
 ## Principles
 
 **Focused.** Campfire does a few things and does each of them thoroughly. The program needs no installer, and the networking component used for multiplayer is downloaded only on first use, with every file verified.
@@ -43,7 +45,7 @@ See [Maps](./maps).
 - Light and dark modes, with a chosen color, the Windows accent color or colors taken from your wallpaper, in six palette styles.
 - Carefully tuned transitions for pages, dialogs and controls, which can be turned off at any time.
 - A notification area icon shows the multiplayer status live, and the room stays open after the window is closed.
-- Simplified Chinese and English, following the system language by default.
+- Simplified Chinese, Traditional Chinese, Cantonese and English, following the system language by default.
 
 ## A quick tour
 

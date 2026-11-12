@@ -1,0 +1,9 @@
+easytier v2.6.4 8428a89d2dabc94c97d370ec607c6ca142473626
+rustc 1.95.0
+cargo-ndk 4.1.2
+ndk 30.0.14904198
+platform 24
+sha256 arm64-v8a/libeasytier_android_jni.so d72a4aa46be051c1b519f798f5ce6034427c046b48bc3c13fd0ca216f64c8a77
+sha256 arm64-v8a/libeasytier_ffi.so 08464acab6a2f4fcb4c39c59202db48a0562b9ce07417a5a63f39ff088758454
+sha256 x86_64/libeasytier_android_jni.so eef7e6e65e432dc15a185c364f396ec20f9f9f2ec00bf29bbdacb51b8e90d747
+sha256 x86_64/libeasytier_ffi.so 1d75d40eb97d40e105f41f7f04bfb6354c8364b58a0e2cdadac1362213c048b0

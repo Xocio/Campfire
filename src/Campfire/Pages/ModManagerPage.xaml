@@ -1,0 +1,104 @@
+<UserControl x:Class="Campfire.Pages.ModManagerPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Campfire.Localization">
+
+    <UserControl.Resources>
+        <!-- One finding: a colored dot, the mod and what is wrong with it. -->
+        <DataTemplate x:Key="IssueTemplate">
+            <Grid Margin="0,5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Ellipse Width="7" Height="7" Margin="2,7,0,0" VerticalAlignment="Top" Fill="{Binding Accent}" />
+                <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                    <TextBlock TextTrimming="CharacterEllipsis">
+                        <Run Text="{Binding Title, Mode=OneWay}" />
+                        <Run FontSize="12" Foreground="{DynamicResource BrushGray5}" Text="{Binding FileName, Mode=OneWay}" />
+                    </TextBlock>
+                    <TextBlock Margin="0,2,0,0" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource BrushGray3}" Text="{Binding Detail}" />
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+
+        <!-- One update: the mod, its version now and on Modrinth, and the button that installs it. -->
+        <DataTemplate x:Key="UpdateTemplate">
+            <Grid Margin="0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Margin="0,2,0,0" FontSize="12" Foreground="{DynamicResource BrushGray4}" Text="{Binding Detail}"
+                               TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <Button Grid.Column="1" Margin="12,0,0,0" MinWidth="76" VerticalAlignment="Center" Style="{StaticResource PclButton}"
+                        Content="{Binding Action}" IsEnabled="{Binding CanApply}" Tag="{Binding}" Click="BtnUpdateOne_Click" />
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <!-- The same height as the other pages. -->
+    <Grid>
+        <DockPanel Margin="22,20,22,18">
+            <Grid DockPanel.Dock="Bottom" Margin="0,18,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="LabStatus" VerticalAlignment="Center" FontSize="12" TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource BrushGray4}" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="BtnOpenFolder" Margin="12,0,0,0" MinWidth="120" Style="{StaticResource PclButton}"
+                            Content="{loc:Text ModCheck.OpenFolder}" Click="BtnOpenFolder_Click" />
+                    <Button x:Name="BtnCheckUpdates" Margin="12,0,0,0" MinWidth="140" FontWeight="Bold" Style="{StaticResource PclButtonHighlight}"
+                            Content="{loc:Text ModCheck.CheckUpdates}" Click="BtnCheckUpdates_Click" />
+                </StackPanel>
+            </Grid>
+
+            <!-- The scroll area reaches past the page margin to take in the card shadows. -->
+            <ScrollViewer x:Name="ScrollPage" Margin="-8" VerticalScrollBarVisibility="Auto" Focusable="False">
+                <StackPanel Margin="8">
+                    <HeaderedContentControl Header="{loc:Text ModCheck.Version}" Style="{StaticResource PclCard}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox x:Name="CmbVersion" Style="{StaticResource PclComboBox}" SelectionChanged="CmbVersion_SelectionChanged" />
+                                <Button x:Name="BtnRescan" Grid.Column="1" Height="32" MinWidth="76" Margin="10,0,0,0" Style="{StaticResource PclButton}"
+                                        Content="{loc:Text ModCheck.Rescan}" Click="BtnRescan_Click" />
+                            </Grid>
+                            <TextBlock x:Name="LabFolder" Margin="0,8,0,0" FontSize="12" TextTrimming="CharacterEllipsis"
+                                       Foreground="{DynamicResource BrushGray4}" />
+                            <Button x:Name="BtnAddFolder" Margin="0,8,0,0" HorizontalAlignment="Left" Style="{StaticResource PclTextButton}"
+                                    Content="{loc:Text World.AddFolder}" Click="BtnAddFolder_Click" />
+                        </StackPanel>
+                    </HeaderedContentControl>
+
+                    <HeaderedContentControl x:Name="CardIssues" Margin="0,15,0,0" Header="{loc:Text ModCheck.Issues}" Style="{StaticResource PclCard}">
+                        <StackPanel>
+                            <ContentControl x:Name="HintIssues" Style="{StaticResource PclHint}">
+                                <TextBlock x:Name="LabIssues" TextWrapping="Wrap" />
+                            </ContentControl>
+                            <ItemsControl x:Name="ListIssues" Margin="0,6,0,-5" Focusable="False" ItemTemplate="{StaticResource IssueTemplate}" />
+                        </StackPanel>
+                    </HeaderedContentControl>
+
+                    <HeaderedContentControl x:Name="CardUpdates" Margin="0,15,0,0" Header="{loc:Text ModCheck.Updates}" Style="{StaticResource PclCard}"
+                                            Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock x:Name="LabUpdates" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource BrushGray4}" />
+                            <ItemsControl x:Name="ListUpdates" Margin="0,6,0,0" Focusable="False" ItemTemplate="{StaticResource UpdateTemplate}" />
+                            <Button x:Name="BtnUpdateAll" Margin="0,10,0,0" HorizontalAlignment="Left" Height="32" MinWidth="120"
+                                    Style="{StaticResource PclButtonHighlight}" Content="{loc:Text ModCheck.UpdateAll}" Click="BtnUpdateAll_Click" />
+                        </StackPanel>
+                    </HeaderedContentControl>
+                </StackPanel>
+            </ScrollViewer>
+        </DockPanel>
+    </Grid>
+</UserControl>

@@ -5,6 +5,9 @@ import rel from '../.vitepress/release.json'
 const GH = 'https://github.com/Xocio/Campfire/releases'
 const app = rel.app || {}
 const mirror = rel.mirror && app.file ? rel.mirror.replace(/\/?$/, '/') + app.file : ''
+const android = rel.android || {}
+const androidMirror = rel.mirror && android.file ? rel.mirror.replace(/\/?$/, '/') + android.file : ''
+const androidGithub = android.tag ? GH + '/tag/' + android.tag : GH
 </script>
 
 <DownloadCard inline />
@@ -58,6 +61,45 @@ Campfire is a single executable that runs without installation; keep it in any f
 Official releases check for updates at startup. When a new version is found, Campfire asks first, then downloads the update, verifies its digital signature and restarts with the new version. If the program folder is not writable, it opens this page for a manual download instead.
 
 See [Getting Started](/en/guide/getting-started) for the first steps.
+
+## Android
+
+<DownloadCard inline android />
+
+<p v-if="!rel.android">Once the Android app is released, its download and checksum appear here.</p>
+
+<template v-if="rel.android">
+
+<table class="dl-table">
+  <thead>
+    <tr><th>File</th><th>Version</th><th>Download</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Campfire.apk</code></td>
+      <td>{{ android.version }}</td>
+      <td><template v-if="androidMirror"><a :href="androidMirror">Mirror</a> · </template><a :href="androidGithub" target="_blank" rel="noopener">GitHub</a></td>
+    </tr>
+  </tbody>
+</table>
+
+<div v-if="android.sha256" class="dl-sum">
+
+**SHA-256**
+
+<code>{{ android.sha256 }}</code>
+
+</div>
+
+</template>
+
+| Item | Requirement |
+| --- | --- |
+| System | Android 7.0 or later |
+| Processor | 64-bit ARM |
+| Game | An Android launcher that runs Minecraft: Java Edition |
+
+The package is signed with Campfire's release certificate. On first install, Android may ask you to allow your browser or file manager to install apps from unknown sources. To update, install the new version over the old one; app data is kept. See [Android](/en/guide/android) for the full guide.
 
 ## Download problems
 

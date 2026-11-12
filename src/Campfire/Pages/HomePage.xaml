@@ -65,6 +65,7 @@
         </Style>
     </UserControl.Resources>
 
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
     <StackPanel Margin="22,20,22,18">
 
         <!-- ======================== Multiplayer ======================== -->
@@ -259,4 +260,5 @@
             </StackPanel>
         </HeaderedContentControl>
     </StackPanel>
+    </ScrollViewer>
 </UserControl>

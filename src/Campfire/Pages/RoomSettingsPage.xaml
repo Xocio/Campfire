@@ -11,7 +11,7 @@
     </UserControl.Resources>
 
     <!-- The same height as the other pages. -->
-    <Grid Height="503">
+    <Grid>
         <DockPanel Margin="22,20,22,18">
             <Grid DockPanel.Dock="Bottom" Margin="0,18,0,0">
                 <TextBlock x:Name="LabSaved" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource BrushGray4}" />
@@ -19,51 +19,82 @@
                         Style="{StaticResource PclButtonHighlight}" Content="{loc:Text RoomSettings.Save}" Click="BtnSave_Click" />
             </Grid>
 
-            <StackPanel>
-                <HeaderedContentControl Header="{loc:Text RoomSettings.Header}" Style="{StaticResource PclCard}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
+            <!-- The scroll area reaches past the page margin to take in the card shadows. -->
+            <ScrollViewer x:Name="ScrollRoom" Margin="-8" VerticalScrollBarVisibility="Auto" Focusable="False">
+                <StackPanel Margin="8">
+                    <!-- ======================== Presets ======================== -->
+                    <HeaderedContentControl Header="{loc:Text Presets.Header}" Style="{StaticResource PclCard}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox x:Name="CmbPreset" Style="{StaticResource PclComboBox}" SelectionChanged="CmbPreset_SelectionChanged" />
+                                <Button x:Name="BtnApplyPreset" Grid.Column="1" Height="32" MinWidth="76" Margin="10,0,0,0"
+                                        Style="{StaticResource PclButtonHighlight}" Content="{loc:Text Presets.Apply}" Click="BtnApplyPreset_Click" />
+                                <Button Grid.Column="2" Height="32" MinWidth="76" Margin="10,0,0,0" Style="{StaticResource PclButton}"
+                                        Content="{loc:Text Presets.SaveAs}" Click="BtnSavePreset_Click" />
+                            </Grid>
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="LabPreset" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource BrushGray4}" />
+                                <Button x:Name="BtnDeletePreset" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Top" FontSize="12"
+                                        Style="{StaticResource PclDangerTextButton}" Content="{loc:Text Presets.Delete}" Click="BtnDeletePreset_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </HeaderedContentControl>
 
-                        <TextBlock VerticalAlignment="Center" Text="{loc:Text RoomSettings.Name}" />
-                        <TextBox x:Name="TxtName" Grid.Column="1" Margin="14,0,0,0" MaxLength="24" Style="{StaticResource PclTextBox}" />
+                    <!-- ======================== Room ======================== -->
+                    <HeaderedContentControl Margin="0,15,0,0" Header="{loc:Text RoomSettings.Header}" Style="{StaticResource PclCard}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
 
-                        <TextBlock Grid.Row="1" Style="{StaticResource FieldLabel}" Text="{loc:Text RoomSettings.MaxPlayers}" />
-                        <ComboBox x:Name="CmbMaxPlayers" Grid.Row="1" Grid.Column="1" Width="160" Margin="14,12,0,0" HorizontalAlignment="Left"
-                                  Style="{StaticResource PclComboBox}" />
+                            <TextBlock VerticalAlignment="Center" Text="{loc:Text RoomSettings.Name}" />
+                            <TextBox x:Name="TxtName" Grid.Column="1" Margin="14,0,0,0" MaxLength="24" Style="{StaticResource PclTextBox}" />
 
-                        <TextBlock Grid.Row="2" Margin="0,12,0,0" VerticalAlignment="Top" Padding="0,6,0,0" Text="{loc:Text RoomSettings.Notice}" />
-                        <TextBox x:Name="TxtNotice" Grid.Row="2" Grid.Column="1" Margin="14,12,0,0" Height="48" MaxLength="100"
-                                 TextWrapping="Wrap" AcceptsReturn="False" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"
-                                 Style="{StaticResource PclTextBox}" Tag="{loc:Text RoomSettings.NoticeHint}" />
+                            <TextBlock Grid.Row="1" Style="{StaticResource FieldLabel}" Text="{loc:Text RoomSettings.MaxPlayers}" />
+                            <ComboBox x:Name="CmbMaxPlayers" Grid.Row="1" Grid.Column="1" Width="160" Margin="14,12,0,0" HorizontalAlignment="Left"
+                                      Style="{StaticResource PclComboBox}" />
 
-                        <TextBlock Grid.Row="3" Margin="0,12,0,0" VerticalAlignment="Top" Padding="0,6,0,0" Text="{loc:Text Lobby.Description}" />
-                        <TextBox x:Name="TxtDescription" Grid.Row="3" Grid.Column="1" Margin="14,12,0,0" Height="48" MaxLength="100"
-                                 TextWrapping="Wrap" AcceptsReturn="False" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"
-                                 Style="{StaticResource PclTextBox}" Tag="{loc:Text Lobby.DescriptionHint}" />
+                            <TextBlock Grid.Row="2" Margin="0,12,0,0" VerticalAlignment="Top" Padding="0,6,0,0" Text="{loc:Text RoomSettings.Notice}" />
+                            <TextBox x:Name="TxtNotice" Grid.Row="2" Grid.Column="1" Margin="14,12,0,0" Height="48" MaxLength="100"
+                                     TextWrapping="Wrap" AcceptsReturn="False" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"
+                                     Style="{StaticResource PclTextBox}" Tag="{loc:Text RoomSettings.NoticeHint}" />
 
-                        <TextBlock Grid.Row="4" Margin="0,19,0,0" VerticalAlignment="Top" Text="{loc:Text Lobby.Tags}" />
-                        <WrapPanel x:Name="PanTags" Grid.Row="4" Grid.Column="1" Margin="14,14,0,0" />
+                            <TextBlock Grid.Row="3" Margin="0,12,0,0" VerticalAlignment="Top" Padding="0,6,0,0" Text="{loc:Text Lobby.Description}" />
+                            <TextBox x:Name="TxtDescription" Grid.Row="3" Grid.Column="1" Margin="14,12,0,0" Height="48" MaxLength="100"
+                                     TextWrapping="Wrap" AcceptsReturn="False" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"
+                                     Style="{StaticResource PclTextBox}" Tag="{loc:Text Lobby.DescriptionHint}" />
 
-                        <CheckBox x:Name="ChkRegion" Grid.Row="5" Grid.Column="1" Margin="14,4,0,0"
-                                  Style="{StaticResource PclCheckBox}" Content="{loc:Text Lobby.ShowRegion}" />
-                    </Grid>
-                </HeaderedContentControl>
+                            <TextBlock Grid.Row="4" Margin="0,19,0,0" VerticalAlignment="Top" Text="{loc:Text Lobby.Tags}" />
+                            <WrapPanel x:Name="PanTags" Grid.Row="4" Grid.Column="1" Margin="14,14,0,0" />
 
-                <ContentControl Margin="0,15,0,0" Style="{StaticResource PclHint}">
-                    <TextBlock TextWrapping="Wrap" Text="{loc:Text RoomSettings.Note}" />
-                </ContentControl>
-            </StackPanel>
+                            <CheckBox x:Name="ChkRegion" Grid.Row="5" Grid.Column="1" Margin="14,4,0,0"
+                                      Style="{StaticResource PclCheckBox}" Content="{loc:Text Lobby.ShowRegion}" />
+                        </Grid>
+                    </HeaderedContentControl>
+
+                    <ContentControl Margin="0,15,0,0" Style="{StaticResource PclHint}">
+                        <TextBlock x:Name="LabNote" TextWrapping="Wrap" />
+                    </ContentControl>
+                </StackPanel>
+            </ScrollViewer>
         </DockPanel>
     </Grid>
 </UserControl>

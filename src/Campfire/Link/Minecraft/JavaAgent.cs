@@ -322,12 +322,17 @@ namespace Campfire.Link.Minecraft
                 if (stream == null)
                     throw new InvalidOperationException("Missing embedded resource " + name + ".");
 
-                if (File.Exists(path) && new FileInfo(path).Length == stream.Length)
+                byte[] content;
+                using (var buffer = new MemoryStream())
+                {
+                    stream.CopyTo(buffer);
+                    content = buffer.ToArray();
+                }
+                if (File.Exists(path) && File.ReadAllBytes(path).SequenceEqual(content))
                     return path;
 
                 string temporary = path + ".tmp";
-                using (var file = File.Create(temporary))
-                    stream.CopyTo(file);
+                File.WriteAllBytes(temporary, content);
                 File.Copy(temporary, path, true);
                 File.Delete(temporary);
                 return path;

@@ -47,6 +47,7 @@ namespace Campfire.Pages
 
             Text.LanguageChanged += (sender, e) => Load();
             Blocklist.Changed += (sender, e) => Dispatcher.BeginInvoke(new Action(LoadBlocklist));
+            Allowlist.Changed += (sender, e) => Dispatcher.BeginInvoke(new Action(LoadAllowlist));
             IsVisibleChanged += (sender, e) =>
             {
                 if (IsVisible)
@@ -72,6 +73,17 @@ namespace Campfire.Pages
         /// <summary>Tells whether a room is running.</summary>
         internal Func<bool> IsRoomActive { get; set; }
 
+        /// <summary>Turns the allowlist on or off, for the open room too; set by the window.</summary>
+        internal Action<bool> ApplyAllowlistOnly { get; set; }
+
+        /// <summary>Raised when the user wants to edit the room settings and presets.</summary>
+        public event EventHandler RoomPresetsRequested;
+
+        private void BtnRoomPresets_Click(object sender, RoutedEventArgs e)
+        {
+            RoomPresetsRequested?.Invoke(this, EventArgs.Empty);
+        }
+
         private void Load()
         {
             _loading = true;
@@ -94,6 +106,13 @@ namespace Campfire.Pages
                 ChkClipboard.IsChecked = LinkSettings.DetectClipboard;
                 ChkAutoLan.IsChecked = LinkSettings.AutoOpenLan;
                 ChkBackup.IsChecked = LinkSettings.BackupWorld;
+                CmbBackupInterval.ItemsSource = LinkSettings.BackupIntervalChoices
+                    .Select(m => m == 0 ? Text.Get("Settings.BackupIntervalOff") : Text.Format("Settings.BackupIntervalValue", m)).ToList();
+                CmbBackupInterval.SelectedIndex = Array.IndexOf(LinkSettings.BackupIntervalChoices, LinkSettings.BackupIntervalMinutes);
+                CmbBackupKeep.ItemsSource = LinkSettings.BackupKeepChoices.Select(n => Text.Format("Settings.BackupKeepValue", n)).ToList();
+                CmbBackupKeep.SelectedIndex = Array.IndexOf(LinkSettings.BackupKeepChoices, LinkSettings.BackupKeep);
+                ChkAutoNodes.IsChecked = LinkSettings.AutoPickNodes;
+                ChkAllowlistOnly.IsChecked = LinkSettings.AllowlistOnly;
                 ChkShareMods.IsChecked = LinkSettings.ShareMods;
                 ChkServeMods.IsChecked = LinkSettings.ServeMods;
                 ChkServeMods.IsEnabled = LinkSettings.ShareMods;
@@ -113,11 +132,54 @@ namespace Campfire.Pages
                 ChkSkins.IsChecked = LinkSettings.ShowSkins;
                 ChkVersion.IsChecked = LinkSettings.ShareVersion;
                 LoadBlocklist();
+                LoadAllowlist();
             }
             finally
             {
                 _loading = false;
             }
+        }
+
+        private void LoadAllowlist()
+        {
+            var allowed = Allowlist.All.OrderByDescending(p => p.Time).ToList();
+            ListAllowed.ItemsSource = allowed.Select(p => new
+            {
+                p.MachineId,
+                Title = p.GameName == null ? p.Name : p.Name + " · " + p.GameName,
+                Detail = Text.Format("Settings.AllowedAt", p.Time.ToString("yyyy-MM-dd HH:mm")),
+            }).ToList();
+            LabNoAllowed.Visibility = allowed.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            ChkAllowlistOnly.IsChecked = LinkSettings.AllowlistOnly;
+        }
+
+        private void BtnDisallow_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.Tag is string machineId)
+                Allowlist.Remove(machineId);
+        }
+
+        private void ChkAllowlistOnly_Click(object sender, RoutedEventArgs e)
+        {
+            bool on = ChkAllowlistOnly.IsChecked == true;
+            if (ApplyAllowlistOnly != null)
+                ApplyAllowlistOnly(on);
+            else
+                LinkSettings.AllowlistOnly = on;
+            Changed();
+        }
+
+        private void CmbBackup_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_loading)
+                return;
+            int interval = CmbBackupInterval.SelectedIndex;
+            if (interval >= 0 && interval < LinkSettings.BackupIntervalChoices.Length)
+                LinkSettings.BackupIntervalMinutes = LinkSettings.BackupIntervalChoices[interval];
+            int keep = CmbBackupKeep.SelectedIndex;
+            if (keep >= 0 && keep < LinkSettings.BackupKeepChoices.Length)
+                LinkSettings.BackupKeep = LinkSettings.BackupKeepChoices[keep];
+            Changed();
         }
 
         private void LoadBlocklist()
@@ -210,6 +272,7 @@ namespace Campfire.Pages
             if (ChkRelay.IsEnabled)
                 LinkSettings.AllowRelay = ChkRelay.IsChecked == true;
             LinkSettings.ShareWithLan = ChkLanShare.IsChecked == true;
+            LinkSettings.AutoPickNodes = ChkAutoNodes.IsChecked == true;
             LinkSettings.ReadGameAccount = ChkGameAccount.IsChecked == true;
             LinkSettings.ShowSkins = ChkSkins.IsChecked == true;
             LinkSettings.ShareVersion = ChkVersion.IsChecked == true;

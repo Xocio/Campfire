@@ -41,5 +41,21 @@ namespace Campfire.Pages
         {
             JreRequested?.Invoke(this, EventArgs.Empty);
         }
+
+        /// <summary>Raised when the mod check entry is clicked.</summary>
+        public event EventHandler ModCheckRequested;
+
+        /// <summary>Raised when the crash analysis entry is clicked.</summary>
+        public event EventHandler CrashRequested;
+
+        private void EntryModCheck_Click(object sender, RoutedEventArgs e)
+        {
+            ModCheckRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void EntryCrash_Click(object sender, RoutedEventArgs e)
+        {
+            CrashRequested?.Invoke(this, EventArgs.Empty);
+        }
     }
 }

@@ -32,7 +32,7 @@ namespace Campfire.Mods
         private const string FileHost = "cdn.modrinth.com";
         private const int BatchSize = 100;
 
-        private static readonly Lazy<HttpClient> Client = new Lazy<HttpClient>(() =>
+        internal static readonly Lazy<HttpClient> Client = new Lazy<HttpClient>(() =>
         {
             // No overall timeout; ProgressStream ends a download when the server stops sending.
             var client = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
@@ -168,7 +168,7 @@ namespace Campfire.Mods
             }
         }
 
-        private static bool IsAllowed(string url)
+        internal static bool IsAllowed(string url)
         {
             return Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps
                    && string.Equals(uri.Host, FileHost, StringComparison.OrdinalIgnoreCase);

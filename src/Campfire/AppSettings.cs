@@ -8,7 +8,7 @@ using Campfire.Localization;
 namespace Campfire
 {
     /// <summary>
-    /// User preferences, stored as "key=value" lines in %LocalAppData%\Campfire\settings.ini.
+    /// User preferences, stored as "key=value" lines in settings.ini in the data folder.
     /// </summary>
     internal static class AppSettings
     {
@@ -18,30 +18,23 @@ namespace Campfire
         private static Dictionary<string, string> _values;
 
         /// <summary>Folder for everything Campfire keeps on disk.</summary>
-        public static string DataDirectory { get; } = PrepareDataDirectory();
-
-        /// <summary>Moves the data folder to its current name if it still has the old one.</summary>
-        private static string PrepareDataDirectory()
-        {
-            string root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            string current = Path.Combine(root, "Campfire");
-            string earlier = Path.Combine(root, "PCLPlus");
-            try
-            {
-                if (!Directory.Exists(current) && Directory.Exists(earlier))
-                    Directory.Move(earlier, current);
-            }
-            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
-            {
-                // The old folder is in use; a new one is started.
-            }
-            return current;
-        }
+        public static string DataDirectory { get; private set; } = DataLocation.Resolve();
 
         /// <summary>Whether Campfire has never saved anything before.</summary>
-        public static bool IsFirstRun { get; } = !File.Exists(Path.Combine(DataDirectory, "settings.ini"));
+        public static bool IsFirstRun { get; private set; } = !DataLocation.IsRecorded && !DataLocation.HasData(DataDirectory);
 
         private static string FilePath =>Path.Combine(DataDirectory, "settings.ini");
+
+        /// <summary>Switches to the folder chosen on the first page, before anything else reads the data.</summary>
+        public static void UseDataDirectory(string folder)
+        {
+            lock (Sync)
+            {
+                DataDirectory = folder;
+                IsFirstRun = !DataLocation.HasData(folder);
+                _values = null;
+            }
+        }
 
         /// <summary>The stored value, or <c>null</c> when the key has never been saved.</summary>
         public static string Get(string key)
@@ -80,11 +73,18 @@ namespace Campfire
             Set(LanguageKey, ToCode(language));
         }
 
-        /// <summary>Parses "zh" / "en" (also accepts "zh-CN", "en-US" and similar).</summary>
+        /// <summary>Parses "zh" / "zh-Hant" / "yue" / "en" (also accepts "zh-CN", "zh-TW", "zh-HK", "en-US" and similar).</summary>
         public static AppLanguage? ParseLanguage(string code)
         {
             if (string.IsNullOrEmpty(code))
                 return null;
+            if (code.IndexOf("yue", StringComparison.OrdinalIgnoreCase) >= 0)
+                return AppLanguage.Cantonese;
+            if (code.IndexOf("Hant", StringComparison.OrdinalIgnoreCase) >= 0
+                || code.StartsWith("zh-TW", StringComparison.OrdinalIgnoreCase)
+                || code.StartsWith("zh-HK", StringComparison.OrdinalIgnoreCase)
+                || code.StartsWith("zh-MO", StringComparison.OrdinalIgnoreCase))
+                return AppLanguage.TraditionalChinese;
             if (code.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
                 return AppLanguage.Chinese;
             if (code.StartsWith("en", StringComparison.OrdinalIgnoreCase))
@@ -94,7 +94,17 @@ namespace Campfire
 
         private static string ToCode(AppLanguage language)
         {
-            return language == AppLanguage.English ? "en" : "zh";
+            switch (language)
+            {
+                case AppLanguage.English:
+                    return "en";
+                case AppLanguage.TraditionalChinese:
+                    return "zh-Hant";
+                case AppLanguage.Cantonese:
+                    return "yue";
+                default:
+                    return "zh";
+            }
         }
 
         private static void EnsureLoaded()

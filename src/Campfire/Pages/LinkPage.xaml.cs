@@ -107,6 +107,7 @@ namespace Campfire.Pages
             };
             _shownPanel = PanJoin;
             RoomHistory.Changed += (sender, e) => Dispatcher.BeginInvoke(new Action(Render));
+            Allowlist.Changed += (sender, e) => Dispatcher.BeginInvoke(new Action(Render));
 
             _feedbackTimer = new DispatcherTimer { Interval = CopiedFeedback };
             _feedbackTimer.Tick += (sender, e) =>
@@ -462,6 +463,7 @@ namespace Campfire.Pages
             RenderModSync();
             RenderHostVoice();
             RenderRoomSettings();
+            RenderAllowlist();
             SetToolState(LabHostDiagnostics, DiagnosticsText());
 
             CardHostPlayers.Header = Text.Format("Link.Players", _session.Players.Count);
@@ -495,8 +497,13 @@ namespace Campfire.Pages
         private void RenderBackup()
         {
             var backup = _session.Backup;
-            SetToolState(LabBackup, Text.Format("Backup.Value." + (backup.State == BackupState.None ? "Off" : backup.State.ToString()),
-                backup.WorldName ?? ""));
+            var next = _session.NextBackupAt;
+            string state = backup.State == BackupState.None && next != null
+                ? Text.Get("Backup.Value.Timed")
+                : Text.Format("Backup.Value." + (backup.State == BackupState.None ? "Off" : backup.State.ToString()), backup.WorldName ?? "");
+            if (next != null && backup.State != BackupState.Working)
+                state += " · " + Text.Format("Backup.Value.Next", next.Value.ToString("HH:mm", CultureInfo.InvariantCulture));
+            SetToolState(LabBackup, state);
         }
 
         private void BtnOpenBackup_Click(object sender, RoutedEventArgs e)
@@ -822,26 +829,78 @@ namespace Campfire.Pages
                     RequestHead(player.Uuid);
             }
 
+            bool host = _session.Role == LinkRole.Host;
             string signature = Text.Language + "|" + skins + "|" + string.Join("|", _session.Players.Select(p =>
                 p.MachineId + ":" + p.Name + ":" + p.Kind + ":" + (PlayerHeads.TryGetCached(p.Uuid) != null)));
             if (signature == _playersSignature && list.ItemsSource != null)
+            {
+                // The same players: only their connection lines change.
+                for (int i = 0; i < _playerRows.Count && i < _session.Players.Count; i++)
+                    _playerRows[i].Update(_session.Players[i], host && !Allowlist.Contains(_session.Players[i]));
                 return;
+            }
             _playersSignature = signature;
             ListHostPlayers.ItemsSource = null;
             ListGuestPlayers.ItemsSource = null;
-            list.ItemsSource = _session.Players
+            _playerRows = _session.Players
                 .Select(p => new PlayerRow(p, skins ? PlayerHeads.TryGetCached(p.Uuid) : null,
-                    _session.Role == LinkRole.Host && p.Kind == PlayerKind.Guest))
+                    host && p.Kind == PlayerKind.Guest, host && !Allowlist.Contains(p)))
                 .ToList();
+            list.ItemsSource = _playerRows;
         }
+
+        private List<PlayerRow> _playerRows = new List<PlayerRow>();
+
+        /// <summary>How long a removed player is kept out, as offered when removing; <c>null</c> is until the room closes.</summary>
+        private static readonly TimeSpan?[] RemovalChoices =
+            { TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(10), TimeSpan.FromHours(1), null };
 
         private async void BtnRemovePlayer_Click(object sender, RoutedEventArgs e)
         {
             if (!((sender as FrameworkElement)?.Tag is PlayerRow row))
                 return;
-            if (await Dialogs.Of(this).ConfirmAsync(Text.Get("Link.RemoveTitle"), Text.Format("Link.RemoveMessage", row.Name),
-                    Text.Get("Link.Remove")))
-                _session.RemovePlayer(row.Profile, false);
+            var request = new DialogRequest
+            {
+                Title = Text.Get("Link.RemoveTitle"),
+                Message = Text.Format("Link.RemoveMessage", row.Name),
+                PrimaryText = Text.Get("Link.Remove"),
+                SecondaryText = Text.Get("Dialog.Cancel"),
+                Options = new[] { "Link.RemoveFor.1m", "Link.RemoveFor.10m", "Link.RemoveFor.1h", "Link.RemoveFor.Room" }.Select(Text.Get).ToList(),
+            };
+            if (await Dialogs.Of(this).ShowDialogAsync(request) != DialogChoice.Primary)
+                return;
+            int choice = request.SelectedOption >= 0 && request.SelectedOption < RemovalChoices.Length ? request.SelectedOption : 0;
+            _session.RemovePlayer(row.Profile, false, RemovalChoices[choice]);
+        }
+
+        private void BtnAllowPlayer_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.Tag is PlayerRow row)
+                _session.AllowPlayer(row.Profile);
+        }
+
+        /// <summary>Host: whether only allowed players may join, and how many are on the list.</summary>
+        private void RenderAllowlist()
+        {
+            int count = Allowlist.All.Count;
+            bool on = _session.AllowlistOnly;
+            SetToolState(LabAllowlist, on ? Text.Format("Allowlist.Value.On", count) : Text.Get("Allowlist.Value.Off"));
+            BtnAllowlist.Content = Text.Get(on ? "Allowlist.TurnOff" : "Allowlist.TurnOn");
+            BtnAllowlist.Style = (Style)FindResource(on ? "ToolButton" : "ToolButtonHighlight");
+        }
+
+        private async void BtnAllowlist_Click(object sender, RoutedEventArgs e)
+        {
+            if (_session.AllowlistOnly)
+            {
+                _session.SetAllowlistOnly(false);
+                return;
+            }
+            int guests = _session.Players.Count(p => p.Kind == PlayerKind.Guest);
+            if (!await Dialogs.Of(this).ConfirmAsync(Text.Get("Allowlist.ConfirmTitle"),
+                    Text.Get(guests > 0 ? "Allowlist.ConfirmWithPlayers" : "Allowlist.Confirm"), Text.Get("Allowlist.TurnOn")))
+                return;
+            _session.SetAllowlistOnly(true);
         }
 
         private async void BtnBlockPlayer_Click(object sender, RoutedEventArgs e)

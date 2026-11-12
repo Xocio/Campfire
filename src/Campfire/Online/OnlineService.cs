@@ -55,6 +55,12 @@ namespace Campfire.Online
 
         public string ButtonUrl { get; set; }
 
+        /// <summary>Page inside Campfire the button opens, one of <see cref="Notices.Pages"/>.</summary>
+        public string ButtonPage { get; set; }
+
+        /// <summary>Whether the notice has a button that opens a web page or a page inside Campfire.</summary>
+        public bool HasButton => !string.IsNullOrEmpty(ButtonText) && (ButtonUrl != null || ButtonPage != null);
+
         /// <summary>Title color chosen by the author, or <c>null</c> for the theme's.</summary>
         public Color? TitleColor { get; set; }
 
@@ -190,8 +196,9 @@ namespace Campfire.Online
                         MaxVersion = ParseVersion(Get(item, "maxVersion")),
                         Language = Get(item, "lang") as string ?? "",
                         ButtonText = Get(item, "buttonText") as string,
-                        // Only web pages are opened.
+                        // Only web pages and pages inside Campfire are opened.
                         ButtonUrl = url != null && url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ? url : null,
+                        ButtonPage = Notices.ParsePage(url),
                         TitleColor = ParseColor(Get(item, "titleColor")),
                         BodyColor = ParseColor(Get(item, "bodyColor")),
                     });

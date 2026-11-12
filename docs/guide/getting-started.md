@@ -12,6 +12,8 @@
 
 前往[下载页](/download)获取最新版本。中国大陆用户建议使用国内直链；也可以从 [GitHub Releases](https://github.com/Xocio/Campfire/releases/latest) 下载。
 
+在手机或平板上游玩 Minecraft Java 版时，请使用[Android 版](./android)。
+
 ## 首次运行
 
 1. 将 `Campfire.exe` 放到任意文件夹并双击运行。若需使用启动器修复，建议将其放在启动器所在的文件夹中，Campfire 会自动识别。
@@ -51,7 +53,7 @@
 
 ## 数据位置
 
-Campfire 的设置、联机组件、日志与缓存均保存在 `%LocalAppData%\Campfire`。程序文件本身可以随意移动或替换，不会影响已保存的设置。
+Campfire 的设置、联机组件、日志与缓存默认保存在 `%LocalAppData%\Campfire`。首次启动时可以选择其他位置，之后也可以在 **设置 › 常规 › 存储位置** 中更改，已有数据会自动转移。更改后默认文件夹中只保留一个记录位置的小文件，下文的路径相应变为所选文件夹。程序文件本身可以随意移动或替换，不会影响已保存的设置。
 
 | 路径 | 内容 |
 | --- | --- |

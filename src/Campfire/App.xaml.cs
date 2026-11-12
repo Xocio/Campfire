@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using System.Windows;
 using Campfire.Localization;
 using Campfire.Themes;
@@ -10,6 +11,9 @@ namespace Campfire
     public partial class App : Application
     {
         private const string LanguageArgument = "--lang=";
+
+        /// <summary>Wait before clearing the old data folder, while the previous Campfire finishes exiting.</summary>
+        private static readonly TimeSpan CleanupDelay = TimeSpan.FromSeconds(5);
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -33,7 +37,20 @@ namespace Campfire
                 ?? Text.DetectSystemLanguage();
 
             base.OnStartup(e);
+            if (AppSettings.IsFirstRun)
+            {
+                ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                var setup = new SetupWindow();
+                setup.ShowDialog();
+                if (!setup.Confirmed)
+                {
+                    Shutdown();
+                    return;
+                }
+            }
             new MainWindow().Show();
+            ShutdownMode = ShutdownMode.OnLastWindowClose;
+            Task.Delay(CleanupDelay).ContinueWith(_ => DataLocation.FinishMove());
         }
 
         /// <summary>Writes the last unexpected error to the data folder.</summary>

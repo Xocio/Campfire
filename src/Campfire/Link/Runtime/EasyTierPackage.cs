@@ -17,7 +17,7 @@ namespace Campfire.Link.Runtime
 {
     /// <summary>
     /// The networking component that multiplayer runs on. It is downloaded on first use into
-    /// %LocalAppData%\Campfire\EasyTier and every file is checked against a known SHA-256 hash.
+    /// the EasyTier folder in the data folder and every file is checked against a known SHA-256 hash.
     /// </summary>
     internal static class EasyTierPackage
     {
@@ -91,7 +91,7 @@ namespace Campfire.Link.Runtime
             }
         }
 
-        public static string InstallDirectory { get; } =
+        public static string InstallDirectory =>
             Path.Combine(AppSettings.DataDirectory, "EasyTier", Version + "-" + Architecture);
 
         public static string CorePath => Path.Combine(InstallDirectory, CoreFile);

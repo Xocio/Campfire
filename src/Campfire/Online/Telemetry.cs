@@ -128,7 +128,7 @@ namespace Campfire.Online
                 ["os"] = Environment.OSVersion.Version.ToString(3),
                 ["arch"] = Architecture(),
                 ["dotnet"] = FrameworkVersion(),
-                ["lang"] = Text.Language == AppLanguage.English ? "en" : "zh",
+                ["lang"] = Text.IsChinese ? "zh" : "en",
                 ["features"] = features,
             };
         }

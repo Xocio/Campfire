@@ -1,0 +1,14 @@
+{
+  "app/src/main/java/top/mccampfire/app/feature/home/HomeBackgroundImage.kt": 1,
+  "app/src/main/java/top/mccampfire/app/feature/main/MainScreen.kt": 4,
+  "app/src/main/java/top/mccampfire/app/feature/settings/AppSettingsScreen.kt": 14,
+  "app/src/main/java/top/mccampfire/app/feature/settings/HomeBackgroundPage.kt": 5,
+  "app/src/main/java/top/mccampfire/app/feature/settings/NavTabsPage.kt": 2,
+  "app/src/main/java/top/mccampfire/app/feature/settings/OkColors.kt": 7,
+  "app/src/main/java/top/mccampfire/app/feature/settings/ThemeExtras.kt": 7,
+  "app/src/main/java/top/mccampfire/app/feature/settings/ThemeSettingsPage.kt": 2,
+  "app/src/main/java/top/mccampfire/app/feature/settings/UiScalePreference.kt": 2,
+  "app/src/main/java/top/mccampfire/app/feature/update/MarkdownText.kt": 7,
+  "app/src/main/java/top/mccampfire/app/feature/update/UpdateUi.kt": 1,
+  "app/src/main/java/top/mccampfire/app/feature/welcome/WelcomeFx.kt": 8
+}

@@ -68,6 +68,8 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel x:Name="PanActions" Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center"
                             Orientation="Horizontal" Opacity="0" Visibility="{Binding ManageVisibility}">
+                    <Button Margin="0,0,14,0" Style="{StaticResource PclTextButton}" Content="{loc:Text Link.Allow}" Tag="{Binding}"
+                            Visibility="{Binding AllowVisibility}" Click="BtnAllowPlayer_Click" />
                     <Button Style="{StaticResource PclTextButton}" Content="{loc:Text Link.Remove}" Tag="{Binding}"
                             Click="BtnRemovePlayer_Click" />
                     <Button Margin="14,0,0,0" Style="{StaticResource PclDangerTextButton}" Content="{loc:Text Link.Block}"
@@ -88,8 +90,11 @@
                             <TextBlock FontSize="11" Foreground="{Binding TagForeground}" Text="{Binding Tag}" />
                         </Border>
                     </StackPanel>
-                    <TextBlock FontSize="11" Foreground="{DynamicResource BrushGray5}" Text="{Binding Vendor}"
-                               TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock FontSize="11" Foreground="{DynamicResource BrushGray5}" Text="{Binding Vendor}"
+                                   TextTrimming="CharacterEllipsis" MaxWidth="200" />
+                        <TextBlock Margin="8,0,0,0" FontSize="11" Foreground="{Binding ConnectionForeground}" Text="{Binding Connection}" />
+                    </StackPanel>
                 </StackPanel>
             </Grid>
             <DataTemplate.Triggers>
@@ -357,6 +362,22 @@
                                 <TextBlock x:Name="LabRoomSettings" Style="{StaticResource ToolState}" />
                             </StackPanel>
                             <Button Style="{StaticResource ToolButton}" Content="{loc:Text RoomSettings.Edit}" Click="BtnRoomSettings_Click" />
+                        </Grid>
+                        <Grid Style="{StaticResource ToolRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource ToolIcon}">
+                                <Path Style="{StaticResource ToolGlyph}"
+                                      Data="M8,2.2 L13,4 L13,7.6 C13,10.6 10.9,12.8 8,13.8 C5.1,12.8 3,10.6 3,7.6 L3,4 Z M5.8,8 L7.4,9.6 L10.4,6.4" />
+                            </Border>
+                            <StackPanel Style="{StaticResource ToolText}">
+                                <TextBlock FontSize="14" Text="{loc:Text Allowlist.Label}" />
+                                <TextBlock x:Name="LabAllowlist" Style="{StaticResource ToolState}" />
+                            </StackPanel>
+                            <Button x:Name="BtnAllowlist" Style="{StaticResource ToolButton}" Click="BtnAllowlist_Click" />
                         </Grid>
                         <Grid Style="{StaticResource ToolRow}">
                             <Grid.ColumnDefinitions>

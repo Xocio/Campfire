@@ -69,6 +69,10 @@ Not included in Campfire.exe. Downloaded on first use of multiplayer and run unm
 
 The license text and source code are available at https://github.com/EasyTier/EasyTier/blob/main/LICENSE.
 
+## Android app
+
+The Android app in `src/android` has its own notices in `src/android/THIRD_PARTY_NOTICES.md`.
+
 ## Minecraft assets
 
 The campfire icon comes from Minecraft and is copyright Mojang Studios. Skin faces of premium players are loaded through a public Mojang service.

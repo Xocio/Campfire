@@ -13,12 +13,13 @@ namespace Campfire.Pages
         public static string Count(long value)
         {
             var culture = CultureInfo.InvariantCulture;
-            if (Text.Language == AppLanguage.Chinese)
+            if (Text.IsChinese)
             {
+                bool traditional = Text.IsTraditional;
                 if (value >= 100_000_000)
-                    return (value / 100_000_000d).ToString("0.#", culture) + " 亿";
+                    return (value / 100_000_000d).ToString("0.#", culture) + (traditional ? " 億" : " 亿");
                 if (value >= 10_000)
-                    return (value / 10_000d).ToString("0.#", culture) + " 万";
+                    return (value / 10_000d).ToString("0.#", culture) + (traditional ? " 萬" : " 万");
                 return value.ToString(culture);
             }
             if (value >= 1_000_000)

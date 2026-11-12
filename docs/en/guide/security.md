@@ -149,6 +149,32 @@ Voice chat is provided by the open-source mod Simple Voice Chat. Campfire instal
 - **Players installing the mod**: after a player clicks **Install Voice Chat** and confirms, Campfire downloads the host's exact file first, and the newest release for that game version when Modrinth does not have it. The file is written only into the mods folder of a local version with the host's game version and loader.
 - **Voice data**: the mod carries voice data between players and the host, encrypted by the multiplayer network. Campfire neither reads nor keeps any voice content.
 
+## Android
+
+The Android app follows the principles above and identifies itself as `Campfire-Android/version`. Its network activity is listed below; there is none beyond it:
+
+| Feature | Connects to | When | Can it be turned off |
+| --- | --- | --- | --- |
+| Notices | Campfire service | At startup, then every 6 hours | Turn off **Receive notices** in settings |
+| Update check | Campfire service | At startup, or when you tap **Check for updates** in settings | Off by default |
+| Lobby | Campfire service | When browsing the lobby, joining or reporting a room, and while a room is listed | Not contacted unless used; a listed room leaves the lobby when it closes |
+| Usage statistics | Campfire service | At most once a day after you agree | Off by default; can be turned off at any time in App settings |
+| Skin faces | Mojang service | When a premium player is in the room | Can be turned off under Settings › Privacy |
+| Multiplayer | Nodes and the other players in the room | While a room is open | Nodes and relaying are configurable |
+| Node speed test | Built-in nodes | After startup while automatic node selection is on; when the node page is opened, a test is tapped or diagnostics run | With automatic node selection off, not run at startup |
+| Voice | Modrinth | When the host turns on voice and installs the voice mod | Off by default |
+| Opening web pages | System browser | Only when a link or button is tapped | — |
+
+- **Updates**: the Android app only reads a version number, release notes and a download address. Tapping download opens the HTTPS address in the system browser; the app itself downloads and installs no programs.
+- **Multiplayer component**: shipped inside the package and never downloaded. The SHA-256 of both native libraries is recorded in `src/android/easytier/prebuilt.txt` and checked on every build.
+- **Voice mod**: downloaded only from HTTPS addresses on `cdn.modrinth.com`; its SHA-1 must match the one Modrinth lists before it is written to the mods folder of the game folder you granted.
+- **Game folders**: read and written only after you grant them through the system file picker, and only within the granted folder.
+- **Usage statistics**: a random statistics ID (unrelated to the multiplayer and lobby IDs), the app version, the Android version, the processor architecture, the interface language and feature usage counts (start, create a room, join a room, list in the lobby, join from the lobby). The server infers an approximate region from the network source and does not retain IP addresses. App settings › Privacy shows the complete next report and can reset the statistics ID.
+- **Listing in the lobby**: sends the room name, description, tags, host name, player count, game version, world name, whether voice is offered and the invite code. The service hands out the invite code only when another player joins; when a password is set, the service keeps only its hash.
+- **Skin faces**: only the UUID of a premium player is sent to `sessionserver.mojang.com`, and skins are downloaded only from `textures.minecraft.net` and cached on the device for a day.
+- **Features it does not have**: the Android app has no online maps, mod sync or in-game component, and sends or downloads nothing for them.
+- **Builds from source**: a build without a service address never contacts the Campfire service; notices, update checks, usage statistics and the lobby do not appear, and multiplayer with invite codes is unaffected.
+
 ## Limits of exposure
 
 Even if one party were controlled by someone else, the consequences are clearly bounded:

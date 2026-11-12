@@ -49,7 +49,6 @@ namespace Campfire.Pages
 
         /// <summary>Raised when the user wants the multiplayer settings.</summary>
         public event EventHandler SettingsRequested;
-
         /// <summary>Raised when the user wants to join the code found on the clipboard.</summary>
         internal event EventHandler<RoomCode> QuickJoinRequested;
 
@@ -100,9 +99,8 @@ namespace Campfire.Pages
                 SetColor(LabNoticeTitle, notice.TitleColor);
                 SetColor(LabNoticeBody, notice.BodyColor);
                 LabNoticeBody.Visibility = string.IsNullOrEmpty(notice.Body) ? Visibility.Collapsed : Visibility.Visible;
-                bool hasButton = notice.ButtonUrl != null && !string.IsNullOrEmpty(notice.ButtonText);
                 BtnNoticeAction.Content = notice.ButtonText;
-                BtnNoticeAction.Visibility = hasButton ? Visibility.Visible : Visibility.Collapsed;
+                BtnNoticeAction.Visibility = notice.HasButton ? Visibility.Visible : Visibility.Collapsed;
             }
             Motion.Show(HintNotice, notice != null);
         }
@@ -118,8 +116,8 @@ namespace Campfire.Pages
 
         private void BtnNoticeAction_Click(object sender, RoutedEventArgs e)
         {
-            if (_notice?.ButtonUrl != null)
-                OnlineFlow.Current?.OpenUrl(_notice.ButtonUrl);
+            if (_notice != null)
+                OnlineFlow.Current?.RunButton(_notice);
         }
 
         private void BtnNoticeClose_Click(object sender, RoutedEventArgs e)
@@ -159,7 +157,6 @@ namespace Campfire.Pages
         {
             SettingsRequested?.Invoke(this, EventArgs.Empty);
         }
-
         private void BtnQuickJoin_Click(object sender, RoutedEventArgs e)
         {
             var code = _quickJoinCode;

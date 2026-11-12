@@ -28,6 +28,7 @@
         </DataTemplate>
     </UserControl.Resources>
 
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
     <StackPanel Margin="22,20,22,18">
 
         <HeaderedContentControl Header="{loc:Text Main.Launcher}" Style="{StaticResource PclCard}">
@@ -83,4 +84,5 @@
         </Grid>
 
     </StackPanel>
+    </ScrollViewer>
 </UserControl>

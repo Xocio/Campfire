@@ -28,6 +28,8 @@ namespace Campfire.Online
         private readonly Func<bool> _isRoomActive;
         private readonly Action<Notice> _showBanner;
         private readonly Action<string> _exit;
+        private readonly Func<Task> _whenTourDone;
+        private readonly Action<string> _openPage;
         private readonly HashSet<string> _shownThisRun = new HashSet<string>();
         private Version _postponed;
         private bool _offering;
@@ -37,12 +39,17 @@ namespace Campfire.Online
         /// <param name="isRoomActive">Whether a multiplayer room is open; updates do not interrupt one on their own.</param>
         /// <param name="showBanner">Shows a notice on the home page, or hides it when given <c>null</c>.</param>
         /// <param name="exit">Closes Campfire, then starts the given program when it is not <c>null</c>.</param>
-        public OnlineFlow(IDialogHost host, Func<bool> isRoomActive, Action<Notice> showBanner, Action<string> exit)
+        /// <param name="whenTourDone">Completes when no guided tour is running or about to start.</param>
+        /// <param name="openPage">Opens a page inside Campfire named by a notice button.</param>
+        public OnlineFlow(IDialogHost host, Func<bool> isRoomActive, Action<Notice> showBanner, Action<string> exit, Func<Task> whenTourDone,
+            Action<string> openPage)
         {
             _host = host;
             _isRoomActive = isRoomActive;
             _showBanner = showBanner;
             _exit = exit;
+            _whenTourDone = whenTourDone;
+            _openPage = openPage;
             Current = this;
         }
 
@@ -57,6 +64,7 @@ namespace Campfire.Online
 
             // Starts after a short delay.
             await Task.Delay(TimeSpan.FromSeconds(2));
+            await _whenTourDone();
             if (OnlineService.CheckEnabled)
                 await CheckAsync(manual: false);
             if (Telemetry.Consent == null)
@@ -66,6 +74,7 @@ namespace Campfire.Online
             while (true)
             {
                 await Task.Delay(_manifest?.CheckInterval ?? TimeSpan.FromHours(6));
+                await _whenTourDone();
                 if (OnlineService.CheckEnabled)
                     await CheckAsync(manual: false);
                 await Telemetry.SendIfDueAsync();
@@ -224,7 +233,7 @@ namespace Campfire.Online
             foreach (var notice in notices.Where(n => !n.IsBanner))
             {
                 _shownThisRun.Add(notice.Id);
-                bool hasButton = notice.ButtonUrl != null && !string.IsNullOrEmpty(notice.ButtonText);
+                bool hasButton = notice.HasButton;
                 var choice = await _host.ShowDialogAsync(new DialogRequest
                 {
                     Title = notice.Title,
@@ -237,8 +246,17 @@ namespace Campfire.Online
                 });
                 Notices.MarkSeen(notice);
                 if (hasButton && choice == DialogChoice.Primary)
-                    OpenUrl(notice.ButtonUrl);
+                    RunButton(notice);
             }
+        }
+
+        /// <summary>Opens what the notice button points to: a page inside Campfire or a web page.</summary>
+        public void RunButton(Notice notice)
+        {
+            if (notice.ButtonPage != null)
+                _openPage(notice.ButtonPage);
+            else if (notice.ButtonUrl != null)
+                OpenUrl(notice.ButtonUrl);
         }
 
         /// <summary>Called when the user closes the banner on the home page.</summary>

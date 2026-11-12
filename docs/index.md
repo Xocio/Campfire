@@ -23,7 +23,7 @@ hero:
 
 features:
   - title: 远程多人游戏
-    details: 将单人世界开放给异地好友，如同置身同一局域网。无需公网地址，无需端口映射，亦无需架设服务器。
+    details: 将单人世界开放给异地好友，如同置身同一局域网。无需公网地址与端口映射；电脑与 Android 设备上的玩家可进入同一房间。
     link: /guide/multiplayer
     linkText: 了解多人联机
   - title: 点对点优先

@@ -23,7 +23,7 @@ hero:
 
 features:
   - title: Remote multiplayer
-    details: Open a singleplayer world to friends anywhere, as if you shared a LAN. No public IP, no port forwarding and no server to run.
+    details: Open a singleplayer world to friends anywhere, as if you shared a LAN. No public IP and no port forwarding; players on computers and Android devices share the same rooms.
     link: /en/guide/multiplayer
     linkText: Multiplayer
   - title: Peer-to-peer first

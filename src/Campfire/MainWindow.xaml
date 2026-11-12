@@ -5,9 +5,11 @@
         xmlns:pages="clr-namespace:Campfire.Pages"
         xmlns:controls="clr-namespace:Campfire.Controls"
         Title="Campfire"
-        Width="640"
-        SizeToContent="Height"
-        ResizeMode="CanMinimize"
+        Width="680"
+        Height="598"
+        MinWidth="680"
+        MinHeight="598"
+        ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -29,7 +31,7 @@
             <ScaleTransform />
         </Grid.RenderTransform>
         <!-- The window shadow: faint outlines. -->
-        <Grid IsHitTestVisible="False">
+        <Grid x:Name="PanShadow" IsHitTestVisible="False">
             <Border Margin="-10" CornerRadius="16" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.04" />
             <Border Margin="-9" CornerRadius="15" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.07" />
             <Border Margin="-8" CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.11" />
@@ -41,7 +43,7 @@
             <Border Margin="-2" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.7" />
             <Border Margin="-1" CornerRadius="7" BorderThickness="1" BorderBrush="{DynamicResource BrushShadowRing}" Opacity="0.9" />
         </Grid>
-        <Border CornerRadius="6" Background="{DynamicResource BrushBackground}" />
+        <Border x:Name="PanSurface" CornerRadius="6" Background="{DynamicResource BrushBackground}" />
 
 
         <Grid>
@@ -52,8 +54,13 @@
 
             <!-- ======================== Title bar ======================== -->
             <Border x:Name="PanTitle" Background="{DynamicResource BrushTitleBar}" CornerRadius="6,6,0,0"
-                    MouseLeftButtonDown="PanTitle_MouseLeftButtonDown">
+                    MouseLeftButtonDown="PanTitle_MouseLeftButtonDown" MouseMove="PanTitle_MouseMove">
                 <Grid Margin="18,0,8,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
                     <StackPanel x:Name="PanTitleMain" Orientation="Horizontal" VerticalAlignment="Center">
                         <controls:CampfireLogo x:Name="LogoTitle" Width="32" Height="32" Margin="-2,-2,-2,0" />
                         <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="Campfire" FontSize="19"
@@ -73,7 +80,7 @@
                     </StackPanel>
 
                     <!-- On a feature page the logo and tabs give way to a back button and the page name. -->
-                    <StackPanel x:Name="PanTitleSub" Margin="-10,0,0,0" Orientation="Horizontal" VerticalAlignment="Center"
+                    <StackPanel x:Name="PanTitleSub" Grid.ColumnSpan="3" Margin="-10,0,0,0" Orientation="Horizontal" VerticalAlignment="Center"
                                 Visibility="Hidden">
                         <Button x:Name="BtnBack" Style="{StaticResource PclTitleBarButton}" ToolTip="{loc:Text App.Back}"
                                 Click="BtnBack_Click">
@@ -85,8 +92,8 @@
                                    FontWeight="Bold" Foreground="{DynamicResource BrushWhite}" />
                     </StackPanel>
 
-                    <!-- Centered in the room between the name and the buttons, which sits slightly right of the middle. -->
-                    <StackPanel x:Name="PanTabs" Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                    <!-- Centered in the column between the name and the buttons. -->
+                    <StackPanel x:Name="PanTabs" Grid.Column="1" Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
                         <RadioButton x:Name="TabHome" GroupName="Tabs" IsChecked="True" Style="{StaticResource PclTabButton}"
                                      Checked="Tab_Checked">
                             <StackPanel Orientation="Horizontal">
@@ -135,7 +142,7 @@
                         </RadioButton>
                     </StackPanel>
 
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                         <Button x:Name="BtnLanguage" Margin="0,0,8,0" Style="{StaticResource PclTitleBarTextButton}"
                                 Content="{loc:Text App.LanguageButton}" ToolTip="{loc:Text App.LanguageTooltip}"
                                 Click="BtnLanguage_Click" />
@@ -143,6 +150,16 @@
                                 Click="BtnMinimize_Click">
                             <Path Data="M0,0 L10,0" Stroke="{DynamicResource BrushWhite}" StrokeThickness="1.6"
                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                        </Button>
+                        <Button x:Name="BtnMaximize" Margin="4,0,0,0" Style="{StaticResource PclTitleBarButton}"
+                                Click="BtnMaximize_Click">
+                            <Grid>
+                                <Rectangle x:Name="IconMaximize" Width="10" Height="10" RadiusX="1.5" RadiusY="1.5"
+                                           Stroke="{DynamicResource BrushWhite}" StrokeThickness="1.6" />
+                                <Path x:Name="IconRestore" Data="M0,3 L7,3 L7,10 L0,10 Z M3,3 L3,0 L10,0 L10,7 L7,7"
+                                      Stroke="{DynamicResource BrushWhite}" StrokeThickness="1.4" StrokeLineJoin="Round"
+                                      Visibility="Collapsed" />
+                            </Grid>
                         </Button>
                         <Button x:Name="BtnClose" Margin="4,0,0,0" Style="{StaticResource PclTitleBarButton}"
                                 ToolTip="{loc:Text App.Close}" Click="BtnClose_Click">
@@ -156,13 +173,14 @@
             <!-- Pages share one cell; inactive ones are Hidden. -->
             <Grid Grid.Row="1" ClipToBounds="True">
                 <pages:HomePage x:Name="PageHome" LinkRequested="PageHome_LinkRequested" CreateRequested="PageHome_CreateRequested"
-                                JoinRequested="PageHome_JoinRequested" SettingsRequested="Page_SettingsRequested"
-                                LobbyRequested="Page_LobbyRequested" RecentRequested="Page_RecentRequested" />
+                                JoinRequested="PageHome_JoinRequested" SettingsRequested="Page_SettingsRequested"                                LobbyRequested="Page_LobbyRequested" RecentRequested="Page_RecentRequested" />
                 <pages:MapsPage x:Name="PageMaps" Visibility="Hidden" ImportRequested="Page_WorldRequested" />
                 <pages:ToolsPage x:Name="PageTools" Visibility="Hidden" RepairRequested="PageTools_RepairRequested"
-                                JreRequested="PageTools_JreRequested" />
+                                JreRequested="PageTools_JreRequested" ModCheckRequested="PageTools_ModCheckRequested"
+                                CrashRequested="PageTools_CrashRequested" />
                 <pages:PreferencesPage x:Name="PagePreferences" Visibility="Hidden"
-                                       TraySettingsChanged="PagePreferences_TraySettingsChanged" />
+                                       TraySettingsChanged="PagePreferences_TraySettingsChanged"
+                                       RestartRequested="PagePreferences_RestartRequested" />
                 <pages:LinkPage x:Name="PageLink" Visibility="Hidden" StatusChanged="PageLink_StatusChanged" Left="PageLink_Left"
                                 LobbyRequested="Page_LobbyRequested"
                                 DiagnosticsRequested="Page_DiagnosticsRequested" ModsRequested="PageLink_ModsRequested" />
@@ -177,7 +195,8 @@
                 <pages:ModsPage x:Name="PageMods" Visibility="Hidden" />
                 <pages:BackupPage x:Name="PageBackup" Visibility="Hidden" />
                 <pages:RoomSettingsPage x:Name="PageRoomSettings" Visibility="Hidden" />
-            </Grid>
+                <pages:ModManagerPage x:Name="PageModCheck" Visibility="Hidden" />
+                <pages:CrashPage x:Name="PageCrash" Visibility="Hidden" />            </Grid>
 
             <!-- First-run tour; dialogs stay above it. -->
             <controls:TourOverlay x:Name="Tour" Grid.RowSpan="2" />
@@ -212,6 +231,7 @@
                                    Foreground="{DynamicResource BrushGray3}" Visibility="Collapsed" />
                         <TextBox x:Name="TxtDialogInput" Margin="0,12,0,0" Style="{StaticResource PclTextBox}" Visibility="Collapsed"
                                  KeyDown="TxtDialogInput_KeyDown" />
+                        <ComboBox x:Name="CmbDialogOption" Margin="0,12,0,0" Style="{StaticResource PclComboBox}" Visibility="Collapsed" />
                         <Grid Margin="0,20,0,0">
                             <Button x:Name="BtnDialogLink" HorizontalAlignment="Left" VerticalAlignment="Center"
                                     Style="{StaticResource PclTextButton}" Visibility="Collapsed" Click="BtnDialogLink_Click" />

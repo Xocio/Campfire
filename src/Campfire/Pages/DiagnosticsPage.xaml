@@ -4,7 +4,7 @@
              xmlns:loc="clr-namespace:Campfire.Localization">
 
     <!-- The same height as the other pages. -->
-    <Grid Height="503">
+    <Grid>
         <DockPanel Margin="22,20,22,18">
             <Grid DockPanel.Dock="Bottom" Margin="0,18,0,0">
                 <Button x:Name="BtnRun" HorizontalAlignment="Right" MinWidth="140" FontWeight="Bold"

@@ -222,17 +222,25 @@ jobs:
               sha256 = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
             }
           }
-          $json = ($release | ConvertTo-Json -Depth 3) -replace "`r`n", "`n"
-          $content = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json + "`n"))
-
           # Updating an existing file needs its blob sha; the file may also not exist yet.
           $api = "repos/$env:GITHUB_REPOSITORY/contents/docs/.vitepress/release.json"
-          $sha = gh api "${api}?ref=$env:BRANCH" --jq .sha 2>$null
+          $current = gh api "${api}?ref=$env:BRANCH" 2>$null
+          $sha = $null
+          if ($LASTEXITCODE -eq 0 -and $current) {
+            $current = $current | ConvertFrom-Json
+            $sha = $current.sha
+            # Keeps the android entry written by android.yml.
+            $old = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($current.content -replace '\s', ''))) | ConvertFrom-Json
+            if ($old.android) { $release.android = $old.android }
+          }
+
+          $json = ($release | ConvertTo-Json -Depth 4) -replace "`r`n", "`n"
+          $content = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json + "`n"))
           $request = @('--method', 'PUT', $api,
                        '-f', "message=docs: 下载页同步至 $env:VERSION",
                        '-f', "content=$content",
                        '-f', "branch=$env:BRANCH")
-          if ($LASTEXITCODE -eq 0 -and $sha) { $request += @('-f', "sha=$sha") }
+          if ($sha) { $request += @('-f', "sha=$sha") }
           gh api @request --jq .commit.html_url
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

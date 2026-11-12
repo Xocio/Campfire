@@ -20,9 +20,17 @@ namespace Campfire.Link.Room
     /// </summary>
     internal sealed class PlayerProfile
     {
+        /// <summary>Values of <see cref="Path"/>.</summary>
+        public const string PathDirect = "direct";
+        public const string PathRelay = "relay";
+
         public PlayerProfile(string name, string machineId, string vendor, PlayerKind kind, string uuid = null, string gameName = null,
-            double? latencyMs = null)
+            double? latencyMs = null, string path = null, double? lossPercent = null)
         {
+            Path = path == PathDirect || path == PathRelay ? path : null;
+            LossPercent = lossPercent.HasValue && !double.IsNaN(lossPercent.Value) && lossPercent.Value >= 0 && lossPercent.Value <= 100
+                ? lossPercent
+                : null;
             GameName = string.IsNullOrEmpty(gameName) ? null : gameName;
             Name = name ?? "";
             MachineId = machineId ?? "";
@@ -60,6 +68,15 @@ namespace Campfire.Link.Room
         /// </summary>
         public double? LatencyMs { get; }
 
+        /// <summary>
+        /// How the player reaches the host, <see cref="PathDirect"/> or <see cref="PathRelay"/>, reported with the
+        /// heartbeat. An optional field that other programs ignore.
+        /// </summary>
+        public string Path { get; }
+
+        /// <summary>The player's packet loss to the host in percent, reported with the heartbeat. An optional field.</summary>
+        public double? LossPercent { get; }
+
         /// <summary>The profile of the player on this computer.</summary>
         public static PlayerProfile CreateLocal(PlayerKind kind)
         {
@@ -77,13 +94,13 @@ namespace Campfire.Link.Room
 
         public PlayerProfile WithKind(PlayerKind kind)
         {
-            return new PlayerProfile(Name, MachineId, Vendor, kind, Uuid, GameName, LatencyMs);
+            return new PlayerProfile(Name, MachineId, Vendor, kind, Uuid, GameName, LatencyMs, Path, LossPercent);
         }
 
-        /// <summary>The same player with the latest measured latency.</summary>
-        public PlayerProfile WithLatency(double? latencyMs)
+        /// <summary>The same player with the latest measured connection to the host.</summary>
+        public PlayerProfile WithConnection(double? latencyMs, string path, double? lossPercent)
         {
-            return new PlayerProfile(Name, MachineId, Vendor, Kind, Uuid, GameName, latencyMs);
+            return new PlayerProfile(Name, MachineId, Vendor, Kind, Uuid, GameName, latencyMs, path, lossPercent);
         }
 
         public Dictionary<string, object> ToJson(bool includeKind)
@@ -102,6 +119,10 @@ namespace Campfire.Link.Room
                 json["game_name"] = GameName;
             if (LatencyMs.HasValue)
                 json["latency_ms"] = LatencyMs.Value;
+            if (Path != null)
+                json["path"] = Path;
+            if (LossPercent.HasValue)
+                json["loss"] = LossPercent.Value;
             return json;
         }
 
@@ -138,7 +159,8 @@ namespace Campfire.Link.Room
                 ? measured
                 : (double?)null;
 
-            return new PlayerProfile(name, machineId, vendor, kind, uuid, gameName, latency);
+            double? loss = Get(json, "loss") is double lost && lost >= 0 && lost <= 100 ? lost : (double?)null;
+            return new PlayerProfile(name, machineId, vendor, kind, uuid, gameName, latency, Get(json, "path") as string, loss);
         }
 
         private static bool IsHex(string text)

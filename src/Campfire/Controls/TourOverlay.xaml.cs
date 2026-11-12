@@ -77,6 +77,8 @@ namespace Campfire.Controls
         private bool _hasTarget;
         private bool _closing;
 
+        private double _surfaceRadius = 6;
+
         public TourOverlay()
         {
             InitializeComponent();
@@ -86,10 +88,26 @@ namespace Campfire.Controls
             Host.Children.Add(_viewB);
             SizeChanged += (sender, e) =>
             {
-                Clip = new RectangleGeometry(new Rect(0, 0, ActualWidth, ActualHeight), 6, 6);
+                UpdateClip();
                 if (IsActive && !_closing)
                     Retarget(false);
             };
+        }
+
+        /// <summary>Corner radius of the window surface.</summary>
+        public double SurfaceRadius
+        {
+            get => _surfaceRadius;
+            set
+            {
+                _surfaceRadius = value;
+                UpdateClip();
+            }
+        }
+
+        private void UpdateClip()
+        {
+            Clip = new RectangleGeometry(new Rect(0, 0, ActualWidth, ActualHeight), _surfaceRadius, _surfaceRadius);
         }
 
         public bool IsActive { get; private set; }

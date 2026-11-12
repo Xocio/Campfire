@@ -25,12 +25,12 @@ namespace Campfire.Link.Room
         private static readonly TimeSpan GuestTimeout = TimeSpan.FromSeconds(10);
         private static readonly TimeSpan IdleTimeout = TimeSpan.FromSeconds(64);
 
-        /// <summary>How long a removed player is kept out before they may join again.</summary>
-        public static readonly TimeSpan RemovalTime = TimeSpan.FromMinutes(1);
-
         /// <summary>Error bodies that tell a joining Campfire the host turned it away.</summary>
         public const string RemovedReply = "campfire:removed";
         public const string BlockedReply = "campfire:blocked";
+
+        /// <summary>Error body that tells a joining Campfire the room only takes allowed players.</summary>
+        public const string NotAllowedReply = "campfire:not_allowed";
 
         /// <summary>Error bodies of the mod requests.</summary>
         public const string ModsPendingReply = "campfire:mods_pending";
@@ -46,6 +46,7 @@ namespace Campfire.Link.Room
 
         private readonly byte[] _protocolList;
         private volatile bool _modsAllowed;
+        private volatile bool _allowlistOnly;
         private volatile ModHost _mods;
         private volatile bool _modsUnavailable;
         private volatile byte[] _voice;
@@ -65,6 +66,7 @@ namespace Campfire.Link.Room
             _minecraftPort = minecraftPort;
             _listener = listener;
             _modsAllowed = LinkSettings.ShareMods;
+            _allowlistOnly = LinkSettings.AllowlistOnly;
             // The mod kinds are always listed.
             var kinds = new[]
             {
@@ -98,6 +100,13 @@ namespace Campfire.Link.Room
         {
             get => _modsAllowed;
             set => _modsAllowed = value;
+        }
+
+        /// <summary>Whether only the computers on the <see cref="Allowlist"/> may join; it can change while the room is open.</summary>
+        public bool AllowlistOnly
+        {
+            get => _allowlistOnly;
+            set => _allowlistOnly = value;
         }
 
         /// <summary>The room's name, announcement and player limit as players receive them.</summary>
@@ -154,12 +163,12 @@ namespace Campfire.Link.Room
                 PlayersChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        /// <summary>Takes a guest out of the room; their computer is turned away for <see cref="RemovalTime"/>.</summary>
-        public void Remove(string machineId)
+        /// <summary>Takes a guest out of the room; their computer is turned away until <paramref name="until"/>, in UTC.</summary>
+        public void Remove(string machineId, DateTime until)
         {
             lock (_guests)
             {
-                _removed[machineId] = DateTime.UtcNow + RemovalTime;
+                _removed[machineId] = until;
                 _guests.RemoveAll(g => g.Profile.MachineId == machineId);
             }
             PlayersChanged?.Invoke(this, EventArgs.Empty);
@@ -272,6 +281,8 @@ namespace Campfire.Link.Room
                 return (RoomFraming.StatusError, Encoding.UTF8.GetBytes("The machine id belongs to the host."));
             if (Blocklist.Contains(profile))
                 return (RoomFraming.StatusError, Encoding.UTF8.GetBytes(BlockedReply));
+            if (_allowlistOnly && !Allowlist.Contains(profile))
+                return (RoomFraming.StatusError, Encoding.UTF8.GetBytes(NotAllowedReply));
             lock (_guests)
             {
                 if (_removed.TryGetValue(profile.MachineId, out var until) && until > DateTime.UtcNow)

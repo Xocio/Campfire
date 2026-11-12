@@ -5,7 +5,12 @@ namespace Campfire.Localization
     /// </summary>
     public enum AppLanguage
     {
+        /// <summary>Simplified Chinese.</summary>
         Chinese,
         English,
+        /// <summary>Traditional Chinese.</summary>
+        TraditionalChinese,
+        /// <summary>Cantonese written in Traditional characters.</summary>
+        Cantonese,
     }
 }

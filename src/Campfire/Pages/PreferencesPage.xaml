@@ -38,7 +38,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Height="503">
+    <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="132" />
             <ColumnDefinition Width="*" />
@@ -67,6 +67,13 @@
                     <Path Style="{StaticResource NavIcon}"
                           Data="M2.5,8 L9.5,8 M6.5,5 L9.5,8 L6.5,11 M9.5,2.5 L13.5,2.5 L13.5,13.5 L9.5,13.5" />
                     <TextBlock Style="{StaticResource NavText}" Text="{loc:Text Prefs.NavLink}" />
+                </StackPanel>
+            </RadioButton>
+            <RadioButton x:Name="NavSupport" GroupName="Nav" Style="{StaticResource PclNavItem}" Checked="Nav_Checked">
+                <StackPanel Orientation="Horizontal">
+                    <Path Style="{StaticResource NavIcon}"
+                          Data="M8,13.5 C8,13.5 2,9.8 2,5.9 C2,4.2 3.3,2.9 5,2.9 C6.3,2.9 7.4,3.6 8,4.7 C8.6,3.6 9.7,2.9 11,2.9 C12.7,2.9 14,4.2 14,5.9 C14,9.8 8,13.5 8,13.5 Z" />
+                    <TextBlock Style="{StaticResource NavText}" Text="{loc:Text Prefs.NavSupport}" />
                 </StackPanel>
             </RadioButton>
             <RadioButton x:Name="NavAbout" GroupName="Nav" Style="{StaticResource PclNavItem}" Checked="Nav_Checked">
@@ -175,9 +182,27 @@
                             <ComboBox x:Name="CmbLanguage" Grid.Column="1" Style="{StaticResource PclComboBox}"
                                       SelectionChanged="CmbLanguage_SelectionChanged">
                                 <ComboBoxItem Content="简体中文" />
+                                <ComboBoxItem Content="繁體中文" />
+                                <ComboBoxItem Content="粵語（繁體）" />
                                 <ComboBoxItem Content="English" />
                             </ComboBox>
                         </Grid>
+                    </HeaderedContentControl>
+
+                    <HeaderedContentControl Margin="0,15,0,0" Header="{loc:Text Storage.Header}" Style="{StaticResource PclCard}">
+                        <StackPanel Margin="10,0,0,0">
+                            <TextBlock x:Name="LabStoragePath" TextWrapping="Wrap" />
+                            <TextBlock Style="{StaticResource RowNote}" Text="{loc:Text Storage.Note}" />
+                            <TextBlock x:Name="LabStorageState" Style="{StaticResource RowNote}" Visibility="Collapsed" />
+                            <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
+                                <Button Height="32" MinWidth="96" Style="{StaticResource PclButton}" Content="{loc:Text Storage.Change}"
+                                        Click="BtnStorageChange_Click" />
+                                <Button Margin="10,0,0,0" Height="32" MinWidth="96" Style="{StaticResource PclButton}"
+                                        Content="{loc:Text Storage.Open}" Click="BtnStorageOpen_Click" />
+                                <Button x:Name="BtnStorageReset" Margin="10,0,0,0" Height="32" MinWidth="96" Style="{StaticResource PclButton}"
+                                        Content="{loc:Text Storage.Reset}" Click="BtnStorageReset_Click" />
+                            </StackPanel>
+                        </StackPanel>
                     </HeaderedContentControl>
 
                     <HeaderedContentControl Margin="0,15,0,0" Header="{loc:Text Prefs.TrayHeader}" Style="{StaticResource PclCard}">
@@ -192,6 +217,12 @@
                                 <CheckBox x:Name="ChkCloseToTray" Style="{StaticResource PclCheckBox}"
                                           Content="{loc:Text Prefs.CloseToTray}" Click="ChkCloseToTray_Click" />
                                 <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Prefs.CloseToTrayNote}" />
+                            </StackPanel>
+
+                            <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+                                <CheckBox x:Name="ChkTrayNotices" Style="{StaticResource PclCheckBox}"
+                                          Content="{loc:Text Prefs.TrayNotices}" Click="ChkTrayNotices_Click" />
+                                <ContentControl Style="{StaticResource PclHelp}" ToolTip="{loc:Text Prefs.TrayNoticesNote}" />
                             </StackPanel>
                         </StackPanel>
                     </HeaderedContentControl>
@@ -238,6 +269,11 @@
             <!-- ======================== Multiplayer ======================== -->
             <!-- The negative margin lines its cards up with the other sections. -->
             <pages:SettingsPage x:Name="PanLink" Margin="-8,0,0,0" Visibility="Hidden" />
+
+            <!-- ======================== Support ======================== -->
+            <ScrollViewer x:Name="PanSupport" Style="{StaticResource SectionScroll}" Visibility="Hidden">
+                <pages:SupportPage Margin="10,8,10,8" />
+            </ScrollViewer>
 
             <!-- ======================== About ======================== -->
             <ScrollViewer x:Name="PanAbout" Style="{StaticResource SectionScroll}" Visibility="Hidden">

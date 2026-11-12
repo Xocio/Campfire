@@ -65,7 +65,7 @@ namespace Campfire.Link
         private const long MaxBytes = 2L * 1024 * 1024 * 1024;
 
         /// <summary>Backups kept for each world; older ones are deleted.</summary>
-        public const int KeepPerWorld = 5;
+        public static int KeepPerWorld => LinkSettings.BackupKeep;
 
         private const string TimeFormat = "yyyyMMdd-HHmmss";
 
@@ -177,6 +177,29 @@ namespace Campfire.Link
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Whether a file of the world the game listening on <paramref name="gamePort"/> has open was written after
+        /// <paramref name="sinceUtc"/>. Returns <c>true</c> when the world cannot be read.
+        /// </summary>
+        public static bool HasChangedSince(int gamePort, DateTime sinceUtc)
+        {
+            try
+            {
+                var game = RunningGame.FromProcess(LocalWorldFinder.FindProcess(gamePort));
+                if (game == null || !System.IO.Directory.Exists(game.SavesDirectory))
+                    return true;
+                string world = FindOpenWorld(game.SavesDirectory);
+                if (world == null)
+                    return true;
+                return System.IO.Directory.EnumerateFiles(world, "*", SearchOption.AllDirectories)
+                    .Any(file => !IsLock(file) && File.GetLastWriteTimeUtc(file) > sinceUtc);
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                return true;
             }
         }
 

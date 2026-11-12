@@ -16,7 +16,7 @@ namespace Campfire.Link.Minecraft
     internal static class PlayerHeads
     {
         private static readonly TimeSpan CacheLifetime = TimeSpan.FromDays(1);
-        private static readonly string CacheDirectory = Path.Combine(LinkSettings.DataDirectory, "heads");
+        private static string CacheDirectory => Path.Combine(LinkSettings.DataDirectory, "heads");
 
         private static readonly object Sync = new object();
         private static readonly Dictionary<string, Task<BitmapSource>> Requests =

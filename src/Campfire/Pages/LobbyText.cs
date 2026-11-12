@@ -14,16 +14,16 @@ namespace Campfire.Pages
     /// <summary>How the lobby writes tags, places and times.</summary>
     internal static class LobbyText
     {
-        /// <summary>Region names the service gives for China, by the start of the English name.</summary>
-        private static readonly (string English, string Chinese)[] Provinces =
+        /// <summary>Region names the service gives for China, by the start of the English name, in Simplified and Traditional characters.</summary>
+        private static readonly (string English, string Chinese, string Traditional)[] Provinces =
         {
-            ("Beijing", "北京"), ("Tianjin", "天津"), ("Hebei", "河北"), ("Shanxi", "山西"), ("Inner Mongolia", "内蒙古"),
-            ("Liaoning", "辽宁"), ("Jilin", "吉林"), ("Heilongjiang", "黑龙江"), ("Shanghai", "上海"), ("Jiangsu", "江苏"),
-            ("Zhejiang", "浙江"), ("Anhui", "安徽"), ("Fujian", "福建"), ("Jiangxi", "江西"), ("Shandong", "山东"),
-            ("Henan", "河南"), ("Hubei", "湖北"), ("Hunan", "湖南"), ("Guangdong", "广东"), ("Guangxi", "广西"),
-            ("Hainan", "海南"), ("Chongqing", "重庆"), ("Sichuan", "四川"), ("Guizhou", "贵州"), ("Yunnan", "云南"),
-            ("Tibet", "西藏"), ("Shaanxi", "陕西"), ("Gansu", "甘肃"), ("Qinghai", "青海"), ("Ningxia", "宁夏"),
-            ("Xinjiang", "新疆"),
+            ("Beijing", "北京", "北京"), ("Tianjin", "天津", "天津"), ("Hebei", "河北", "河北"), ("Shanxi", "山西", "山西"), ("Inner Mongolia", "内蒙古", "內蒙古"),
+            ("Liaoning", "辽宁", "遼寧"), ("Jilin", "吉林", "吉林"), ("Heilongjiang", "黑龙江", "黑龍江"), ("Shanghai", "上海", "上海"), ("Jiangsu", "江苏", "江蘇"),
+            ("Zhejiang", "浙江", "浙江"), ("Anhui", "安徽", "安徽"), ("Fujian", "福建", "福建"), ("Jiangxi", "江西", "江西"), ("Shandong", "山东", "山東"),
+            ("Henan", "河南", "河南"), ("Hubei", "湖北", "湖北"), ("Hunan", "湖南", "湖南"), ("Guangdong", "广东", "廣東"), ("Guangxi", "广西", "廣西"),
+            ("Hainan", "海南", "海南"), ("Chongqing", "重庆", "重慶"), ("Sichuan", "四川", "四川"), ("Guizhou", "贵州", "貴州"), ("Yunnan", "云南", "雲南"),
+            ("Tibet", "西藏", "西藏"), ("Shaanxi", "陕西", "陝西"), ("Gansu", "甘肃", "甘肅"), ("Qinghai", "青海", "青海"), ("Ningxia", "宁夏", "寧夏"),
+            ("Xinjiang", "新疆", "新疆"),
         };
 
         /// <summary>The tag's name, or <c>null</c> for a tag this version does not know.</summary>
@@ -41,12 +41,12 @@ namespace Campfire.Pages
                 return null;
             string placeKey = "Lobby.Place." + country;
 
-            if (Text.Language == AppLanguage.Chinese)
+            if (Text.IsChinese)
             {
                 if (country == "CN")
                 {
                     var province = Provinces.FirstOrDefault(p => room.Region.StartsWith(p.English, StringComparison.OrdinalIgnoreCase));
-                    return province.Chinese ?? Text.Get(placeKey);
+                    return (Text.IsTraditional ? province.Traditional : province.Chinese) ?? Text.Get(placeKey);
                 }
                 return Text.Has(placeKey) ? Text.Get(placeKey) : null;
             }

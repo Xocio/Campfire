@@ -16,7 +16,7 @@ namespace Campfire.Link
 
         private static string _machineId;
 
-        public static string DataDirectory { get; } = Path.Combine(AppSettings.DataDirectory, "Link");
+        public static string DataDirectory => Path.Combine(AppSettings.DataDirectory, "Link");
 
         // ======================== Room ========================
 
@@ -91,6 +91,39 @@ namespace Campfire.Link
             set => SetFlag("link.backup", value);
         }
 
+        /// <summary>Choices offered for <see cref="BackupIntervalMinutes"/>; 0 turns timed backups off.</summary>
+        public static readonly int[] BackupIntervalChoices = { 0, 10, 20, 30, 60 };
+
+        /// <summary>Choices offered for <see cref="BackupKeep"/>.</summary>
+        public static readonly int[] BackupKeepChoices = { 3, 5, 10, 20 };
+
+        /// <summary>Host: minutes between backups of the world while the room is open; 0 for none.</summary>
+        public static int BackupIntervalMinutes
+        {
+            get => int.TryParse(AppSettings.Get("link.backup.interval"), NumberStyles.None, CultureInfo.InvariantCulture, out int value)
+                   && BackupIntervalChoices.Contains(value)
+                ? value
+                : 30;
+            set => AppSettings.Set("link.backup.interval", value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>How many backups are kept for each world; older ones are deleted.</summary>
+        public static int BackupKeep
+        {
+            get => int.TryParse(AppSettings.Get("link.backup.keep"), NumberStyles.None, CultureInfo.InvariantCulture, out int value)
+                   && BackupKeepChoices.Contains(value)
+                ? value
+                : 5;
+            set => AppSettings.Set("link.backup.keep", value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>Host: whether rooms only take the players on the <see cref="Allowlist"/>.</summary>
+        public static bool AllowlistOnly
+        {
+            get => GetFlag("link.allowlist", false);
+            set => SetFlag("link.allowlist", value);
+        }
+
         /// <summary>Whether an invite code on the clipboard is offered for joining.</summary>
         public static bool DetectClipboard
         {
@@ -146,6 +179,16 @@ namespace Campfire.Link
         {
             get => GetFlag("link.publicnodes", true);
             set => SetFlag("link.publicnodes", value);
+        }
+
+        /// <summary>
+        /// Whether rooms leave out the built-in nodes that did not answer in the last test, and use the others in
+        /// order of latency.
+        /// </summary>
+        public static bool AutoPickNodes
+        {
+            get => GetFlag("link.autonodes", true);
+            set => SetFlag("link.autonodes", value);
         }
 
         /// <summary>Extra nodes as typed by the user.</summary>
@@ -264,11 +307,16 @@ namespace Campfire.Link
 
         // ======================== Nodes ========================
 
-        /// <summary>Custom nodes first, then the enabled built-in nodes, without duplicates.</summary>
+        /// <summary>
+        /// Custom nodes first, then the enabled built-in nodes, without duplicates. With <see cref="AutoPickNodes"/>
+        /// the built-in nodes are the ones <see cref="PublicNodes.Pick"/> returns.
+        /// </summary>
         public static IReadOnlyList<string> GetNodes()
         {
+            var enabled = PublicNodes.All.Where(IsNodeEnabled).ToList();
+            var builtIn = AutoPickNodes ? PublicNodes.Pick(enabled) : enabled;
             return ParseNodes(CustomNodes, out _)
-                .Concat(PublicNodes.All.Where(IsNodeEnabled).Select(n => n.Url))
+                .Concat(builtIn.Select(n => n.Url))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }

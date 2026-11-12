@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="README.md">简体中文</a> | <b>English</b>
+  <a href="README.md">简体中文</a> | <a href="README.zh-Hant.md">繁體中文</a> | <a href="README.yue.md">粵語</a> | <b>English</b>
 </p>
 
 <p align="center">
@@ -210,6 +210,17 @@ The Java agent attached to the game is prebuilt in `src/java-agent/dist`, so bui
 
 Builds from source never contact Campfire's online service and never send usage statistics; multiplayer with invite codes is unaffected.
 
+The Android app lives in `src/android` and requires JDK 21 and Android SDK 37. It uses the ZeroUI design system; before building, clone it into `src/android/zeroui` at the commit recorded in `src/android/zeroui-commit.txt`:
+
+```bash
+cd src/android
+git clone https://github.com/Xocio/ZeroUI.git zeroui
+git -C zeroui checkout $(cat zeroui-commit.txt)
+./gradlew :app:assembleDebug
+```
+
+See [src/android/README.md](src/android/README.md) for details.
+
 </details>
 
 <details>
@@ -233,20 +244,27 @@ Campfire/
 │  ├─ Tools/                     JRE Tool
 │  ├─ Pages/                     Pages and settings
 │  ├─ Controls/                  Animations and custom controls
-│  ├─ Localization/              Chinese and English string tables
+│  ├─ Localization/              Simplified Chinese, Traditional Chinese, Cantonese and English string tables
 │  ├─ Themes/                    Control styles, palette generation and wallpaper colors
 │  ├─ Assets/                    Icons
 │  ├─ MainWindow.xaml            Main window and page changes
 │  ├─ TrayIcon.cs                Notification area icon
 │  └─ ILRepack.targets           Merges dnlib into Campfire.exe after the build
 ├─ src/java-agent/               Java agent attached to the host's game
+├─ src/android/                  Android app
 ├─ tools/                        Release signing scripts
 └─ Campfire.slnx
 ```
 
-To add a repair: derive from `Patch`, implement `TextKey` / `FindTarget` / `GetState` / `Apply`, add it to `PatchCatalog.All`, and add `Patch.<TextKey>.Title` / `Description` to `Localization/Text.Chinese.cs` and `Text.English.cs`. The Community Edition is handled by `CommunityLauncher`: its patch point lives in the bundled `PCL.Core` assembly and can only be rewritten in place.
+To add a repair: derive from `Patch`, implement `TextKey` / `FindTarget` / `GetState` / `Apply`, add it to `PatchCatalog.All`, and add `Patch.<TextKey>.Title` / `Description` to the four string tables in `Localization`. The Community Edition is handled by `CommunityLauncher`: its patch point lives in the bundled `PCL.Core` assembly and can only be rewritten in place.
 
 </details>
+
+## Android
+
+Campfire for Android speaks the same multiplayer protocol as the desktop app, so players on phones and computers can share a room. It can create and join rooms with invite codes, browse the lobby and list its own rooms there, change room settings, keep an allowlist, set up voice chat, show the skin faces of premium players, run multiplayer diagnostics and test nodes. Its interface is built on the [ZeroUI](https://github.com/Xocio/ZeroUI) design system and it runs on Android 7.0 and later.
+
+The source code is in [`src/android`](src/android); its network activity is described in [Network Connections](NETWORK.en.md#android).
 
 ## Dependencies
 
@@ -257,6 +275,8 @@ To add a repair: derive from `Patch`, implement `TextKey` / `FindTarget` / `GetS
 | [ASM](https://asm.ow2.io) | Java bytecode library, packaged with the in-game component | BSD-3-Clause |
 
 Full license texts are in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+Dependencies and licenses of the Android app are listed in [src/android/THIRD_PARTY_NOTICES.md](src/android/THIRD_PARTY_NOTICES.md).
 
 ## Notes
 

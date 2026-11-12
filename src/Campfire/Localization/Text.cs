@@ -5,7 +5,7 @@ using System.Globalization;
 namespace Campfire.Localization
 {
     /// <summary>
-    /// Localized user-facing strings. Tables live in <c>Text.Chinese.cs</c> and <c>Text.English.cs</c>.
+    /// Localized user-facing strings. Tables live in <c>Text.Chinese.cs</c>, <c>Text.TraditionalChinese.cs</c>, <c>Text.Cantonese.cs</c> and <c>Text.English.cs</c>.
     /// </summary>
     public static partial class Text
     {
@@ -26,21 +26,49 @@ namespace Campfire.Localization
             }
         }
 
-        /// <summary>Chinese for Chinese system UI, English otherwise.</summary>
+        /// <summary>Whether the display language is written in Chinese characters.</summary>
+        public static bool IsChinese => _language != AppLanguage.English;
+
+        /// <summary>Whether the display language uses Traditional characters.</summary>
+        public static bool IsTraditional => _language == AppLanguage.TraditionalChinese || _language == AppLanguage.Cantonese;
+
+        /// <summary>Traditional Chinese for Traditional-script system UI, Simplified Chinese for other Chinese system UI, English otherwise.</summary>
         public static AppLanguage DetectSystemLanguage()
         {
-            return CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "zh"
-                ? AppLanguage.Chinese
-                : AppLanguage.English;
+            var culture = CultureInfo.CurrentUICulture;
+            if (culture.TwoLetterISOLanguageName == "yue")
+                return AppLanguage.Cantonese;
+            if (culture.TwoLetterISOLanguageName != "zh")
+                return AppLanguage.English;
+            string name = culture.Name;
+            return name.IndexOf("Hant", StringComparison.OrdinalIgnoreCase) >= 0
+                || name.Equals("zh-TW", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("zh-HK", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("zh-MO", StringComparison.OrdinalIgnoreCase)
+                ? AppLanguage.TraditionalChinese
+                : AppLanguage.Chinese;
         }
 
-        /// <summary>Returns the string for <paramref name="key"/>, falling back to Chinese, then to the key itself.</summary>
+        /// <summary>Returns the string for <paramref name="key"/>, falling back to Traditional Chinese, then Simplified Chinese, then the key itself.</summary>
         public static string Get(string key)
         {
-            var table = _language == AppLanguage.English ? English : Chinese;
-            if (table.TryGetValue(key, out var value) || Chinese.TryGetValue(key, out value))
-                return value;
-            return key;
+            string value;
+            switch (_language)
+            {
+                case AppLanguage.English:
+                    if (English.TryGetValue(key, out value))
+                        return value;
+                    break;
+                case AppLanguage.Cantonese:
+                    if (Cantonese.TryGetValue(key, out value) || TraditionalChinese.TryGetValue(key, out value))
+                        return value;
+                    break;
+                case AppLanguage.TraditionalChinese:
+                    if (TraditionalChinese.TryGetValue(key, out value))
+                        return value;
+                    break;
+            }
+            return Chinese.TryGetValue(key, out value) ? value : key;
         }
 
         /// <summary>Whether a string exists for <paramref name="key"/>.</summary>

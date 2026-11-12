@@ -87,6 +87,8 @@ namespace Campfire.Link.Room
                     throw new RoomRejectedException(reply == RoomServer.BlockedReply);
                 if (reply == RoomServer.FullReply)
                     throw new RoomRejectedException(false, true);
+                if (reply == RoomServer.NotAllowedReply)
+                    throw new RoomRejectedException(false, notAllowed: true);
                 throw new InvalidDataException("Heartbeat rejected: " + reply);
             }
         }
@@ -214,15 +216,20 @@ namespace Campfire.Link.Room
     /// <summary>The host took this player out of the room, blocked them, or the room is full.</summary>
     internal sealed class RoomRejectedException : Exception
     {
-        public RoomRejectedException(bool blocked, bool full = false)
-            : base(full ? "The room is full." : blocked ? "The host blocked this player." : "The host removed this player from the room.")
+        public RoomRejectedException(bool blocked, bool full = false, bool notAllowed = false)
+            : base(full ? "The room is full." : notAllowed ? "The room only takes allowed players."
+                : blocked ? "The host blocked this player." : "The host removed this player from the room.")
         {
             Blocked = blocked;
             Full = full;
+            NotAllowed = notAllowed;
         }
 
         public bool Blocked { get; }
 
         public bool Full { get; }
+
+        /// <summary>The room only takes the players on the host's allowlist.</summary>
+        public bool NotAllowed { get; }
     }
 }

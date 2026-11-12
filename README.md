@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <b>简体中文</b> | <a href="README.en.md">English</a>
+  <b>简体中文</b> | <a href="README.zh-Hant.md">繁體中文</a> | <a href="README.yue.md">粵語</a> | <a href="README.en.md">English</a>
 </p>
 
 <p align="center">
@@ -208,6 +208,17 @@ dotnet build src/Campfire/Campfire.csproj -c Release
 
 从源码构建的版本不连接 Campfire 的在线服务，也不发送使用统计；邀请码联机不受影响。
 
+Android 版位于 `src/android`，需要 JDK 21 与 Android SDK 37。它使用 ZeroUI 设计系统，构建前需按 `src/android/zeroui-commit.txt` 中记录的提交将其克隆到 `src/android/zeroui`：
+
+```bash
+cd src/android
+git clone https://github.com/Xocio/ZeroUI.git zeroui
+git -C zeroui checkout $(cat zeroui-commit.txt)
+./gradlew :app:assembleDebug
+```
+
+详见 [src/android/README.md](src/android/README.md)。
+
 </details>
 
 <details>
@@ -231,20 +242,27 @@ Campfire/
 │  ├─ Tools/                     JRE 启用工具
 │  ├─ Pages/                     各页面与设置
 │  ├─ Controls/                  动画与自绘控件
-│  ├─ Localization/              中英文字符串表
+│  ├─ Localization/              简体、繁体、粤语与英文字符串表
 │  ├─ Themes/                    控件样式、配色生成与壁纸取色
 │  ├─ Assets/                    图标
 │  ├─ MainWindow.xaml            主窗口与页面切换
 │  ├─ TrayIcon.cs                通知区域图标
 │  └─ ILRepack.targets           构建后把 dnlib 合并进 Campfire.exe
 ├─ src/java-agent/               附加到房主游戏的 Java Agent
+├─ src/android/                  Android 应用
 ├─ tools/                        发布签名脚本
 └─ Campfire.slnx
 ```
 
-新增修复项：继承 `Patch`，实现 `TextKey` / `FindTarget` / `GetState` / `Apply`，加入 `PatchCatalog.All`，并在 `Localization/Text.Chinese.cs` 与 `Text.English.cs` 中添加 `Patch.<TextKey>.Title` / `Description`。社区版经由独立的 `CommunityLauncher` 处理：补丁点位于单文件包内的 `PCL.Core` 程序集，只能原地改写方法体。
+新增修复项：继承 `Patch`，实现 `TextKey` / `FindTarget` / `GetState` / `Apply`，加入 `PatchCatalog.All`，并在 `Localization` 的四个字符串表中添加 `Patch.<TextKey>.Title` / `Description`。社区版经由独立的 `CommunityLauncher` 处理：补丁点位于单文件包内的 `PCL.Core` 程序集，只能原地改写方法体。
 
 </details>
+
+## Android 版
+
+Campfire Android 版与桌面版使用同一套联机协议，手机与电脑上的玩家可进入同一房间。它支持凭邀请码创建与加入房间、浏览联机大厅并公开自己的房间、房间设置、白名单、语音、正版玩家皮肤头像、联机诊断与节点测速，界面基于 [ZeroUI](https://github.com/Xocio/ZeroUI) 设计系统，运行于 Android 7.0 及以上版本。
+
+源代码位于 [`src/android`](src/android)，联网行为见[联网说明](NETWORK.md#android-版)。
 
 ## 依赖
 
@@ -255,6 +273,8 @@ Campfire/
 | [ASM](https://asm.ow2.io) | Java 字节码库，随游戏内组件一同打包 | BSD-3-Clause |
 
 各组件的许可原文见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
+
+Android 版的依赖与许可见 [src/android/THIRD_PARTY_NOTICES.md](src/android/THIRD_PARTY_NOTICES.md)。
 
 ## 说明
 

@@ -1,7 +1,7 @@
 # Network Connections
 
 <p>
-  <a href="NETWORK.md">简体中文</a> | <b>English</b>
+  <a href="NETWORK.md">简体中文</a> | <a href="NETWORK.zh-Hant.md">繁體中文</a> | <a href="NETWORK.yue.md">粵語</a> | <b>English</b>
 </p>
 
 This document sets out every network connection Campfire makes: the party it reaches, when, what is transferred, whether it can be turned off, and why none of it can compromise your computer or your account. Each statement can be verified against the source code; see [Check it yourself](#check-it-yourself).
@@ -36,6 +36,7 @@ The following principles are enforced in code and held as lasting design constra
 | Skin faces | Mojang's official services | When a room has premium players | Yes, in Multiplayer settings › Privacy |
 | Mod sync | Modrinth, the Campfire service, CurseForge file servers and the host of the room | When a sync is started on the Mod Sync page | Not contacted unless used; the host can stop mod sync and mod downloads at any time |
 | Voice chat | Modrinth and the other players in the room | When the host turns on voice chat, or a player installs the voice chat mod | Off by default; the host can turn it off on the room page at any time |
+| Mod updates | Modrinth | When **Check for updates** or **Update** is clicked on the Mod Check page | Not contacted unless used |
 | Name mappings for the in-game component | Mojang's official services and a mirror in China | When the host runs a release that needs them | Not downloaded unless multiplayer is used |
 | Opening web pages | The system browser | Only when a link or button is clicked | — |
 
@@ -109,6 +110,7 @@ The component runs as a standard user, installs no virtual network adapter and n
 
 - **Network nodes** help the players of a room discover one another. The built-in public nodes are the EasyTier community nodes `225284.xyz`, `easytier.weiai.org.cn`, `et.basd1.de`, `et.sumnight.top`, `et.chinokou.cn`, `et-public.lctn.top`, `et.南梁.com` and `etnode.zkitefly.eu.org`, plus one China Mobile node in Chongqing that is reached by IP address. Each node may be enabled or disabled under Multiplayer settings › Relay servers, and you may also rely solely on nodes of your own.
 - **Latency test**: Campfire connects to each built-in node through a temporary network with a random name that accepts no connections, measures the round-trip time and disconnects at once. No game data is transmitted; node operators learn only your IP address and the time of the connection. The status lamp on the title bar reflects the result.
+- **Pick relay servers automatically**: when on, creating or joining a room leaves out the built-in nodes that did not answer a test within the last hour, and orders the others from the lowest latency up. Without test results, or when no node answered, all enabled nodes are used as usual. This only uses existing test results and makes no extra connections.
 - Campfire prefers direct connections between players. To establish one, the component may query public STUN services about your network type and may create a temporary port mapping on your router through UPnP.
 - Game data passes through a relay node only when relaying is allowed and a direct connection fails.
 - Game data is encrypted between players and cannot be read by nodes. Node operators can see your IP address and when you are connected.
@@ -116,7 +118,9 @@ The component runs as a standard user, installs no virtual network adapter and n
 
 ### Information shared in a room
 
-Other players in a room can see your player name, your device ID and whether you use a premium account; with the corresponding options enabled, they can also see your premium UUID and your Campfire version. The device ID is random and can be reset at any time.
+Other players in a room can see your player name, your device ID and whether you use a premium account; with the corresponding options enabled, they can also see your premium UUID and your Campfire version. The device ID is random and can be reset at any time. Once you have joined a room, your latency to the host, whether you are connected directly or through a relay, and your packet loss are also sent to the host with each heartbeat and shown in every player's list of the room.
+
+With the **allowlist** turned on, the host's room turns away devices and in-game player names that are not on it. The allowlist is kept only in the host's data folder and is never uploaded.
 
 As a host with mod sync allowed, players in the room can also see your game version, mod loader, and the file name, name, version, SHA-1 and CurseForge fingerprint of each mod in your mods folder. Mod sync is set by **Let players sync my mods** in the multiplayer settings and can be switched on the room page at any time, taking effect at once.
 
@@ -149,6 +153,39 @@ Voice chat is provided by the open-source mod Simple Voice Chat. Campfire instal
 - **Port**: the host exposes the UDP port of its voice server only while that server runs. The port is taken from the game log and checked to belong to that game; it is closed as soon as voice chat is turned off.
 - **Players installing the mod**: after a player clicks **Install Voice Chat** and confirms, Campfire downloads the host's exact file first, and the newest release for that game version when Modrinth does not have it. The file is written only into the mods folder of a local version with the host's game version and loader.
 - **Voice data**: the mod carries voice data between players and the host, encrypted by the multiplayer network. Campfire neither reads nor keeps any voice content.
+
+## Mod check and crash analysis
+
+- **Mod check**: reads the metadata files of the mods in the chosen version's mods folder and compares dependencies, incompatibilities and duplicates. Only local files are read; nothing goes over the network.
+- **Check for updates**: when clicked, sends the SHA-1 of each mod file together with the version's game version and mod loader to `api.modrinth.com`, and nothing else. Files Modrinth does not know are not checked.
+- **Update**: once confirmed, new files are downloaded only from HTTPS addresses on `cdn.modrinth.com`, and their size and SHA-1 must match what Modrinth lists, or they are discarded. Only verified files go into the mods folder; the old files are moved to a backup folder in Campfire's data folder, never deleted. Mods are not updated while the game is running.
+- **Crash analysis**: reads only the crash reports, game logs and Java error reports on this computer, without network access, and uploads nothing. **Copy result** puts the result on the clipboard with the Windows user name and the game account name replaced.
+
+## Android
+
+The Android app follows the principles above and identifies itself as `Campfire-Android/version`. Its network activity is listed below; there is none beyond it:
+
+| Feature | Connects to | When | Can it be turned off |
+| --- | --- | --- | --- |
+| Notices | Campfire service | At startup, then every 6 hours | Turn off **Receive notices** in settings |
+| Update check | Campfire service | At startup, or when you tap **Check for updates** in settings | Off by default |
+| Lobby | Campfire service | When browsing the lobby, joining or reporting a room, and while a room is listed | Not contacted unless used; a listed room leaves the lobby when it closes |
+| Usage statistics | Campfire service | At most once a day after you agree | Off by default; can be turned off at any time in App settings |
+| Skin faces | Mojang service | When a premium player is in the room | Can be turned off under Settings › Privacy |
+| Multiplayer | Nodes and the other players in the room | While a room is open | Nodes and relaying are configurable |
+| Node speed test | Built-in nodes | After startup while automatic node selection is on; when the node page is opened, a test is tapped or diagnostics run | With automatic node selection off, not run at startup |
+| Voice | Modrinth | When the host turns on voice and installs the voice mod | Off by default |
+| Opening web pages | System browser | Only when a link or button is tapped | — |
+
+- **Updates**: the Android app only reads a version number, release notes and a download address. Tapping download opens the HTTPS address in the system browser; the app itself downloads and installs no programs.
+- **Multiplayer component**: shipped inside the package and never downloaded. The SHA-256 of both native libraries is recorded in `src/android/easytier/prebuilt.txt` and checked on every build.
+- **Voice mod**: downloaded only from HTTPS addresses on `cdn.modrinth.com`; its SHA-1 must match the one Modrinth lists before it is written to the mods folder of the game folder you granted.
+- **Game folders**: read and written only after you grant them through the system file picker, and only within the granted folder.
+- **Usage statistics**: a random statistics ID (unrelated to the multiplayer and lobby IDs), the app version, the Android version, the processor architecture, the interface language and feature usage counts (start, create a room, join a room, list in the lobby, join from the lobby). The server infers an approximate region from the network source and does not retain IP addresses. App settings › Privacy shows the complete next report and can reset the statistics ID.
+- **Listing in the lobby**: sends the room name, description, tags, host name, player count, game version, world name, whether voice is offered and the invite code. The service hands out the invite code only when another player joins; when a password is set, the service keeps only its hash.
+- **Skin faces**: only the UUID of a premium player is sent to `sessionserver.mojang.com`, and skins are downloaded only from `textures.minecraft.net` and cached on the device for a day.
+- **Features it does not have**: the Android app has no online maps, mod sync or in-game component, and sends or downloads nothing for them.
+- **Builds from source**: a build without a service address never contacts the Campfire service; notices, update checks, usage statistics and the lobby do not appear, and multiplayer with invite codes is unaffected.
 
 ## Limits of exposure
 
@@ -186,6 +223,15 @@ Even if one party were controlled by someone else, the consequences are clearly 
 | Map address limits and unpacking protection | `src/Campfire/Worlds/MapImages.cs`, `MapDownloader.cs`, `WorldImporter.cs` |
 | What the host's mod list and file serving cover | `src/Campfire/Mods/ModHost.cs`, `src/Campfire/Link/Room/RoomServer.cs` |
 | Download address limits and checks for mods | `src/Campfire/Mods/ModrinthLookup.cs`, `CurseForgeLookup.cs`, `ModSync.cs` |
+| Mod update lookup and replacement | `src/Campfire/Mods/ModUpdates.cs` |
+| Files read by the crash analysis | `src/Campfire/Crash/CrashSources.cs` |
 | The in-game Java component | `src/java-agent/src` |
+| Android: service address, updates and notices | `src/android/app/src/main/java/top/mccampfire/app/data/UpdateChecker.kt`, `Notices.kt` |
+| Android: lobby | `src/android/core/src/main/kotlin/top/mccampfire/core/lobby/LobbyClient.kt` |
+| Android: voice mod download | `src/android/app/src/main/java/top/mccampfire/app/game/VoiceMod.kt` |
+| Android: hash check of the multiplayer component | `src/android/easytier/build.gradle.kts` |
+| Android: usage statistics | `src/android/app/src/main/java/top/mccampfire/app/data/Telemetry.kt` |
+| Android: lobby listing | `src/android/app/src/main/java/top/mccampfire/app/lobby/LobbyPublisher.kt` |
+| Android: skin faces | `src/android/app/src/main/java/top/mccampfire/app/link/PlayerHeads.kt` |
 
 Should Campfire behave differently from this document, or should you discover a security issue, please report it in [Issues](https://github.com/Xocio/Campfire/issues).
