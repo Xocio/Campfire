@@ -4,26 +4,38 @@ name: build
 on:
   workflow_dispatch:
     inputs:
-      sign_test:
-        description: "仅测试代码签名：提交 SignPath 签名并上传签名后的文件，不发布 Release"
-        type: boolean
-        default: false
+      target:
+        description: "构建与发布的版本"
+        type: choice
+        options:
+          - Windows
+          - Android
+          - Windows 和 Android
+        default: Windows
       release:
-        description: "同时发布 Release"
+        description: "同时发布 Release：Windows 使用下方版本号，Android 使用 app/build.gradle.kts 中的版本号，标签为 android-v版本号"
         type: boolean
         default: false
       version:
-        description: "Release 版本号（如 v1.0.0），仅在发布 Release 时使用"
+        description: "Windows 版的 Release 版本号（如 v1.0.0），仅在发布 Windows 版时使用"
         type: string
         required: false
       notes:
-        description: "更新日志：多条用 ； 或 | 分隔；也可用 \\n 换行写 Markdown。留空则使用 CHANGELOG.md 中的对应章节"
+        description: "Windows 版更新日志：多条用 ； 或 | 分隔；也可用 \\n 换行写 Markdown。留空则使用 CHANGELOG.md 中的对应章节"
+        type: string
+        required: false
+      android_notes:
+        description: "Android 版更新日志，写法同上。留空则使用 src/android/CHANGELOG.md 中的对应章节"
         type: string
         required: false
       mirror:
         description: "上传到 R2 国内直链并同步下载页，仅在发布 Release 时生效"
         type: boolean
         default: true
+      sign_test:
+        description: "仅测试 Windows 版代码签名：提交 SignPath 签名并上传签名后的文件，不发布 Release"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -31,7 +43,8 @@ permissions:
   actions: write
 
 jobs:
-  build:
+  windows:
+    if: contains(inputs.target, 'Windows')
     runs-on: windows-latest
     env:
       RELEASE: ${{ inputs.release }}
@@ -229,7 +242,7 @@ jobs:
           if ($LASTEXITCODE -eq 0 -and $current) {
             $current = $current | ConvertFrom-Json
             $sha = $current.sha
-            # Keeps the android entry written by android.yml.
+            # Keeps the android entry written by the Android job.
             $old = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($current.content -replace '\s', ''))) | ConvertFrom-Json
             if ($old.android) { $release.android = $old.android }
           }
@@ -247,3 +260,201 @@ jobs:
           # Starts the docs workflow explicitly.
           gh workflow run deploy-docs.yml --ref $env:BRANCH
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  android:
+    # Runs after the Windows job when both are built.
+    needs: windows
+    if: always() && contains(inputs.target, 'Android') && needs.windows.result != 'failure' && needs.windows.result != 'cancelled'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/android
+    env:
+      NOTES: ${{ inputs.android_notes }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # The ZeroUI commit the app is built with.
+      - name: Read ZeroUI commit
+        id: zeroui
+        run: echo "commit=$(tr -d '[:space:]' < zeroui-commit.txt)" >> "$GITHUB_OUTPUT"
+
+      # Checks out ZeroUI at src/android/zeroui; a private ZeroUI needs the ZEROUI_TOKEN secret.
+      - uses: actions/checkout@v4
+        with:
+          repository: Xocio/ZeroUI
+          ref: ${{ steps.zeroui.outputs.commit }}
+          path: src/android/zeroui
+          token: ${{ secrets.ZEROUI_TOKEN || github.token }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Version name of the app, e.g. 0.1.0, and the release tag android-v0.1.0.
+      - name: Read version
+        run: |
+          version=$(sed -n 's/^ *versionName = "\([0-9][0-9.]*\)".*/\1/p' app/build.gradle.kts)
+          if [ -z "$version" ]; then
+            echo "::error::无法从 app/build.gradle.kts 读取 versionName"
+            exit 1
+          fi
+          echo "VERSION=v$version" >> "$GITHUB_ENV"
+          echo "TAG=android-v$version" >> "$GITHUB_ENV"
+
+      # Unit tests, lint, debug build, token check, release builds and size limits.
+      - name: Run merge gates
+        run: bash tools/ci.sh
+
+      - name: Upload debug package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Campfire-android-debug
+          path: src/android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Build official release
+        if: inputs.release
+        env:
+          # Repository variable with the Campfire service address.
+          SERVICE_URL: ${{ vars.SERVICE_URL }}
+        run: |
+          if [ -z "$SERVICE_URL" ]; then
+            echo "::error::发布包所需的服务地址尚未配置"
+            exit 1
+          fi
+          bash ./gradlew :app:assembleRelease "-Pcampfire.serviceUrl=$SERVICE_URL"
+
+      # Signs the release package with the keystore stored as a base64 secret.
+      - name: Sign release
+        if: inputs.release
+        env:
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "::error::签名所需的密钥库配置不完整"
+            exit 1
+          fi
+          build_tools=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)
+          keystore="$RUNNER_TEMP/release.jks"
+          echo "$ANDROID_KEYSTORE" | base64 -d > "$keystore"
+          "$build_tools/apksigner" sign \
+            --ks "$keystore" \
+            --ks-pass env:ANDROID_KEYSTORE_PASSWORD \
+            --ks-key-alias "$ANDROID_KEY_ALIAS" \
+            --key-pass env:ANDROID_KEY_PASSWORD \
+            --out Campfire.apk \
+            app/build/outputs/apk/release/app-release-unsigned.apk
+          rm -f "$keystore"
+          "$build_tools/apksigner" verify --print-certs Campfire.apk
+
+      - name: Upload signed package
+        if: inputs.release
+        uses: actions/upload-artifact@v4
+        with:
+          name: Campfire-android
+          path: src/android/Campfire.apk
+
+      - name: Prepare release notes
+        if: inputs.release
+        run: |
+          notes=$(printf '%s' "$NOTES" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          if [ -z "$notes" ]; then
+            # Takes the "## <version>" section of CHANGELOG.md, up to the next "## " heading.
+            if [ -f CHANGELOG.md ]; then
+              tr -d '\r' < CHANGELOG.md | awk -v head="## $VERSION" '
+                $0 == head { found = 1; next }
+                found && /^## / { exit }
+                found { print }
+              ' | sed -e '/./,$!d' | sed -e ':a' -e '/^\n*$/{$d;N;ba' -e '}' > release-notes.md
+            fi
+            if [ ! -s release-notes.md ]; then
+              echo "::error::没有填写更新日志，src/android/CHANGELOG.md 中也没有 “## $VERSION” 章节"
+              exit 1
+            fi
+          elif printf '%s' "$notes" | grep -qF '\n'; then
+            # Free-form Markdown, "\n" marks a line break.
+            printf '%s\n' "$notes" | sed 's/\\n/\n/g' > release-notes.md
+          else
+            # One bullet per item, separated by "；", ";" or "|".
+            {
+              echo '### 更新内容'
+              echo
+              printf '%s\n' "$notes" | sed 's/；/\n/g;s/[;|]/\n/g' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed '/^$/d;s/^/- /'
+            } > release-notes.md
+          fi
+          hash=$(sha256sum Campfire.apk | cut -d' ' -f1)
+          printf '\n### 文件校验\n\n`Campfire.apk` SHA256：`%s`\n' "$hash" >> release-notes.md
+
+      # Runs before the release is published.
+      - name: Upload to R2
+        if: inputs.release && inputs.mirror
+        env:
+          # API token with R2 "Object Read & Write" on the bucket.
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          DOWNLOAD_URL: ${{ vars.DOWNLOAD_URL }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$R2_BUCKET" ] || [ -z "$DOWNLOAD_URL" ]; then
+            echo "::error::上传 R2 所需的配置不完整"
+            exit 1
+          fi
+          # Every version gets its own folder under android/.
+          npx --yes wrangler@4 r2 object put "$R2_BUCKET/android/$VERSION/Campfire.apk" \
+            --file Campfire.apk --remote \
+            --content-type application/vnd.android.package-archive \
+            --cache-control "public, max-age=31536000, immutable"
+
+      # Not marked as latest: releases/latest stays the desktop release.
+      - name: Publish release
+        if: inputs.release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: Campfire Android ${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          body_path: src/android/release-notes.md
+          make_latest: "false"
+          files: src/android/Campfire.apk
+
+      # Writes the android entry of docs/.vitepress/release.json and keeps the desktop entries.
+      - name: Sync download page
+        if: inputs.release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MIRROR: ${{ inputs.mirror }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          api="repos/$GITHUB_REPOSITORY/contents/docs/.vitepress/release.json"
+          current=$(gh api "$api?ref=$BRANCH" 2>/dev/null || true)
+          sha=$(printf '%s' "$current" | jq -r '.sha // empty' 2>/dev/null || true)
+          if [ -n "$sha" ]; then
+            printf '%s' "$current" | jq -r '.content' | base64 -d > release.json
+          else
+            echo '{}' > release.json
+          fi
+
+          file=""
+          if [ "$MIRROR" = "true" ]; then file="android/$VERSION/Campfire.apk"; fi
+          jq --arg version "$VERSION" --arg tag "$TAG" \
+             --arg date "$(date -u +%Y-%m-%d)" --arg file "$file" \
+             --argjson size "$(stat -c %s Campfire.apk)" \
+             --arg sha256 "$(sha256sum Campfire.apk | cut -d' ' -f1)" \
+             '.android = ({version: $version, tag: $tag, date: $date, size: $size, sha256: $sha256} + (if $file == "" then {} else {file: $file} end))' \
+             release.json > release.new.json
+
+          request=(--method PUT "$api"
+                   -f "message=docs: 安卓版下载页同步至 $VERSION"
+                   -f "content=$(base64 -w0 release.new.json)"
+                   -f "branch=$BRANCH")
+          if [ -n "$sha" ]; then request+=(-f "sha=$sha"); fi
+          gh api "${request[@]}" --jq .commit.html_url
+
+          # Starts the docs workflow explicitly.
+          gh workflow run deploy-docs.yml --ref "$BRANCH"
