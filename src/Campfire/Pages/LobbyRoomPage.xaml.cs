@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -37,11 +38,17 @@ namespace Campfire.Pages
             Unloaded += (sender, e) => Text.LanguageChanged -= OnLanguageChanged;
         }
 
-        /// <summary>Whether a room is open or being set up.</summary>
-        internal Func<bool> IsRoomActive { get; set; }
+        /// <summary>Whether the active room is the lobby room with the given id.</summary>
+        internal Func<string, bool> IsCurrentRoom { get; set; }
+
+        /// <summary>Asks whether to leave the active room for another one; returns <c>true</c> when no room is active.</summary>
+        internal Func<Task<bool>> ConfirmSwitch { get; set; }
 
         /// <summary>Raised when the invite code of the room arrived.</summary>
         internal event EventHandler<LobbyJoinEventArgs> JoinRequested;
+
+        /// <summary>Raised when the picked room is the one already active.</summary>
+        internal event EventHandler CurrentRoomRequested;
 
         /// <summary>Raised when the room turned out to be gone.</summary>
         internal event EventHandler RoomGone;
@@ -87,9 +94,9 @@ namespace Campfire.Pages
             var room = _room;
             if (dialogs == null || room == null || _busy)
                 return;
-            if (IsRoomActive?.Invoke() == true)
+            if (IsCurrentRoom?.Invoke(room.Id) == true)
             {
-                await dialogs.AlertAsync(Text.Get("Lobby.InRoomTitle"), Text.Get("Lobby.InRoom"));
+                CurrentRoomRequested?.Invoke(this, EventArgs.Empty);
                 return;
             }
             string password = TxtPassword.Text.Trim();
@@ -99,6 +106,8 @@ namespace Campfire.Pages
                 TxtPassword.Focus();
                 return;
             }
+            if (ConfirmSwitch != null && !await ConfirmSwitch())
+                return;
 
             _busy = true;
             BtnJoin.IsEnabled = false;

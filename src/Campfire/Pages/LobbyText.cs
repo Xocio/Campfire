@@ -5,7 +5,9 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Media;
+using Campfire.Link;
 using Campfire.Link.Lobby;
 using Campfire.Localization;
 
@@ -31,6 +33,59 @@ namespace Campfire.Pages
         {
             string key = "Lobby.Tag." + id;
             return Text.Has(key) ? Text.Get(key) : null;
+        }
+
+        /// <summary>Fills the panel with one chip per known tag, the chosen ones checked, followed by the limit hint.</summary>
+        public static void FillTagChips(Panel panel, IEnumerable<string> selected)
+        {
+            var chosen = new HashSet<string>(selected.Take(LinkPage.MaxLobbyTags));
+            panel.Children.Clear();
+            foreach (string id in LinkPage.LobbyTagIds)
+            {
+                string name = Tag(id);
+                if (name == null)
+                    continue;
+                var chip = new CheckBox { Content = name, Tag = id, IsChecked = chosen.Contains(id) };
+                chip.SetResourceReference(FrameworkElement.StyleProperty, "PclSegment");
+                chip.Checked += (sender, e) => LimitTagChips(panel);
+                chip.Unchecked += (sender, e) => LimitTagChips(panel);
+                panel.Children.Add(chip);
+            }
+            var hint = new TextBlock
+            {
+                Margin = new Thickness(4, 0, 0, 6),
+                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = 12,
+                Text = Text.Get("Lobby.TagsHint"),
+            };
+            hint.SetResourceReference(TextBlock.ForegroundProperty, "BrushGray5");
+            panel.Children.Add(hint);
+            LimitTagChips(panel);
+        }
+
+        /// <summary>The ids of the checked tag chips in the panel.</summary>
+        public static List<string> CheckedTags(Panel panel)
+        {
+            return panel.Children.OfType<CheckBox>().Where(c => c.IsChecked == true).Select(c => (string)c.Tag).ToList();
+        }
+
+        /// <summary>Stops Enter from starting a line past <see cref="MultilineText.MaxLines"/> in the box.</summary>
+        public static void LimitLines(TextBox box)
+        {
+            box.PreviewKeyDown += (sender, e) =>
+            {
+                if (e.Key == Key.Enter && box.Text.Count(c => c == '\n') >= MultilineText.MaxLines - 1
+                    && box.SelectedText.IndexOf('\n') < 0)
+                    e.Handled = true;
+            };
+        }
+
+        /// <summary>Disables the unchecked chips once the tag limit is reached.</summary>
+        private static void LimitTagChips(Panel panel)
+        {
+            bool full = CheckedTags(panel).Count >= LinkPage.MaxLobbyTags;
+            foreach (var chip in panel.Children.OfType<CheckBox>())
+                chip.IsEnabled = !full || chip.IsChecked == true;
         }
 
         /// <summary>Where the host is, roughly; <c>null</c> when it is private or unknown.</summary>

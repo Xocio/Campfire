@@ -10,7 +10,7 @@
 
 ### 下载
 
-前往[下载页](/download)获取最新版本。中国大陆用户建议使用国内直链；也可以从 [GitHub Releases](https://github.com/Xocio/Campfire/releases/latest) 下载。
+前往[下载页](/download)获取最新版本。中国大陆用户建议使用网盘下载；也可以从 [GitHub Releases](https://github.com/Xocio/Campfire/releases/latest) 下载。
 
 在手机或平板上游玩 Minecraft Java 版时，请使用[Android 版](./android)。
 

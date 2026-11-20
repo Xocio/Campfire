@@ -11,13 +11,13 @@ namespace Campfire.Link.Room
         public RoomInfo(string name, string notice, int maxPlayers)
         {
             Name = Clip(name, MaxName);
-            Notice = Clip(notice, MaxNotice);
+            Notice = MultilineText.Clean(notice, MaxNotice);
             MaxPlayers = maxPlayers >= 2 && maxPlayers <= 100 ? maxPlayers : 0;
         }
 
         public string Name { get; }
 
-        /// <summary>The announcement, or an empty text for none.</summary>
+        /// <summary>The announcement, up to <see cref="MultilineText.MaxLines"/> lines, or an empty text for none.</summary>
         public string Notice { get; }
 
         /// <summary>The most players the room takes, the host included; 0 for no limit.</summary>

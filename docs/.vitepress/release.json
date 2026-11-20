@@ -1,11 +1,10 @@
 {
   "version": "v1.1.32",
   "date": "2026-11-12",
-  "mirror": "https://dl.mccampfire.top/",
   "app": {
-    "file": "v1.1.32/Campfire.exe",
     "size": 3086496,
-    "sha256": "35acc188093bd28bf844d622d9e3c4db86aa8d438929d153b4c118cb9ff46f6e"
+    "sha256": "35acc188093bd28bf844d622d9e3c4db86aa8d438929d153b4c118cb9ff46f6e",
+    "drive": "https://pan.quark.cn/s/d8254db20c2d"
   },
   "android": {
     "version": "v0.1.0",
@@ -13,6 +12,6 @@
     "date": "2026-11-12",
     "size": 35427478,
     "sha256": "4b08c2565aca422f6850e1776d1a80ac5920cf003e201b632d4f8dbd69d258b4",
-    "file": "android/v0.1.0/Campfire.apk"
+    "drive": "https://pan.quark.cn/s/d8254db20c2d"
   }
 }

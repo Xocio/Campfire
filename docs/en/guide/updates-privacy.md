@@ -10,13 +10,15 @@ Official releases fetch the latest version information and notices at startup. T
 
 ### Installing an update
 
-When a new version is found, Campfire shows the release notes and asks first. Once you agree, it:
+When a new version is found, Campfire shows the release notes and offers two ways to update:
 
-1. downloads the update;
-2. verifies its **digital signature**; only files signed with Campfire's release key are accepted;
-3. replaces the program file and restarts.
+- **Update**: opens a cloud drive in the browser; download the new version and replace the program file.
+- **GitHub**: Campfire does the following on its own:
+  1. downloads the update;
+  2. verifies its **digital signature**; only files signed with Campfire's release key are accepted;
+  3. replaces the program file and restarts.
 
-If a room is open, Campfire tells you beforehand that updating will close it. If the program folder is not writable, or the download or verification fails, the current version stays as it is and Campfire opens the download page for a manual update.
+If a room is open, Campfire tells you beforehand that choosing GitHub will close it. If the program folder is not writable, or the download or verification fails, the current version stays as it is and **GitHub** opens the GitHub download page instead; **Update** works as usual.
 
 ### Required updates
 

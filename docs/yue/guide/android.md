@@ -10,7 +10,7 @@ Campfire Android 版令喺手機或平板上玩 Minecraft Java 版嘅玩家都�
 
 ## 下載與安裝
 
-1. 喺[下載頁](/yue/download#android-版)下載 `Campfire.apk`。中國大陸用戶建議使用國內直鏈。
+1. 喺[下載頁](/yue/download#android-版)下載 `Campfire.apk`。中國大陸用戶建議使用網盤下載。
 2. 打開下載咗嘅文件。系統詢問係咪容許安裝未知來源應用時，為瀏覽器或文件管理器開啟該權限，再繼續安裝。
 3. 首次打開時，Campfire 會依次檢查系統版本、通知、後台運行同局域網訪問，並說明每一項嘅用途。
 

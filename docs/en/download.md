@@ -4,11 +4,15 @@
 import rel from '../.vitepress/release.json'
 const GH = 'https://github.com/Xocio/Campfire/releases'
 const app = rel.app || {}
-const mirror = rel.mirror && app.file ? rel.mirror.replace(/\/?$/, '/') + app.file : ''
+const mirror = app.drive || ''
 const android = rel.android || {}
-const androidMirror = rel.mirror && android.file ? rel.mirror.replace(/\/?$/, '/') + android.file : ''
+const androidMirror = android.drive || ''
 const androidGithub = android.tag ? GH + '/tag/' + android.tag : GH
 </script>
+
+::: tip Cloud drive
+Because of the large number of users, the direct download link in China has exceeded its Free plan, so downloads in China are now served from a **cloud drive** that needs no proxy. Files there are named by version and are the same digitally signed files as on GitHub Releases; check them against the SHA-256 below.
+:::
 
 <DownloadRow />
 
@@ -22,7 +26,7 @@ const androidGithub = android.tag ? GH + '/tag/' + android.tag : GH
     <tr>
       <td><code>Campfire.exe</code></td>
       <td>{{ rel.version || '—' }}</td>
-      <td><template v-if="mirror"><a :href="mirror">Mirror</a> · </template><a :href="GH" target="_blank" rel="noopener">GitHub</a></td>
+      <td><template v-if="mirror"><a :href="mirror" target="_blank" rel="noopener">Cloud drive</a> · </template><a :href="GH" target="_blank" rel="noopener">GitHub</a></td>
     </tr>
   </tbody>
 </table>
@@ -35,7 +39,7 @@ const androidGithub = android.tag ? GH + '/tag/' + android.tag : GH
 
 </div>
 
-Both channels serve the same digitally signed file. Download Campfire only from this site or GitHub Releases, never from unknown redistributions. To verify the file, open a terminal in its folder and run
+Both channels serve the same digitally signed file. Download Campfire only from this site, the cloud drive link it gives, or GitHub Releases, never from unknown redistributions. To verify the file, open a terminal in its folder and run
 
 ```powershell
 certutil -hashfile Campfire.exe SHA256
@@ -58,7 +62,7 @@ On Windows 7 and 8, download .NET Framework 4.8 from [Microsoft](https://dotnet.
 
 Campfire is a single executable that runs without installation; keep it in any folder you like. Your data lives in `%LocalAppData%\Campfire`, independent of where the program is, so moving or replacing the executable keeps all settings.
 
-Official releases check for updates at startup. When a new version is found, Campfire asks first, then downloads the update, verifies its digital signature and restarts with the new version. If the program folder is not writable, it opens this page for a manual download instead.
+Official releases check for updates at startup. When a new version is found, there are two ways to update: **Update** opens a cloud drive in the browser, and you replace the program file after downloading; **GitHub** lets Campfire download the update, verify its digital signature and restart with the new version. If the program folder is not writable, **GitHub** opens the GitHub download page instead.
 
 See [Getting Started](/en/guide/getting-started) for the first steps.
 
@@ -76,7 +80,7 @@ See [Getting Started](/en/guide/getting-started) for the first steps.
     <tr>
       <td><code>Campfire.apk</code></td>
       <td>{{ android.version }}</td>
-      <td><template v-if="androidMirror"><a :href="androidMirror">Mirror</a> · </template><a :href="androidGithub" target="_blank" rel="noopener">GitHub</a></td>
+      <td><template v-if="androidMirror"><a :href="androidMirror" target="_blank" rel="noopener">Cloud drive</a> · </template><a :href="androidGithub" target="_blank" rel="noopener">GitHub</a></td>
     </tr>
   </tbody>
 </table>
@@ -101,7 +105,7 @@ The package is signed with Campfire's release certificate. On first install, And
 
 ## Download problems
 
-- **The mirror is slow or interrupted**: retry on another network or use GitHub instead.
+- **The cloud drive is slow or interrupted**: downloads may be throttled without signing in or a membership; sign in and retry, or use GitHub instead.
 - **The browser or Windows warns about an uncommon file**: new releases have few downloads yet and may trigger reputation checks such as SmartScreen. Once the SHA-256 matches, choose Keep or Run anyway.
 - **An antivirus blocks the file**: tools that modify other programs are occasionally flagged by mistake. Campfire is fully open source; review the code or [build it yourself](https://github.com/Xocio/Campfire/blob/main/README.en.md#building-from-source).
 - **It does not start**: make sure .NET Framework 4.8 is installed, and see the [FAQ](/en/guide/faq).

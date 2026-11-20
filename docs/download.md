@@ -4,14 +4,14 @@
 import rel from './.vitepress/release.json'
 const GH = 'https://github.com/Xocio/Campfire/releases'
 const app = rel.app || {}
-const mirror = rel.mirror && app.file ? rel.mirror.replace(/\/?$/, '/') + app.file : ''
+const mirror = app.drive || ''
 const android = rel.android || {}
-const androidMirror = rel.mirror && android.file ? rel.mirror.replace(/\/?$/, '/') + android.file : ''
+const androidMirror = android.drive || ''
 const androidGithub = android.tag ? GH + '/tag/' + android.tag : GH
 </script>
 
-::: tip 国内直链
-本站为中国大陆用户提供**国内直链**，无需代理即可高速下载。直链与 GitHub Releases 分发的是同一份经过数字签名的文件，可使用下方的 SHA-256 自行核对。
+::: tip 网盘下载
+由于用户基数较大，国内直链的用量已超出 Free 计划，现改为通过**网盘**下载，中国大陆用户无需代理。网盘中的文件以版本号命名，与 GitHub Releases 分发的是同一份经过数字签名的文件，可使用下方的 SHA-256 自行核对。
 :::
 
 <DownloadRow />
@@ -26,7 +26,7 @@ const androidGithub = android.tag ? GH + '/tag/' + android.tag : GH
     <tr>
       <td><code>Campfire.exe</code></td>
       <td>{{ rel.version || '—' }}</td>
-      <td><template v-if="mirror"><a :href="mirror">国内直链</a> · </template><a :href="GH" target="_blank" rel="noopener">GitHub</a></td>
+      <td><template v-if="mirror"><a :href="mirror" target="_blank" rel="noopener">网盘</a> · </template><a :href="GH" target="_blank" rel="noopener">GitHub</a></td>
     </tr>
   </tbody>
 </table>
@@ -39,7 +39,7 @@ const androidGithub = android.tag ? GH + '/tag/' + android.tag : GH
 
 </div>
 
-请仅从本站或 GitHub Releases 获取 Campfire，切勿使用来源不明的二次分发版本。核对方法：在文件所在目录打开终端，执行
+请仅从本站、本站给出的网盘链接或 GitHub Releases 获取 Campfire，切勿使用来源不明的二次分发版本。核对方法：在文件所在目录打开终端，执行
 
 ```powershell
 certutil -hashfile Campfire.exe SHA256
@@ -62,7 +62,7 @@ Windows 7 与 8 如尚未安装 .NET Framework 4.8，请从[微软官方网站](
 
 Campfire 是免安装的单文件程序，下载后可直接运行，也可以放在任意文件夹中长期使用。个人数据保存在 `%LocalAppData%\Campfire`，与程序所在位置无关，移动或替换程序文件不会丢失设置。
 
-正式版在启动时检查更新。发现新版本后，Campfire 会先征求同意，再下载更新包并校验其数字签名，校验通过后自动替换并重新启动。若程序位于不可写入的文件夹，将改为打开本页供手动下载。
+正式版在启动时检查更新。发现新版本后可以选择两种方式：**通用更新**在浏览器中打开网盘，下载后替换程序文件；**GitHub** 由 Campfire 下载更新包并校验其数字签名，校验通过后自动替换并重新启动。若程序位于不可写入的文件夹，**GitHub** 将改为打开 GitHub 下载页面。
 
 完整的首次使用说明见[安装与上手](/guide/getting-started)。
 
@@ -80,7 +80,7 @@ Campfire 是免安装的单文件程序，下载后可直接运行，也可以�
     <tr>
       <td><code>Campfire.apk</code></td>
       <td>{{ android.version }}</td>
-      <td><template v-if="androidMirror"><a :href="androidMirror">国内直链</a> · </template><a :href="androidGithub" target="_blank" rel="noopener">GitHub</a></td>
+      <td><template v-if="androidMirror"><a :href="androidMirror" target="_blank" rel="noopener">网盘</a> · </template><a :href="androidGithub" target="_blank" rel="noopener">GitHub</a></td>
     </tr>
   </tbody>
 </table>
@@ -105,7 +105,7 @@ Campfire 是免安装的单文件程序，下载后可直接运行，也可以�
 
 ## 下载遇到问题
 
-- **直链下载缓慢或中断**：更换网络后重试，或改用 GitHub 渠道。
+- **网盘下载缓慢或中断**：未登录或非会员时网盘可能限速，可登录后重试，或改用 GitHub 渠道。
 - **浏览器或系统提示文件不常见**：新发布的版本下载量尚少，可能触发 SmartScreen 等信誉提示。核对 SHA-256 一致后，选择“保留”或“仍要运行”即可。
 - **杀毒软件拦截**：修改其他程序文件的工具偶尔会被误判。Campfire 完全开源，可审阅源代码或[自行构建](https://github.com/Xocio/Campfire#从源码构建)。
 - **无法启动**：请确认系统已安装 .NET Framework 4.8，其他问题见[常见问题](/guide/faq)。

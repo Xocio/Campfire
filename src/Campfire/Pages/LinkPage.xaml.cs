@@ -61,6 +61,7 @@ namespace Campfire.Pages
 
         /// <summary>The picture the room is listed with, and the one of the world being played, if found.</summary>
         private byte[] _lobbyIcon;
+        private bool _lobbyIconRemoved;
         private byte[] _mapIcon;
 
         /// <summary>The lobby room being joined, and the rooms already reported.</summary>
@@ -93,6 +94,7 @@ namespace Campfire.Pages
         public LinkPage()
         {
             InitializeComponent();
+            LobbyText.LimitLines(TxtLobbyDescription);
             Motion.SetCardScroll(ScrollHost, true);
             Motion.SetCardScroll(ScrollGuest, true);
             SizeChanged += (sender, e) => FitRoomScroll();
@@ -225,16 +227,54 @@ namespace Campfire.Pages
         // ======================== Entry ========================
         // The window opens this page once one of these returns true.
 
+        /// <summary>Whether the active room is the one behind <paramref name="code"/> or the lobby room <paramref name="lobbyRoomId"/>.</summary>
+        internal bool IsCurrentRoom(RoomCode code, string lobbyRoomId = null)
+        {
+            if (!_session.IsActive)
+                return false;
+            if (code != null && _session.Code?.Code == code.Code)
+                return true;
+            if (lobbyRoomId == null)
+                return false;
+            return _session.Role == LinkRole.Host ? _session.Lobby?.RoomId == lobbyRoomId : _lobbyRoomId == lobbyRoomId;
+        }
+
+        /// <summary>Asks whether to leave or close the active room for another one; returns <c>true</c> when no room is active.</summary>
+        internal async Task<bool> ConfirmSwitchAsync()
+        {
+            if (!_session.IsActive)
+                return true;
+            var dialogs = Dialogs.Of(this);
+            if (dialogs == null)
+                return false;
+            bool host = _session.Role == LinkRole.Host;
+            return await dialogs.ConfirmAsync(Text.Get("Link.SwitchTitle"),
+                Text.Get(host ? "Link.SwitchCloseMessage" : "Link.SwitchLeaveMessage"),
+                Text.Get(host ? "Link.SwitchClose" : "Link.SwitchLeave"));
+        }
+
+        /// <summary>Ends the active room before another one starts.</summary>
+        private void StopForSwitch()
+        {
+            if (!_session.IsActive)
+                return;
+            LinkLog.Info("Room replaced by another one.");
+            _session.Stop();
+        }
+
         /// <summary>
         /// Starts opening a room, reusing the invite code of an earlier one when <paramref name="code"/> is given.
         /// Returns whether the page has something to show: the new room, or the one already active.
         /// </summary>
-        internal async Task<bool> CreateAsync(RoomCode code = null)
+        /// <param name="replace">Whether an active room is ended first instead of being shown.</param>
+        internal async Task<bool> CreateAsync(RoomCode code = null, bool replace = false)
         {
-            if (_session.IsActive)
+            if (_session.IsActive && !replace)
                 return true;
             if (_preparing || !await PrepareAsync())
                 return false;
+            if (replace)
+                StopForSwitch();
             _enteringCode = false;
             _lastRole = LinkRole.Host;
             _lastManualPort = null;
@@ -269,12 +309,15 @@ namespace Campfire.Pages
 
         /// <summary>Joins <paramref name="code"/> right away. Returns whether the page has something to show.</summary>
         /// <param name="lobbyRoomId">The lobby room the code came from, or <c>null</c>.</param>
-        internal async Task<bool> JoinAsync(RoomCode code, string lobbyRoomId = null)
+        /// <param name="replace">Whether an active room is ended first instead of being shown.</param>
+        internal async Task<bool> JoinAsync(RoomCode code, string lobbyRoomId = null, bool replace = false)
         {
-            if (_session.IsActive)
+            if (_session.IsActive && !replace)
                 return true;
             if (_preparing || !await PrepareAsync())
                 return false;
+            if (replace)
+                StopForSwitch();
             TxtCode.Text = code.Code;
             _lobbyRoomId = lobbyRoomId;
             StartJoin(code);
@@ -1302,7 +1345,9 @@ namespace Campfire.Pages
             // The password is not kept.
             TxtLobbyDescription.Text = LinkSettings.LobbyDescription;
             TxtLobbyPassword.Text = "";
-            _lobbyIcon = null;
+            var iconChoice = LinkSettings.LobbyIconChoice;
+            _lobbyIcon = iconChoice == LobbyIconChoice.Custom ? LinkSettings.LobbyIcon : null;
+            _lobbyIconRemoved = iconChoice == LobbyIconChoice.None;
             _mapIcon = null;
             RenderLobbyIcon();
             FillLobbyTags(LinkSettings.LobbyTags);
@@ -1331,7 +1376,7 @@ namespace Campfire.Pages
             if (!_publishOpen || _session.MinecraftPort != port)
                 return;
             _mapIcon = mapIcon;
-            if (_lobbyIcon == null)
+            if (_lobbyIcon == null && !_lobbyIconRemoved)
                 _lobbyIcon = mapIcon;
             RenderLobbyIcon();
         }
@@ -1374,19 +1419,40 @@ namespace Campfire.Pages
                 return;
             }
             _lobbyIcon = icon;
+            _lobbyIconRemoved = false;
             RenderLobbyIcon();
         }
 
         private void BtnLobbyIconMap_Click(object sender, RoutedEventArgs e)
         {
             _lobbyIcon = _mapIcon;
+            _lobbyIconRemoved = false;
             RenderLobbyIcon();
         }
 
         private void BtnLobbyIconRemove_Click(object sender, RoutedEventArgs e)
         {
             _lobbyIcon = null;
+            _lobbyIconRemoved = true;
             RenderLobbyIcon();
+        }
+
+        /// <summary>Keeps the picture choice of the form for the next listing.</summary>
+        private void SaveLobbyIconChoice()
+        {
+            if (_lobbyIconRemoved)
+            {
+                LinkSettings.LobbyIconChoice = LobbyIconChoice.None;
+            }
+            else if (_lobbyIcon != null && _lobbyIcon != _mapIcon)
+            {
+                LinkSettings.LobbyIconChoice = LobbyIconChoice.Custom;
+                LinkSettings.LobbyIcon = _lobbyIcon;
+            }
+            else
+            {
+                LinkSettings.LobbyIconChoice = LobbyIconChoice.Map;
+            }
         }
 
         private void RenderWorldStatus()
@@ -1404,37 +1470,12 @@ namespace Campfire.Pages
 
         private void FillLobbyTags(IEnumerable<string> selected)
         {
-            var chosen = new HashSet<string>(selected.Take(MaxLobbyTags));
-            PanLobbyTags.Children.Clear();
-            foreach (string id in LobbyTagIds)
-            {
-                string name = LobbyText.Tag(id);
-                if (name == null)
-                    continue;
-                var chip = new CheckBox { Style = (Style)FindResource("PclSegment"), Content = name, Tag = id, IsChecked = chosen.Contains(id) };
-                chip.Checked += LobbyTag_Checked;
-                PanLobbyTags.Children.Add(chip);
-            }
-            var hint = new TextBlock
-            {
-                Margin = new Thickness(4, 0, 0, 6),
-                VerticalAlignment = VerticalAlignment.Center,
-                FontSize = 12,
-                Text = Text.Get("Lobby.TagsHint"),
-            };
-            hint.SetResourceReference(TextBlock.ForegroundProperty, "BrushGray5");
-            PanLobbyTags.Children.Add(hint);
+            LobbyText.FillTagChips(PanLobbyTags, selected);
         }
 
         private List<string> SelectedLobbyTags()
         {
-            return PanLobbyTags.Children.OfType<CheckBox>().Where(c => c.IsChecked == true).Select(c => (string)c.Tag).ToList();
-        }
-
-        private void LobbyTag_Checked(object sender, RoutedEventArgs e)
-        {
-            if (SelectedLobbyTags().Count > MaxLobbyTags)
-                ((CheckBox)sender).IsChecked = false;
+            return LobbyText.CheckedTags(PanLobbyTags);
         }
 
         private void TxtLobbyTitle_KeyDown(object sender, KeyEventArgs e)
@@ -1474,7 +1515,7 @@ namespace Campfire.Pages
                 Tags = tags,
                 MaxPlayers = LinkSettings.MaxPlayers > 0 ? LinkSettings.MaxPlayers : status?.MaxPlayers ?? 0,
                 ShowRegion = ChkLobbyRegion.IsChecked == true,
-                Description = TxtLobbyDescription.Text.Trim(),
+                Description = MultilineText.Clean(TxtLobbyDescription.Text),
                 Password = TxtLobbyPassword.Text.Trim(),
                 Icon = _lobbyIcon,
                 Voice = _session.Voice == HostVoiceState.Ready,
@@ -1483,6 +1524,7 @@ namespace Campfire.Pages
             LinkSettings.LobbyDescription = listing.Description;
             LinkSettings.LobbyTags = tags;
             LinkSettings.LobbyShowRegion = listing.ShowRegion;
+            SaveLobbyIconChoice();
 
             SetPublishing(true);
             try

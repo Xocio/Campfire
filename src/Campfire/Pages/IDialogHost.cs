@@ -33,6 +33,9 @@ namespace Campfire.Pages
         /// <summary>Second button; <c>null</c> shows only the primary button.</summary>
         public string SecondaryText { get; set; }
 
+        /// <summary>Focuses the primary button instead of the second one.</summary>
+        public bool FocusPrimary { get; set; }
+
         /// <summary>Shows the title in red.</summary>
         public bool IsError { get; set; }
 

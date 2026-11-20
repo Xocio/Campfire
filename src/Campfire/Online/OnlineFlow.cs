@@ -22,6 +22,9 @@ namespace Campfire.Online
     internal sealed class OnlineFlow
     {
         private const string ReleasesUrl = "https://github.com/Xocio/Campfire/releases/latest";
+
+        /// <summary>Share page of the domestic download folder.</summary>
+        private const string DomesticUrl = "https://pan.quark.cn/s/d8254db20c2d";
         private const int MaxNotesLength = 1500;
 
         private readonly IDialogHost _host;
@@ -95,7 +98,7 @@ namespace Campfire.Online
                 result = CheckResult.UpdateAvailable;
                 bool required = Updater.IsRequired(manifest);
                 if (required || manual || (_postponed != manifest.Update.Version && !_isRoomActive()))
-                    await OfferUpdateAsync(manifest.Update, required, manual);
+                    await OfferUpdateAsync(manifest.Update, required);
             }
             await ShowNoticesAsync(manifest);
             return result;
@@ -103,41 +106,42 @@ namespace Campfire.Online
 
         // ======================== Update ========================
 
-        private async Task OfferUpdateAsync(UpdateInfo update, bool required, bool manual)
+        private async Task OfferUpdateAsync(UpdateInfo update, bool required)
         {
             if (_offering)
                 return;
             _offering = true;
             try
             {
-                // The file is downloaded first; a required update only blocks once a correctly signed file exists.
+                // The GitHub file is downloaded first; the domestic button opens the share page in the browser.
                 string staged = await Updater.DownloadAsync(update);
-                if (staged == null)
-                {
-                    if (manual || required)
-                        await DownloadFailedAsync();
-                    return;
-                }
+                bool canInstall = staged != null && Updater.CanInstall();
+                string detail = staged == null ? "Update.DownloadFailed"
+                    : !canInstall ? "Update.NoPermission"
+                    : _isRoomActive() ? "Update.RestartRoom" : null;
 
-                if (!Updater.CanInstall())
-                {
-                    await OfferDownloadPageAsync(update, required);
-                    return;
-                }
-
-                string version = update.Version.ToString(3);
                 var choice = await _host.ShowDialogAsync(new DialogRequest
                 {
-                    Title = Text.Format(required ? "Update.RequiredTitle" : "Update.Title", version),
+                    Title = Text.Format(required ? "Update.RequiredTitle" : "Update.Title", update.Version.ToString(3)),
                     Message = CleanNotes(update.Notes),
-                    Detail = Text.Get(_isRoomActive() ? "Update.RestartRoom" : "Update.Restart"),
-                    PrimaryText = Text.Get("Update.Install"),
-                    SecondaryText = Text.Get(required ? "Update.Exit" : "Update.Later"),
+                    Detail = detail == null ? null : Text.Get(detail),
+                    PrimaryText = Text.Get("Update.Domestic"),
+                    SecondaryText = Text.Get("Update.GitHub"),
+                    LinkText = Text.Get(required ? "Update.Exit" : "Update.Later"),
+                    LinkCloses = true,
+                    FocusPrimary = true,
+                    IsError = staged == null,
                 });
 
-                if (choice != DialogChoice.Primary)
+                if (choice == DialogChoice.Primary)
+                    OpenUrl(DomesticUrl);
+                else if (choice == DialogChoice.Secondary && !canInstall)
+                    OpenUrl(ReleasesUrl);
+
+                if (choice != DialogChoice.Secondary || !canInstall)
                 {
-                    if (required)
+                    // A required update closes Campfire only once a correctly signed file exists.
+                    if (required && staged != null)
                         _exit(null);
                     else
                         _postponed = update.Version;
@@ -152,7 +156,7 @@ namespace Campfire.Online
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
                 {
                     await _host.ErrorAsync(Text.Get("Update.InstallFailedTitle"), Text.Format("Update.InstallFailed", ex.Message));
-                    OpenUrl(ReleasesUrl);
+                    OpenUrl(DomesticUrl);
                     if (required)
                         _exit(null);
                     return;
@@ -164,40 +168,6 @@ namespace Campfire.Online
             {
                 _offering = false;
             }
-        }
-
-        /// <summary>Offers the download page for a Campfire that cannot replace its own file.</summary>
-        private async Task OfferDownloadPageAsync(UpdateInfo update, bool required)
-        {
-            var choice = await _host.ShowDialogAsync(new DialogRequest
-            {
-                Title = Text.Format(required ? "Update.RequiredTitle" : "Update.Title", update.Version.ToString(3)),
-                Message = CleanNotes(update.Notes),
-                Detail = Text.Get("Update.NoPermission"),
-                PrimaryText = Text.Get("Update.OpenPage"),
-                SecondaryText = Text.Get(required ? "Update.Exit" : "Update.Later"),
-            });
-            if (choice == DialogChoice.Primary)
-                OpenUrl(ReleasesUrl);
-            else
-                _postponed = update.Version;
-            if (required)
-                _exit(null);
-        }
-
-        /// <summary>No source delivered a correctly signed file; Campfire keeps running, even for a required update.</summary>
-        private async Task DownloadFailedAsync()
-        {
-            var choice = await _host.ShowDialogAsync(new DialogRequest
-            {
-                Title = Text.Get("Update.DownloadFailedTitle"),
-                Message = Text.Get("Update.DownloadFailed"),
-                PrimaryText = Text.Get("Update.OpenPage"),
-                SecondaryText = Text.Get("Dialog.Close"),
-                IsError = true,
-            });
-            if (choice == DialogChoice.Primary)
-                OpenUrl(ReleasesUrl);
         }
 
         /// <summary>Release notes are Markdown; the dialog shows plain text, without the checksum section.</summary>

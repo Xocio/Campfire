@@ -4,7 +4,7 @@ import { useData } from 'vitepress'
 import rel from '../../release.json'
 
 /**
- * 下载区：主按钮指向国内直链；尚未同步直链时改为 GitHub Releases。
+ * 下载区：主按钮指向网盘分享页；没有分享链接时改为 GitHub Releases。
  * android 为真时显示 Android 版，数据来自 release.json 的 android 字段，没有该字段时显示“即将发布”。
  */
 
@@ -24,12 +24,10 @@ const yue = computed(() => lang.value.startsWith('yue'))
 const entry = computed<Record<string, any> | null>(() =>
   props.android
     ? release.android ?? null
-    : { version: release.version, date: release.date, file: release.app?.file }
+    : { version: release.version, date: release.date, drive: release.app?.drive }
 )
 
-const mirrorUrl = computed(() =>
-  release.mirror && entry.value?.file ? release.mirror.replace(/\/?$/, '/') + entry.value.file : ''
-)
+const mirrorUrl = computed(() => entry.value?.drive ?? '')
 
 const githubUrl = computed(() =>
   props.android && entry.value?.tag ? GH_TAG + entry.value.tag : GH_LATEST
@@ -116,7 +114,7 @@ const soon = computed(() => (yue.value || hant.value ? '即將發布' : en.value
       <span v-if="entry?.version" class="dl-ver">{{ entry.version }}<template v-if="entry.date"> · {{ entry.date }}</template></span>
     </div>
 
-    <a v-if="entry" class="dl-btn" :href="mirrorUrl || githubUrl" :target="mirrorUrl ? undefined : '_blank'">
+    <a v-if="entry" class="dl-btn" :href="mirrorUrl || githubUrl" target="_blank" rel="noopener">
       {{ t.main }}
     </a>
     <span v-else class="dl-btn is-off">{{ soon }}</span>

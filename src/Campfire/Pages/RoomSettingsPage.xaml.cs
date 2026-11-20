@@ -24,6 +24,8 @@ namespace Campfire.Pages
         {
             InitializeComponent();
             Motion.SetCardScroll(ScrollRoom, true);
+            LobbyText.LimitLines(TxtNotice);
+            LobbyText.LimitLines(TxtDescription);
             _savedTimer.Tick += (sender, e) =>
             {
                 _savedTimer.Stop();
@@ -32,6 +34,7 @@ namespace Campfire.Pages
             Text.LanguageChanged += (sender, e) =>
             {
                 FillLimits(SelectedLimit());
+                FillTags(SelectedTags());
                 FillPresets(SelectedPreset()?.Name);
                 RenderNote();
             };
@@ -86,26 +89,12 @@ namespace Campfire.Pages
 
         private void FillTags(IEnumerable<string> selected)
         {
-            var chosen = new HashSet<string>(selected.Take(LinkPage.MaxLobbyTags));
-            PanTags.Children.Clear();
-            foreach (string id in LinkPage.LobbyTagIds)
-            {
-                string name = LobbyText.Tag(id);
-                if (name == null)
-                    continue;
-                var chip = new CheckBox { Style = (Style)FindResource("PclSegment"), Content = name, Tag = id, IsChecked = chosen.Contains(id) };
-                chip.Checked += (sender, e) =>
-                {
-                    if (SelectedTags().Count > LinkPage.MaxLobbyTags)
-                        ((CheckBox)sender).IsChecked = false;
-                };
-                PanTags.Children.Add(chip);
-            }
+            LobbyText.FillTagChips(PanTags, selected);
         }
 
         private List<string> SelectedTags()
         {
-            return PanTags.Children.OfType<CheckBox>().Where(c => c.IsChecked == true).Select(c => (string)c.Tag).ToList();
+            return LobbyText.CheckedTags(PanTags);
         }
 
         private async void BtnSave_Click(object sender, RoutedEventArgs e)
@@ -264,7 +253,7 @@ namespace Campfire.Pages
             bool voice = LinkSettings.Voice;
             bool mods = IsHosting ? _session.ModSyncAllowed : LinkSettings.ShareMods;
             bool allowlist = IsHosting ? _session.AllowlistOnly : LinkSettings.AllowlistOnly;
-            RoomPresets.Save(new RoomPreset(name, title, SelectedLimit(), TxtNotice.Text.Trim(), TxtDescription.Text.Trim(), SelectedTags(),
+            RoomPresets.Save(new RoomPreset(name, title, SelectedLimit(), MultilineText.Clean(TxtNotice.Text), MultilineText.Clean(TxtDescription.Text), SelectedTags(),
                 ChkRegion.IsChecked == true, voice, mods, allowlist));
             FillPresets(name);
             ShowSaved(Text.Format("Presets.Saved", name));

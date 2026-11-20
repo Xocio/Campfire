@@ -10,7 +10,7 @@
 
 ### 下載
 
-前往[下載頁](/yue/download)獲取最新版本。中國大陸用戶建議使用國內直鏈；亦可以從 [GitHub Releases](https://github.com/Xocio/Campfire/releases/latest) 下載。
+前往[下載頁](/yue/download)獲取最新版本。中國大陸用戶建議使用網盤下載；亦可以從 [GitHub Releases](https://github.com/Xocio/Campfire/releases/latest) 下載。
 
 喺手機或平板上玩 Minecraft Java 版時，請使用[Android 版](./android)。
 

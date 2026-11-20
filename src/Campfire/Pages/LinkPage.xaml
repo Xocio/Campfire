@@ -514,8 +514,8 @@
                             </StackPanel>
                         </Grid>
                         <TextBlock Grid.Row="2" Margin="0,12,0,0" VerticalAlignment="Top" Padding="0,6,0,0" Text="{loc:Text Lobby.Description}" />
-                        <TextBox x:Name="TxtLobbyDescription" Grid.Row="2" Grid.Column="1" Margin="14,12,0,0" Height="56" MaxLength="100"
-                                 TextWrapping="Wrap" AcceptsReturn="False" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"
+                        <TextBox x:Name="TxtLobbyDescription" Grid.Row="2" Grid.Column="1" Margin="14,12,0,0" Height="76" MaxLength="100"
+                                 TextWrapping="Wrap" AcceptsReturn="True" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"
                                  Style="{StaticResource PclTextBox}" Tag="{loc:Text Lobby.DescriptionHint}" />
 
 

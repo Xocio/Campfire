@@ -53,6 +53,9 @@ namespace Campfire.Link.Lobby
         /// <summary>What the room is listed with.</summary>
         public LobbyListing Listing => _listing;
 
+        /// <summary>The id of the listing, or <c>null</c> before the room is listed.</summary>
+        public string RoomId => _ticket?.Id;
+
         /// <summary>The title as it is listed.</summary>
         public string Title => _ticket?.Title ?? _listing.Title;
 

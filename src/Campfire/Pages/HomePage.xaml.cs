@@ -69,8 +69,18 @@ namespace Campfire.Pages
                 return;
             PanStart.Visibility = active ? Visibility.Collapsed : Visibility.Visible;
             PanRoom.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
+            RenderMore(active);
             if (IsVisible)
                 Motion.Pop(active ? PanRoom : (FrameworkElement)PanStart, 0.94);
+        }
+
+        /// <summary>Shows the small lobby tile next to the recent rooms and settings while a room is active.</summary>
+        private void RenderMore(bool inRoom)
+        {
+            bool lobby = inRoom && Link.Lobby.LobbyClient.IsAvailable;
+            TileLobbySmall.Visibility = lobby ? Visibility.Visible : Visibility.Collapsed;
+            PanMore.ColumnDefinitions[0].Width = lobby ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+            PanMore.ColumnDefinitions[1].Width = new GridLength(lobby ? 10 : 0);
         }
 
         /// <summary>Offers to join <paramref name="code"/>; <c>null</c> hides the offer.</summary>

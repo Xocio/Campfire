@@ -368,7 +368,7 @@ namespace Campfire.Link.Minecraft
             get => _notice;
             set
             {
-                _notice = (value ?? "").Replace('\r', ' ').Replace('\n', ' ');
+                _notice = MultilineText.Flatten(value);
                 Write();
             }
         }

@@ -62,20 +62,24 @@ namespace Campfire
                 OpenSubPage(PageRoomSettings, "Page.RoomSettings");
                 PageRoomSettings.Show(PageLink.Session);
             };
-            PageRecent.IsRoomActive = () => PageLink.IsRoomActive;
+            PageRecent.IsCurrentRoom = code => PageLink.IsCurrentRoom(code);
+            PageRecent.ConfirmSwitch = PageLink.ConfirmSwitchAsync;
+            PageRecent.CurrentRoomRequested += (sender, e) => OpenLinkPage();
             PageRecent.JoinRequested += async (sender, code) =>
             {
-                if (await PageLink.JoinAsync(code))
+                if (await PageLink.JoinAsync(code, null, true))
                     OpenLinkPage();
             };
             PageRecent.HostRequested += async (sender, code) =>
             {
-                if (await PageLink.CreateAsync(code))
+                if (await PageLink.CreateAsync(code, true))
                     OpenLinkPage();
             };
             PageLobby.RoomRequested += PageLobby_RoomRequested;
             PageLobby.CreateRequested += PageHome_CreateRequested;
-            PageLobbyRoom.IsRoomActive = () => PageLink.IsRoomActive;
+            PageLobbyRoom.IsCurrentRoom = id => PageLink.IsCurrentRoom(null, id);
+            PageLobbyRoom.ConfirmSwitch = PageLink.ConfirmSwitchAsync;
+            PageLobbyRoom.CurrentRoomRequested += (sender, e) => OpenLinkPage();
             PageLobbyRoom.JoinRequested += PageLobby_JoinRequested;
             PageLobbyRoom.RoomGone += (sender, e) => PageLobby.Invalidate();
             PageLink.LauncherDirectories = LauncherDirectories;
@@ -162,7 +166,7 @@ namespace Campfire
             var steps = new List<TourStep>
             {
                 new TourStep { TitleKey = "Tour.1.Title", BodyKey = "Tour.1.Body", Target = () => LogoTitle, Padding = 7, Round = true, Enter = () => ShowTab(TabHome) },
-                new TourStep { TitleKey = "Tour.2.Title", BodyKey = "Tour.2.Body", Target = () => PageHome.PanStart, Padding = 8, Enter = () => ShowTab(TabHome) },
+                new TourStep { TitleKey = "Tour.2.Title", BodyKey = "Tour.2.Body", Target = () => PageHome.PanLink, Padding = 8, Enter = () => ShowTab(TabHome) },
                 new TourStep { TitleKey = "Tour.3.Title", BodyKey = "Tour.3.Body", Target = () => PageHome.CardGuide, Padding = 6, Enter = () => ShowTab(TabHome) },
                 new TourStep { TitleKey = "Tour.Maps.Title", BodyKey = "Tour.Maps.Body", Target = () => TabMaps, Padding = 5, Round = true, Enter = () => ShowTab(TabMaps) },
                 new TourStep { TitleKey = "Tour.4.Title", BodyKey = "Tour.4.Body", Target = () => TabTools, Padding = 5, Round = true, Enter = () => ShowTab(TabTools) },
@@ -235,31 +239,75 @@ namespace Campfire
         {
             if (_subPages.Count == 0)
                 return;
-            if (_subPages.Pop().Page == PageLink)
+            bool fromRoom = _subPages.Pop().Page == PageLink;
+            if (fromRoom)
                 PageLink.Dismiss();
             if (_subPages.Count > 0)
             {
                 var previous = _subPages.Peek();
                 Motion.ChangeTitle(LabTitleSub, Text.Get(previous.TitleKey), -1);
-                ShowPage(previous.Page, -1);
+                ShowPage(previous.Page, -1, fromRoom);
                 return;
             }
 
             Motion.LeaveTitle(PanTitleSub, -1);
             Motion.EnterTitle(PanTitleMain, -1);
             Motion.EnterTitle(PanTabs, -1);
-            ShowPage(_tabPage, -1);
+            ShowPage(_tabPage, -1, fromRoom);
         }
 
-        private void ShowPage(FrameworkElement page, int direction)
+        /// <param name="intoBubble">Whether the page being left shrinks into the room bubble when the bubble appears.</param>
+        private void ShowPage(FrameworkElement page, int direction, bool intoBubble = false)
         {
             if (page == _shownPage)
                 return;
 
-            Motion.LeavePage(_shownPage, direction);
+            var leaving = _shownPage;
+            var picture = intoBubble && Motion.Enabled && !Bubble.IsShown && WantsRoomBubble(page) ? RoomBubble.Capture(leaving) : null;
+            Motion.LeavePage(leaving, direction, picture == null);
             _shownPage = page;
             Motion.EnterPage(page, direction);
+            UpdateRoomBubble(picture);
             CheckClipboardForCode();
+        }
+
+        // ======================== Room bubble ========================
+
+        /// <summary>Whether the room bubble belongs over <paramref name="page"/>: a room is active and neither the room nor Home is shown.</summary>
+        private bool WantsRoomBubble(FrameworkElement page)
+        {
+            return PageLink.IsRoomActive && page != PageLink && page != PageHome && !_subPages.Any(p => p.Page == PageLink);
+        }
+
+        /// <summary>Shows, fills in or hides the room bubble; <paramref name="from"/> is a picture of the room page that shrinks into it.</summary>
+        private void UpdateRoomBubble(ImageSource from = null)
+        {
+            if (Bubble == null || _shownPage == null)
+                return;
+            bool wanted = WantsRoomBubble(_shownPage);
+            if (wanted)
+            {
+                if (PageLink.Stage == LinkStage.Ready)
+                {
+                    string name = PageLink.Role == LinkRole.Host ? LinkSettings.RoomName : PageLink.Session.HostRoom?.Name;
+                    var latency = PageLink.HostLatency;
+                    string detail = PageLink.Role != LinkRole.Host && latency != null
+                        ? Text.Format("Link.Game.ListStatusLatency", PageLink.PlayerCount, LinkSession.FormatLatency(latency.Value))
+                        : Text.Format("Link.Game.ListStatus", PageLink.PlayerCount);
+                    Bubble.SetRoom(string.IsNullOrEmpty(name) ? Text.Get("Home.Status.Joined") : name, detail, "BrushGreen");
+                }
+                else
+                {
+                    Bubble.SetRoom(Text.Get("Home.Status.Working"), PageLink.ActiveStep.Title, "Brush3");
+                }
+            }
+            Bubble.SetShown(wanted, from);
+        }
+
+        private void Bubble_Opened(object sender, EventArgs e)
+        {
+            if (PageLink.IsRoomActive)
+                OpenLinkPage();
         }
 
         private void BtnBack_Click(object sender, RoutedEventArgs e)
@@ -400,10 +448,10 @@ namespace Campfire
             PageLobbyRoom.Show(room);
         }
 
-        /// <summary>A room was picked in the lobby: the multiplayer page joins it, and going back returns to the room.</summary>
+        /// <summary>A room was picked in the lobby: the multiplayer page joins it, ending the active room, and going back returns to the room.</summary>
         private async void PageLobby_JoinRequested(object sender, Pages.LobbyJoinEventArgs e)
         {
-            if (await PageLink.JoinAsync(e.Code, e.RoomId))
+            if (await PageLink.JoinAsync(e.Code, e.RoomId, true))
                 OpenLinkPage();
         }
 
@@ -536,6 +584,7 @@ namespace Campfire
             }
             if (PageLink.IsRoomActive)
                 PageHome.SetQuickJoin(null);
+            UpdateRoomBubble();
             UpdateTray();
             AnnounceRoomChanges();
         }
@@ -910,7 +959,7 @@ namespace Campfire
             if (request.InputHint != null)
                 TxtDialogInput.Focus();
             else
-                (request.SecondaryText == null ? BtnDialogConfirm : BtnDialogCancel).Focus();
+                (request.SecondaryText == null || request.FocusPrimary ? BtnDialogConfirm : BtnDialogCancel).Focus();
             return await _dialog.Task;
         }
 

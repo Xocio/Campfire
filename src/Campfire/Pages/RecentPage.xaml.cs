@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -30,14 +31,20 @@ namespace Campfire.Pages
             Render();
         }
 
-        /// <summary>Whether a room is open or being set up.</summary>
-        internal Func<bool> IsRoomActive { get; set; }
+        /// <summary>Whether the active room is the one behind the given code.</summary>
+        internal Func<RoomCode, bool> IsCurrentRoom { get; set; }
+
+        /// <summary>Asks whether to leave the active room for another one; returns <c>true</c> when no room is active.</summary>
+        internal Func<Task<bool>> ConfirmSwitch { get; set; }
 
         /// <summary>Raised when a room joined before should be joined again.</summary>
         internal event EventHandler<RoomCode> JoinRequested;
 
         /// <summary>Raised when a room opened here before should be opened again with its code.</summary>
         internal event EventHandler<RoomCode> HostRequested;
+
+        /// <summary>Raised when the picked room is the one already active.</summary>
+        internal event EventHandler CurrentRoomRequested;
 
         private void Render()
         {
@@ -215,15 +222,15 @@ namespace Campfire.Pages
 
         private async void Open(RoomRecord record)
         {
-            var dialogs = Dialogs.Of(this);
-            if (IsRoomActive?.Invoke() == true)
-            {
-                if (dialogs != null)
-                    await dialogs.AlertAsync(Text.Get("Lobby.InRoomTitle"), Text.Get("Lobby.InRoom"));
-                return;
-            }
             var code = RoomCode.Find(record.Code);
             if (code == null)
+                return;
+            if (IsCurrentRoom?.Invoke(code) == true)
+            {
+                CurrentRoomRequested?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+            if (ConfirmSwitch != null && !await ConfirmSwitch())
                 return;
             (record.IsHost ? HostRequested : JoinRequested)?.Invoke(this, code);
         }

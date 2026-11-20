@@ -29,7 +29,7 @@ on:
         type: string
         required: false
       mirror:
-        description: "上传到 R2 国内直链并同步下载页，仅在发布 Release 时生效"
+        description: "同步下载页并显示网盘链接，仅在发布 Release 时生效"
         type: boolean
         default: true
       sign_test:
@@ -176,33 +176,6 @@ jobs:
           $hash = (Get-FileHash src/Campfire/bin/Release/Campfire.exe -Algorithm SHA256).Hash.ToLowerInvariant()
           Add-Content release-notes.md -Encoding utf8 -Value @("", "### 文件校验", "", "``Campfire.exe`` SHA256：``$hash``")
 
-      # Runs before the release is published.
-      - name: Upload to R2
-        if: inputs.release && inputs.mirror
-        shell: pwsh
-        env:
-          # API token with R2 "Object Read & Write" on the bucket.
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # Bucket name and the public address it is served from, e.g. https://dl.example.com/
-          R2_BUCKET: ${{ vars.R2_BUCKET }}
-          DOWNLOAD_URL: ${{ vars.DOWNLOAD_URL }}
-        run: |
-          if (-not $env:CLOUDFLARE_API_TOKEN -or -not $env:CLOUDFLARE_ACCOUNT_ID -or -not $env:R2_BUCKET -or -not $env:DOWNLOAD_URL) {
-            Write-Error "上传 R2 所需的配置不完整"
-            exit 1
-          }
-
-          # Every version gets its own folder.
-          foreach ($name in 'Campfire.exe', 'Campfire.exe.sig') {
-            # --remote writes to the real bucket.
-            npx --yes wrangler@4 r2 object put "$env:R2_BUCKET/$env:VERSION/$name" `
-              --file "src/Campfire/bin/Release/$name" --remote `
-              --content-type application/octet-stream `
-              --cache-control "public, max-age=31536000, immutable"
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          }
-
       - name: Publish release
         if: inputs.release
         uses: softprops/action-gh-release@v2
@@ -215,26 +188,26 @@ jobs:
             src/Campfire/bin/Release/Campfire.exe
             src/Campfire/bin/Release/Campfire.exe.sig
 
-      # The docs site reads docs/.vitepress/release.json to show the version and mirror link on its download page.
+      # The docs site reads docs/.vitepress/release.json to show the version and cloud drive link on its download page.
       - name: Sync download page
         if: inputs.release && inputs.mirror
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          DOWNLOAD_URL: ${{ vars.DOWNLOAD_URL }}
+          # Repository variable with the permanent share link of the Campfire folder on the cloud drive.
+          DRIVE_URL: ${{ vars.DRIVE_URL }}
           BRANCH: ${{ github.ref_name }}
         run: |
           $exe = 'src/Campfire/bin/Release/Campfire.exe'
           $release = [ordered]@{
             version = $env:VERSION
             date    = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
-            mirror  = $env:DOWNLOAD_URL
             app     = [ordered]@{
-              file   = "$env:VERSION/Campfire.exe"
               size   = (Get-Item $exe).Length
               sha256 = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
             }
           }
+          if ($env:DRIVE_URL) { $release.app.drive = $env:DRIVE_URL }
           # Updating an existing file needs its blob sha; the file may also not exist yet.
           $api = "repos/$env:GITHUB_REPOSITORY/contents/docs/.vitepress/release.json"
           $current = gh api "${api}?ref=$env:BRANCH" 2>$null
@@ -391,26 +364,6 @@ jobs:
           hash=$(sha256sum Campfire.apk | cut -d' ' -f1)
           printf '\n### 文件校验\n\n`Campfire.apk` SHA256：`%s`\n' "$hash" >> release-notes.md
 
-      # Runs before the release is published.
-      - name: Upload to R2
-        if: inputs.release && inputs.mirror
-        env:
-          # API token with R2 "Object Read & Write" on the bucket.
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          R2_BUCKET: ${{ vars.R2_BUCKET }}
-          DOWNLOAD_URL: ${{ vars.DOWNLOAD_URL }}
-        run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$R2_BUCKET" ] || [ -z "$DOWNLOAD_URL" ]; then
-            echo "::error::上传 R2 所需的配置不完整"
-            exit 1
-          fi
-          # Every version gets its own folder under android/.
-          npx --yes wrangler@4 r2 object put "$R2_BUCKET/android/$VERSION/Campfire.apk" \
-            --file Campfire.apk --remote \
-            --content-type application/vnd.android.package-archive \
-            --cache-control "public, max-age=31536000, immutable"
-
       # Not marked as latest: releases/latest stays the desktop release.
       - name: Publish release
         if: inputs.release
@@ -429,6 +382,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           MIRROR: ${{ inputs.mirror }}
+          # Repository variable with the permanent share link of the Campfire folder on the cloud drive.
+          DRIVE_URL: ${{ vars.DRIVE_URL }}
           BRANCH: ${{ github.ref_name }}
         run: |
           api="repos/$GITHUB_REPOSITORY/contents/docs/.vitepress/release.json"
@@ -440,13 +395,13 @@ jobs:
             echo '{}' > release.json
           fi
 
-          file=""
-          if [ "$MIRROR" = "true" ]; then file="android/$VERSION/Campfire.apk"; fi
+          drive=""
+          if [ "$MIRROR" = "true" ]; then drive="$DRIVE_URL"; fi
           jq --arg version "$VERSION" --arg tag "$TAG" \
-             --arg date "$(date -u +%Y-%m-%d)" --arg file "$file" \
+             --arg date "$(date -u +%Y-%m-%d)" --arg drive "$drive" \
              --argjson size "$(stat -c %s Campfire.apk)" \
              --arg sha256 "$(sha256sum Campfire.apk | cut -d' ' -f1)" \
-             '.android = ({version: $version, tag: $tag, date: $date, size: $size, sha256: $sha256} + (if $file == "" then {} else {file: $file} end))' \
+             '.android = ({version: $version, tag: $tag, date: $date, size: $size, sha256: $sha256} + (if $drive == "" then {} else {drive: $drive} end))' \
              release.json > release.new.json
 
           request=(--method PUT "$api"

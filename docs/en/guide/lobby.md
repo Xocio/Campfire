@@ -36,7 +36,7 @@ Rooms marked **Password** require the password provided by the host. The server 
 Start the game with the same version as the room. After joining, enter through the LAN worlds at the bottom of the multiplayer list.
 :::
 
-A room cannot be joined while you are in another; leave or close the current room first.
+Joining a room while you are in another asks first; once confirmed, Campfire leaves the current room (or closes it, as host) and joins the new one.
 
 ## Listing your room
 
@@ -47,8 +47,8 @@ A room cannot be joined while you are in another; leave or close the current roo
    | Option | Description |
    | --- | --- |
    | **Room name** | Required; defaults to "Player's world". Names containing inappropriate content are refused |
-   | **Picture** | Optional. A PNG or JPG image, or the map's own icon |
-   | **About** | Optional, up to 100 characters about the gameplay, rules or who is welcome. Checked against the same word filter |
+   | **Picture** | Optional. A PNG or JPG image, or the map's own icon. The next listing starts with the same choice |
+   | **About** | Optional, up to 100 characters and 4 lines about the gameplay, rules or who is welcome. Checked against the same word filter |
    | **Password** | Optional. Leave it empty to admit anyone |
    | **Tags** | Up to three, such as Survival, Building, Redstone or Minigames |
    | **Show my region** | Whether the lobby displays the rough region inferred by the server |

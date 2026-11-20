@@ -196,7 +196,13 @@
                 <pages:BackupPage x:Name="PageBackup" Visibility="Hidden" />
                 <pages:RoomSettingsPage x:Name="PageRoomSettings" Visibility="Hidden" />
                 <pages:ModManagerPage x:Name="PageModCheck" Visibility="Hidden" />
-                <pages:CrashPage x:Name="PageCrash" Visibility="Hidden" />            </Grid>
+                <pages:CrashPage x:Name="PageCrash" Visibility="Hidden" />
+
+                <!-- The active room over the other pages; it can be dragged anywhere and opens the room. -->
+                <Canvas x:Name="PanFloat">
+                    <controls:RoomBubble x:Name="Bubble" Opened="Bubble_Opened" />
+                </Canvas>
+            </Grid>
 
             <!-- First-run tour; dialogs stay above it. -->
             <controls:TourOverlay x:Name="Tour" Grid.RowSpan="2" />

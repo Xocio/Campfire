@@ -10,7 +10,7 @@
 
 ### 下載
 
-前往[下載頁](/zh-hant/download)獲取最新版本。中國大陸使用者建議使用國內直鏈；也可以從 [GitHub Releases](https://github.com/Xocio/Campfire/releases/latest) 下載。
+前往[下載頁](/zh-hant/download)獲取最新版本。中國大陸使用者建議使用網盤下載；也可以從 [GitHub Releases](https://github.com/Xocio/Campfire/releases/latest) 下載。
 
 在手機或平板上遊玩 Minecraft Java 版時，請使用[Android 版](./android)。
 

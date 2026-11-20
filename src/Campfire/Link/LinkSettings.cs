@@ -6,6 +6,17 @@ using System.Linq;
 
 namespace Campfire.Link
 {
+    /// <summary>The picture a room is listed with in the lobby.</summary>
+    internal enum LobbyIconChoice
+    {
+        /// <summary>The icon of the world the host plays, when it has one.</summary>
+        Map,
+        /// <summary>A picture picked from a file.</summary>
+        Custom,
+        /// <summary>The default picture.</summary>
+        None,
+    }
+
     /// <summary>
     /// Multiplayer preferences and the identity of this computer. Changes apply to the next room.
     /// </summary>
@@ -252,8 +263,8 @@ namespace Campfire.Link
         /// <summary>Host: the announcement shown to the room's players; empty for none.</summary>
         public static string RoomNotice
         {
-            get => GetText("link.notice");
-            set => AppSettings.Set("link.notice", (value ?? "").Trim());
+            get => GetLines("link.notice");
+            set => SetLines("link.notice", value);
         }
 
         /// <summary>Host: the room name, also used as the lobby title; the default name when none is set.</summary>
@@ -271,8 +282,8 @@ namespace Campfire.Link
         /// <summary>The room description last used in the lobby, offered again next time.</summary>
         public static string LobbyDescription
         {
-            get => GetText("lobby.description");
-            set => AppSettings.Set("lobby.description", (value ?? "").Trim());
+            get => GetLines("lobby.description");
+            set => SetLines("lobby.description", value);
         }
 
         /// <summary>The tags last picked for the lobby.</summary>
@@ -281,6 +292,52 @@ namespace Campfire.Link
             get => GetText("lobby.tags").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             set => AppSettings.Set("lobby.tags", string.Join(",", value ?? Array.Empty<string>()));
         }
+
+        /// <summary>Which picture the lobby form starts with, as chosen last time.</summary>
+        public static LobbyIconChoice LobbyIconChoice
+        {
+            get => Enum.TryParse(AppSettings.Get("lobby.iconchoice"), out LobbyIconChoice value) && Enum.IsDefined(typeof(LobbyIconChoice), value)
+                ? value
+                : LobbyIconChoice.Map;
+            set => AppSettings.Set("lobby.iconchoice", value.ToString());
+        }
+
+        /// <summary>The picture last picked from a file for the lobby, or <c>null</c> when none is kept.</summary>
+        public static byte[] LobbyIcon
+        {
+            get
+            {
+                try
+                {
+                    string path = LobbyIconPath;
+                    return File.Exists(path) ? File.ReadAllBytes(path) : null;
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    return null;
+                }
+            }
+            set
+            {
+                try
+                {
+                    string path = LobbyIconPath;
+                    if (value == null || value.Length == 0)
+                    {
+                        if (File.Exists(path))
+                            File.Delete(path);
+                        return;
+                    }
+                    Directory.CreateDirectory(DataDirectory);
+                    File.WriteAllBytes(path, value);
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                }
+            }
+        }
+
+        private static string LobbyIconPath => Path.Combine(DataDirectory, "lobby-icon");
 
         /// <summary>Whether listed rooms show the rough region the service derives from the connection.</summary>
         public static bool LobbyShowRegion
@@ -421,6 +478,20 @@ namespace Campfire.Link
         private static string GetText(string key)
         {
             return AppSettings.Get(key) ?? "";
+        }
+
+        /// <summary>The character that stands for a line break in stored texts: U+2028, the line separator.</summary>
+        private const char StoredLineBreak = (char)0x2028;
+
+        /// <summary>A stored text that may span lines.</summary>
+        private static string GetLines(string key)
+        {
+            return GetText(key).Replace(StoredLineBreak, '\n');
+        }
+
+        private static void SetLines(string key, string value)
+        {
+            AppSettings.Set(key, MultilineText.Clean(value).Replace('\n', StoredLineBreak));
         }
 
         private static bool GetFlag(string key, bool fallback)
